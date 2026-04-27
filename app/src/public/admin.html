@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Adobe 业务管理系统</title>
   <link rel="icon" href="/assets/icons/verification.png" type="image/png" />
-  <link rel="stylesheet" href="/style.css?v=20260428-08" />
+  <link rel="stylesheet" href="/style.css?v=20260428-09" />
 </head>
 <body class="admin-page">
   <div class="admin-layout hidden" id="adminPanel">
@@ -100,7 +100,7 @@
             <label><span class="admin-label-text">Adobe账户编号</span><input name="adobeCode" placeholder="自动生成，例如 A0001" readonly /></label>
             <label><span class="admin-label-text required">Adobe账户邮箱</span><input name="accountEmail" type="email" placeholder="adobe001@outlook.com" required /></label>
             <label><span class="admin-label-text">Adobe密码</span><input name="adobePassword" type="text" placeholder="至少 6 位" /></label>
-            <label><span class="admin-label-text">Adobe邮箱密码</span><input name="accountEmailPassword" type="text" placeholder="仅记录管理" /></label>
+            <label><span class="admin-label-text">Adobe邮箱密码</span><input name="accountEmailPassword" type="text" placeholder="至少 6 位" /></label>
             <label class="verification-email-row">
               <span class="admin-label-text required">验证码接收邮箱</span>
               <span class="verification-email-field">
@@ -442,10 +442,10 @@
               </label>
               <label>
                 <select id="customerExpireFilterSelect">
-                  <option value="">全部到期时间</option>
+                  <option value="">全部状态</option>
+                  <option value="normal">正常</option>
                   <option value="soon">30天内到期</option>
                   <option value="expired">已到期</option>
-                  <option value="valid">未到期</option>
                 </select>
               </label>
               <div class="adobe-filter-actions customer-filter-actions">
@@ -802,6 +802,6 @@
 
   <div id="successToastRoot"></div>
 
-  <script src="/admin.js?v=20260428-08"></script>
+  <script src="/admin.js?v=20260428-09"></script>
 </body>
 </html>

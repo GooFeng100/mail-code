@@ -1352,7 +1352,7 @@ function filteredAdobeAccounts() {
     const matchesKeyword = !searchText || searchText.split(/\s+/).every((word) => searchable.includes(word));
     const matchesPlan = !plan || account.accountPlan === plan;
     const matchesStatus = !status
-      || (status === "normal" && accountStatus === "正常" && (!Number.isFinite(days) || days > 30))
+      || (status === "normal" && accountStatus === "正常")
       || (status === "soon" && Number.isFinite(days) && days > 0 && days <= 30)
       || (status === "expired" && Number.isFinite(days) && days <= 0);
     const matchesEnabled = !enabled
@@ -1426,7 +1426,7 @@ function renderCustomers() {
     const matchesExpire = !expireFilter
       || (expireFilter === "soon" && Number.isFinite(days) && days > 0 && days <= 30)
       || (expireFilter === "expired" && Number.isFinite(days) && days <= 0)
-      || (expireFilter === "valid" && Number.isFinite(days) && days > 0);
+      || (expireFilter === "normal" && customerStatusText(customer) === "正常");
     return matchesKeyword && matchesPlan && matchesExpire;
   });
 
