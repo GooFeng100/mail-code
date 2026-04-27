@@ -147,6 +147,26 @@ const el = {
 let currentModalContent = null;
 let confirmResolver = null;
 let successFeedbackTimer = null;
+const adminSounds = {
+  deleteAlert: "/assets/sounds/alerm.wav",
+  success: "/assets/sounds/verify.wav"
+};
+
+function playAdminSound(src) {
+  if (!src) {
+    return;
+  }
+  try {
+    const audio = new Audio(src);
+    audio.preload = "auto";
+    const result = audio.play();
+    if (result && typeof result.catch === "function") {
+      result.catch(() => {});
+    }
+  } catch (error) {
+    // Audio feedback is optional; keep the business action uninterrupted.
+  }
+}
 
 function getToken() {
   return localStorage.getItem(tokenKey);
@@ -191,6 +211,7 @@ function showSuccessFeedback(options = {}) {
   const message = options.message || "已完成";
   const duration = Number(options.duration || 2000);
   const root = document.getElementById("successToastRoot") || document.body;
+  playAdminSound(adminSounds.success);
 
   root.querySelectorAll(".success-feedback").forEach((item) => item.remove());
   window.clearTimeout(successFeedbackTimer);
@@ -275,6 +296,7 @@ function closeModal() {
 }
 
 function askConfirm(text, title = "确认操作", details = [], hint = "") {
+  const isDeleteAction = title.includes("删除");
   const isBindingUnbind = title.includes("取消绑定");
   const isBindingRestore = title.includes("恢复绑定");
   const isBindingAction = isBindingUnbind || isBindingRestore;
@@ -331,6 +353,9 @@ function askConfirm(text, title = "确认操作", details = [], hint = "") {
   el.confirmHint.classList.toggle("hidden", !hint);
   el.confirmModal.classList.remove("hidden");
   document.body.classList.add("admin-modal-open");
+  if (isDeleteAction) {
+    playAdminSound(adminSounds.deleteAlert);
+  }
 
   return new Promise((resolve) => {
     confirmResolver = resolve;
