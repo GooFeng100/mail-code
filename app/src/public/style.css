@@ -5643,125 +5643,6 @@ td:last-child {
   white-space: nowrap;
 }
 
-.admin-page .checkbox-wrapper-35.assignment-role-switch .switch {
-  display: none;
-}
-
-.admin-page .checkbox-wrapper-35.assignment-role-switch .switch + label {
-  -webkit-box-align: center;
-  -webkit-align-items: center;
-  -ms-flex-align: center;
-  align-items: center;
-  color: #78768d;
-  cursor: default;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-size: 12px;
-  line-height: 15px;
-  position: relative;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
-}
-
-.admin-page .checkbox-wrapper-35.assignment-role-switch .switch + label::before,
-.admin-page .checkbox-wrapper-35.assignment-role-switch .switch + label::after {
-  content: "";
-  display: block;
-}
-
-.admin-page .checkbox-wrapper-35.assignment-role-switch .switch + label::before {
-  background-color: #05012c;
-  border-radius: 500px;
-  height: 15px;
-  margin-right: 8px;
-  -webkit-transition: background-color 0.125s ease-out;
-  transition: background-color 0.125s ease-out;
-  width: 25px;
-}
-
-.admin-page .checkbox-wrapper-35.assignment-role-switch .switch + label::after {
-  background-color: #fff;
-  border-radius: 13px;
-  box-shadow: 0 3px 1px 0 rgba(37, 34, 71, 0.05), 0 2px 2px 0 rgba(37, 34, 71, 0.1), 0 3px 3px 0 rgba(37, 34, 71, 0.05);
-  height: 13px;
-  left: 1px;
-  position: absolute;
-  top: 1px;
-  -webkit-transition: -webkit-transform 0.125s ease-out;
-  transition: -webkit-transform 0.125s ease-out;
-  transition: transform 0.125s ease-out;
-  transition: transform 0.125s ease-out, -webkit-transform 0.125s ease-out;
-  width: 13px;
-}
-
-.admin-page .checkbox-wrapper-35.assignment-role-switch .switch + label .switch-x-text {
-  display: block;
-  margin-right: .3em;
-}
-
-.admin-page .checkbox-wrapper-35.assignment-role-switch .switch + label .switch-x-toggletext {
-  display: block;
-  font-weight: bold;
-  height: 15px;
-  overflow: hidden;
-  position: relative;
-  width: 25px;
-}
-
-.admin-page .checkbox-wrapper-35.assignment-role-switch .switch + label .switch-x-unchecked,
-.admin-page .checkbox-wrapper-35.assignment-role-switch .switch + label .switch-x-checked {
-  left: 0;
-  position: absolute;
-  top: 0;
-  -webkit-transition: opacity 0.125s ease-out, -webkit-transform 0.125s ease-out;
-  transition: opacity 0.125s ease-out, -webkit-transform 0.125s ease-out;
-  transition: transform 0.125s ease-out, opacity 0.125s ease-out;
-  transition: transform 0.125s ease-out, opacity 0.125s ease-out, -webkit-transform 0.125s ease-out;
-}
-
-.admin-page .checkbox-wrapper-35.assignment-role-switch .switch + label .switch-x-unchecked {
-  opacity: 1;
-  -webkit-transform: none;
-  transform: none;
-}
-
-.admin-page .checkbox-wrapper-35.assignment-role-switch .switch + label .switch-x-checked {
-  opacity: 0;
-  -webkit-transform: translate3d(0, 100%, 0);
-  transform: translate3d(0, 100%, 0);
-}
-
-.admin-page .checkbox-wrapper-35.assignment-role-switch .switch + label .switch-x-hiddenlabel {
-  position: absolute;
-  visibility: hidden;
-}
-
-.admin-page .checkbox-wrapper-35.assignment-role-switch .switch:checked + label::before {
-  background-color: #ffb500;
-}
-
-.admin-page .checkbox-wrapper-35.assignment-role-switch .switch:checked + label::after {
-  -webkit-transform: translate3d(10px, 0, 0);
-  transform: translate3d(10px, 0, 0);
-}
-
-.admin-page .checkbox-wrapper-35.assignment-role-switch .switch:checked + label .switch-x-unchecked {
-  opacity: 0;
-  -webkit-transform: translate3d(0, -100%, 0);
-  transform: translate3d(0, -100%, 0);
-}
-
-.admin-page .checkbox-wrapper-35.assignment-role-switch .switch:checked + label .switch-x-checked {
-  opacity: 1;
-  -webkit-transform: none;
-  transform: none;
-}
-
 .admin-page button.checkbox-wrapper-35.assignment-role-switch {
   height: auto;
   padding: 0;
@@ -5830,6 +5711,9 @@ td:last-child {
 
 .admin-page .checkbox-wrapper-35.assignment-role-switch .switch-x-toggletext {
   display: block;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
   font-weight: bold;
   height: 15px;
   overflow: hidden;
@@ -5853,6 +5737,17 @@ td:last-child {
 .admin-page .checkbox-wrapper-35.assignment-role-switch .switch-x-checked {
   opacity: 0;
   transform: translate3d(0, 100%, 0);
+}
+
+.admin-page .checkbox-wrapper-35.assignment-role-switch .switch-x-hiddenlabel {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .admin-page .checkbox-wrapper-35.assignment-role-switch.primary .switch-x-unchecked {
