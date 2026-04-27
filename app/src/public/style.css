@@ -459,7 +459,6 @@ body.receiver-active .shell {
   justify-content: center;
   align-items: center;
   --color: hsl(0, 0%, 33%);
-  --animation: 2s ease-in-out infinite;
   flex: 0 0 auto;
 }
 
@@ -474,7 +473,7 @@ body.receiver-active .shell {
   border-radius: 50%;
   margin: 0 10px;
   background-color: transparent;
-  animation: circle-keys var(--animation);
+  animation: receiver-loader-circle-keys 2s ease-in-out infinite;
 }
 
 .receiver-empty .loader .circle .dot {
@@ -486,7 +485,7 @@ body.receiver-active .shell {
   height: 16px;
   border-radius: 50%;
   background-color: var(--color);
-  animation: dot-keys var(--animation);
+  animation: receiver-loader-dot-keys 2s ease-in-out infinite;
 }
 
 .receiver-empty .loader .circle .outline {
@@ -497,7 +496,7 @@ body.receiver-active .shell {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  animation: outline-keys var(--animation);
+  animation: receiver-loader-outline-keys 2s ease-in-out infinite;
 }
 
 .receiver-empty .loader .circle:nth-child(2) {
@@ -552,7 +551,7 @@ body.receiver-active .shell {
   animation-delay: 2.1s;
 }
 
-@keyframes circle-keys {
+@keyframes receiver-loader-circle-keys {
   0% {
     transform: scale(1);
     opacity: 1;
@@ -569,7 +568,7 @@ body.receiver-active .shell {
   }
 }
 
-@keyframes dot-keys {
+@keyframes receiver-loader-dot-keys {
   0% {
     transform: translate(-50%, -50%) scale(1);
   }
@@ -583,7 +582,7 @@ body.receiver-active .shell {
   }
 }
 
-@keyframes outline-keys {
+@keyframes receiver-loader-outline-keys {
   0% {
     transform: translate(-50%, -50%) scale(0);
     outline: solid 20px var(--color);
