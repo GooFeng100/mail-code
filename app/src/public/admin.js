@@ -850,7 +850,20 @@ function assignmentRoleLabel(value) {
 
 function assignmentRoleChip(value) {
   const role = value === "primary" ? "primary" : "backup";
-  return statusChip(assignmentRoleLabel(role), role === "primary" ? "success" : "muted");
+  const id = `assignment-role-${role}-${Math.random().toString(36).slice(2, 10)}`;
+  const checked = role === "primary" ? " checked" : "";
+  return `
+    <div class="checkbox-wrapper-35 assignment-role-switch ${role}" aria-label="${assignmentRoleLabel(role)}">
+      <input value="${role}" name="${id}" id="${id}" type="checkbox" class="switch" disabled${checked}>
+      <label for="${id}">
+        <span class="switch-x-text">账号</span>
+        <span class="switch-x-toggletext">
+          <span class="switch-x-unchecked"><span class="switch-x-hiddenlabel">Unchecked: </span>备用</span>
+          <span class="switch-x-checked"><span class="switch-x-hiddenlabel">Checked: </span>主要</span>
+        </span>
+      </label>
+    </div>
+  `;
 }
 
 function assignmentRoleToggleAction(assignment) {
