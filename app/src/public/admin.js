@@ -731,7 +731,7 @@ function adobeRemainingText(account) {
   if (!Number.isFinite(days)) {
     return displayValue(account ? account.remainingText : "");
   }
-  return days <= 0 ? "0" : `${days} 天`;
+  return days <= 0 ? "0 天" : `${days} 天`;
 }
 
 function customerRemainingDays(customer) {
@@ -744,7 +744,7 @@ function customerRemainingText(customer) {
   if (!Number.isFinite(days)) {
     return displayValue(customer ? customer.remainingText : "");
   }
-  return days <= 0 ? "0" : `${days} 天`;
+  return days <= 0 ? "0 天" : `${days} 天`;
 }
 
 function remainingTextCell(text, kind = "") {

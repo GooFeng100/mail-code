@@ -44,10 +44,10 @@ function getRemainingText(expireAt) {
 
   const days = getRemainingDays(expire);
   if (days <= 0) {
-    return "0";
+    return "0 天";
   }
 
-  return `剩余 ${days} 天`;
+  return `${days} 天`;
 }
 
 function getDynamicStatus(expireAt) {
