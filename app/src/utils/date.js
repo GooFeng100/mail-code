@@ -33,7 +33,7 @@ function getRemainingDays(expireAt) {
   const end = new Date(expire.getTime());
   end.setHours(0, 0, 0, 0);
   const diff = end.getTime() - startOfToday().getTime();
-  return Math.max(0, Math.ceil(diff / 86400000));
+  return Math.ceil(diff / 86400000);
 }
 
 function getRemainingText(expireAt) {
@@ -43,7 +43,7 @@ function getRemainingText(expireAt) {
   }
 
   const days = getRemainingDays(expire);
-  if (days <= 0 && expire.getTime() < startOfToday().getTime()) {
+  if (days <= 0) {
     return "已过期";
   }
 
@@ -56,7 +56,7 @@ function getDynamicStatus(expireAt) {
     return "未设置";
   }
 
-  return expire.getTime() < startOfToday().getTime() ? "已到期" : "正常";
+  return expire.getTime() <= startOfToday().getTime() ? "已到期" : "正常";
 }
 
 function toDateOnly(value) {
