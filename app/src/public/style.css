@@ -459,7 +459,7 @@ body.receiver-active .shell {
   justify-content: center;
   align-items: center;
   --color: hsl(0, 0%, 33%);
-  --animation: 2s ease-in-out infinite;
+  --animation: 2.1s ease-in-out infinite;
 }
 
 .loader .circle {
