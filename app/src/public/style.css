@@ -7927,6 +7927,21 @@ td:last-child {
   flex-basis: 60px !important;
 }
 
+.admin-page #adminConfirmModal.binding-action-open .binding-bridge {
+  align-self: center !important;
+  justify-self: center !important;
+  display: grid !important;
+  place-items: center !important;
+  margin: 4px auto !important;
+}
+
+.admin-page #adminConfirmModal.binding-action-open .binding-bridge::after {
+  display: block !important;
+  margin: 0 auto !important;
+  background-position: center center !important;
+  background-size: contain !important;
+}
+
 .admin-page #assignmentForm.binding-modal-form .admin-form-actions {
   margin: 14px -28px 0 !important;
   padding: 12px 28px 16px !important;
