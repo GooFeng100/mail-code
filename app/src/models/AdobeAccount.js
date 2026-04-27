@@ -67,10 +67,6 @@ const adobeAccountSchema = new mongoose.Schema(
       type: Date,
       default: null
     },
-    status: {
-      type: String,
-      default: "正常"
-    },
     enabled: {
       type: Boolean,
       default: true

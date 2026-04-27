@@ -44,10 +44,6 @@ const customerSchema = new mongoose.Schema(
       type: Date,
       default: null
     },
-    renewalStatus: {
-      type: String,
-      default: "正常"
-    },
     remark: {
       type: String,
       default: ""

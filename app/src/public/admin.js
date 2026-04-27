@@ -3,8 +3,6 @@ const tokenKey = "mailCodeToken";
 const state = {
   config: {
     plans: [],
-    adobeAccountStatuses: [],
-    customerRenewalStatuses: [],
     renewalPlans: []
   },
   currentUser: null,
@@ -534,12 +532,9 @@ function renderStats() {
     const days = adobeRemainingDays(account);
     return Number.isFinite(days) && days > 0 && days <= 30;
   }).length;
-  const riskAdobe = state.adobeAccounts.filter((account) => {
-    const text = String(account.dynamicStatus || account.status || "");
-    return text === "停用" || text === "异常" || account.enabled === false;
-  }).length;
+  const riskAdobe = state.adobeAccounts.filter((account) => account.enabled === false).length;
   const normalAdobe = state.adobeAccounts.filter((account) => adobeStatusText(account) === "正常" && account.enabled !== false).length;
-  const expiredCustomers = state.customers.filter((customer) => customer.dynamicRenewalStatus === "已到期").length;
+  const expiredCustomers = state.customers.filter((customer) => customerStatusText(customer) === "已到期").length;
   const soonCustomers = state.customers.filter((customer) => {
     const days = customerRemainingDays(customer);
     return Number.isFinite(days) && days > 0 && days <= 30;
@@ -1148,12 +1143,6 @@ function populateConfigOptions() {
     fillSelect(el.verificationEmailDomainSelect, state.config.mailDomains || [state.config.mailDomain].filter(Boolean));
   }
   fillSelect(el.customerPlanSelect, state.config.plans);
-  if (el.adobeStatusSelect?.tagName === "SELECT") {
-    fillSelect(el.adobeStatusSelect, state.config.adobeAccountStatuses);
-  }
-  if (el.customerRenewalStatusSelect?.tagName === "SELECT") {
-    fillSelect(el.customerRenewalStatusSelect, state.config.customerRenewalStatuses);
-  }
   fillSelect(el.adobeRenewalPlanSelect, state.config.renewalPlans);
   fillSelect(el.customerRenewalPlanSelect, state.config.renewalPlans);
   if (el.customerPlanFilterSelect) {
@@ -1163,7 +1152,7 @@ function populateConfigOptions() {
     fillSelect(el.adobePlanFilterSelect, state.config.plans, "全部账户计划");
   }
   if (el.adobeStatusFilterSelect) {
-    fillSelect(el.adobeStatusFilterSelect, state.config.adobeAccountStatuses, "全部状态");
+    fillSelect(el.adobeStatusFilterSelect, ["正常", "已到期"], "全部状态");
   }
 }
 
@@ -1310,9 +1299,7 @@ function bindAssignmentCombobox(kind) {
 
 function parameterCategoryLabel(category) {
   const labels = state.config.parameterCategories || {
-    plan: "账户计划",
-    adobeAccountStatus: "Adobe账户状态",
-    customerStatus: "客户状态"
+    plan: "账户计划"
   };
   return labels[category] || category;
 }
@@ -1635,7 +1622,7 @@ function renderAdobeDetail(data) {
   ].join("");
   setText("adobeMetricCustomers", customers.length);
   setText("adobeMetricRenewals", (data.renewalRecords || []).length);
-  setText("adobeMetricExpire", adobeRemainingText(account) || account.dynamicStatus || account.status || "-");
+  setText("adobeMetricExpire", adobeRemainingText(account) || "-");
 
   el.adobeDetailCustomers.innerHTML = customers.length
     ? customers.map((customer) => `
@@ -1696,7 +1683,7 @@ function renderCustomerDetail(data) {
   ].join("");
   setText("customerMetricAccounts", adobeAccounts.length);
   setText("customerMetricRenewals", (data.renewalRecords || []).length);
-  setText("customerMetricExpire", customerRemainingText(customer) || customer.dynamicRenewalStatus || customer.renewalStatus || "-");
+  setText("customerMetricExpire", customerRemainingText(customer) || "-");
 
   el.customerDetailAdobeAccounts.innerHTML = adobeAccounts.length
     ? adobeAccounts.map((account) => `

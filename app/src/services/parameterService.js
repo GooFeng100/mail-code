@@ -1,23 +1,17 @@
 const ParameterOption = require("../models/ParameterOption");
 
 const CATEGORIES = {
-  plan: "账户计划",
-  adobeAccountStatus: "Adobe账户状态",
-  customerStatus: "客户状态"
+  plan: "账户计划"
 };
 
 const DEFAULT_PARAMETER_OPTIONS = [
   { category: "plan", name: "全家桶月付", days: 30, sortOrder: 1 },
   { category: "plan", name: "全家桶年付", days: 365, sortOrder: 2 },
   { category: "plan", name: "摄影计划月付", days: 30, sortOrder: 3 },
-  { category: "plan", name: "摄影计划年付", days: 365, sortOrder: 4 },
-  { category: "adobeAccountStatus", name: "正常", days: 0, sortOrder: 1 },
-  { category: "adobeAccountStatus", name: "已到期", days: 0, sortOrder: 2 },
-  { category: "adobeAccountStatus", name: "停用", days: 0, sortOrder: 3 },
-  { category: "adobeAccountStatus", name: "异常", days: 0, sortOrder: 4 },
-  { category: "customerStatus", name: "正常", days: 0, sortOrder: 1 },
-  { category: "customerStatus", name: "已到期", days: 0, sortOrder: 2 }
+  { category: "plan", name: "摄影计划年付", days: 365, sortOrder: 4 }
 ];
+
+const REMOVED_CATEGORIES = ["adobeAccountStatus", "customerStatus"];
 
 function badRequest(message) {
   const error = new Error(message);
@@ -79,6 +73,8 @@ async function shiftSortOrders(category, sortOrder, excludeId) {
 }
 
 async function ensureDefaultParameterOptions() {
+  await ParameterOption.deleteMany({ category: { $in: REMOVED_CATEGORIES } });
+
   for (const option of DEFAULT_PARAMETER_OPTIONS) {
     await ParameterOption.updateOne(
       { category: option.category, name: option.name },
@@ -95,7 +91,7 @@ async function ensureDefaultParameterOptions() {
 }
 
 async function listParameterOptions() {
-  const options = await ParameterOption.find().sort({ category: 1, sortOrder: 1, createdAt: 1 });
+  const options = await ParameterOption.find({ category: { $in: Object.keys(CATEGORIES) } }).sort({ category: 1, sortOrder: 1, createdAt: 1 });
   return options.map(publicOption);
 }
 
@@ -104,11 +100,7 @@ async function enabledOptions(category) {
 }
 
 async function getOptionConfig() {
-  const [plans, adobeStatuses, customerStatuses] = await Promise.all([
-    enabledOptions("plan"),
-    enabledOptions("adobeAccountStatus"),
-    enabledOptions("customerStatus")
-  ]);
+  const plans = await enabledOptions("plan");
 
   const planItems = plans.map((item) => ({
     name: item.name,
@@ -117,8 +109,6 @@ async function getOptionConfig() {
 
   return {
     plans: planItems,
-    adobeAccountStatuses: adobeStatuses.map((item) => item.name),
-    customerRenewalStatuses: customerStatuses.map((item) => item.name),
     renewalPlans: planItems.map((item) => ({
       name: item.name,
       plan: item.name,
@@ -143,11 +133,6 @@ async function assertEnabledOption(category, name, fieldName) {
     badRequest(`${fieldName} must be one of: ${values.join(", ")}`);
   }
   return option;
-}
-
-async function defaultOptionName(category) {
-  const option = await ParameterOption.findOne({ category, enabled: true }).sort({ sortOrder: 1, createdAt: 1 });
-  return option ? option.name : "";
 }
 
 async function createParameterOption(data) {
@@ -222,7 +207,6 @@ module.exports = {
   listParameterOptions,
   getOptionConfig,
   assertEnabledOption,
-  defaultOptionName,
   createParameterOption,
   updateParameterOption,
   deleteParameterOption

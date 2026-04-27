@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Adobe 业务管理系统</title>
   <link rel="icon" href="/assets/icons/verification.png" type="image/png" />
-  <link rel="stylesheet" href="/style.css?v=20260428-05" />
+  <link rel="stylesheet" href="/style.css?v=20260428-06" />
 </head>
 <body class="admin-page">
   <div class="admin-layout hidden" id="adminPanel">
@@ -690,7 +690,7 @@
           <div>
             <p class="admin-eyebrow">Settings</p>
             <h2>参数设置</h2>
-            <span>维护动态数据库参数，供 Adobe账户、客户状态和计划下拉选项使用。</span>
+            <span>维护账户计划参数，用于自动计算到期日和续费天数。</span>
           </div>
           <button type="button" id="addParameterHeroBtn">
             <img class="admin-action-icon" src="/assets/icons/admin/add.png" alt="" />新增参数
@@ -700,8 +700,6 @@
         <div class="admin-parameter-tabs" role="tablist" aria-label="参数分类">
           <button type="button" class="active" data-parameter-filter="">全部参数</button>
           <button type="button" data-parameter-filter="plan">账户计划</button>
-          <button type="button" data-parameter-filter="adobeAccountStatus">Adobe账户状态</button>
-          <button type="button" data-parameter-filter="customerStatus">客户状态</button>
         </div>
 
         <div class="admin-card admin-form-card settings-modal-card" id="parameterFormCard">
@@ -715,7 +713,7 @@
               </div>
               <div>
                 <h2 id="settingsModalTitle">参数设置</h2>
-                <p>维护 Adobe账户状态、客户状态、账户计划。账户计划的有效期会用于自动计算到期日和续费天数。</p>
+                <p>维护账户计划。账户计划的有效期会用于自动计算到期日和续费天数。</p>
               </div>
             </div>
             <button type="button" class="settings-clear-btn" id="resetParameterFormBtn">
@@ -733,12 +731,10 @@
                 <span class="settings-select-wrap">
                   <select name="category" id="parameterCategorySelect">
                     <option value="plan">账户计划</option>
-                    <option value="adobeAccountStatus">Adobe账户状态</option>
-                    <option value="customerStatus">客户状态</option>
                   </select>
                 </span>
               </label>
-              <label class="settings-field">名称<input name="name" placeholder="例如 全家桶年付 / 正常" required /></label>
+              <label class="settings-field">名称<input name="name" placeholder="例如 全家桶年付" required /></label>
               <label class="settings-field">有效期天数<input name="days" type="number" min="0" step="1" placeholder="仅账户计划需要" /></label>
               <label class="settings-field">排序<input name="sortOrder" type="number" min="1" step="1" placeholder="数字越小越靠前" required /></label>
             </div>
@@ -820,6 +816,6 @@
 
   <div id="successToastRoot"></div>
 
-  <script src="/admin.js?v=20260428-05"></script>
+  <script src="/admin.js?v=20260428-06"></script>
 </body>
 </html>

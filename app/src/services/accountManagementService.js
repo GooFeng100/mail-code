@@ -13,8 +13,7 @@ const {
   toDate
 } = require("../utils/date");
 const {
-  assertEnabledOption,
-  defaultOptionName
+  assertEnabledOption
 } = require("./parameterService");
 
 function badRequest(message) {
@@ -222,8 +221,6 @@ async function createAdobeAccount(data) {
   const plan = await assertEnabledOption("plan", data.accountPlan, "accountPlan");
   const paidAt = toDate(data.paidAt);
   const baseExpireAt = toDate(data.baseExpireAt) || (paidAt && plan.days ? addDays(paidAt, plan.days) : null);
-  const defaultStatus = await defaultOptionName("adobeAccountStatus");
-  const status = await assertEnabledOption("adobeAccountStatus", defaultStatus, "status");
 
   const account = await AdobeAccount.create({
     adobeCode,
@@ -237,7 +234,6 @@ async function createAdobeAccount(data) {
     paidAt,
     baseExpireAt,
     accountExpireAt: baseExpireAt,
-    status: status.name,
     enabled: data.enabled !== false,
     remark: String(data.remark || "")
   });
@@ -400,8 +396,6 @@ async function createCustomer(data) {
   const plan = await assertEnabledOption("plan", data.purchasedPlan, "purchasedPlan");
   const firstPaidAt = toDate(data.firstPaidAt);
   const baseAfterSalesExpireAt = toDate(data.baseAfterSalesExpireAt) || (firstPaidAt && plan.days ? addDays(firstPaidAt, plan.days) : null);
-  const defaultStatus = await defaultOptionName("customerStatus");
-  const renewalStatus = await assertEnabledOption("customerStatus", defaultStatus, "renewalStatus");
   const customerNickname = String(data.customerNickname || "").trim();
   if (!customerNickname) {
     badRequest("customerNickname is required");
@@ -417,7 +411,6 @@ async function createCustomer(data) {
     firstPaidAt,
     baseAfterSalesExpireAt,
     afterSalesExpireAt: baseAfterSalesExpireAt,
-    renewalStatus: renewalStatus.name,
     remark: String(data.remark || "")
   });
 
