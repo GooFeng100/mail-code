@@ -43,7 +43,7 @@ function setMessage(el, text, type) {
 
 function friendlyErrorMessage(message) {
   if (message === "invalid username or password") {
-    return "\u7528\u6237\u540d\u6216\u5bc6\u7801\u9519\u8bef\uff0c\u8bf7\u91cd\u65b0\u8f93\u5165\u6216\u8054\u7cfb\u7ba1\u7406\u5458\u3002";
+    return "用户名或密码错误，请重新输入或联系管理员。";
   }
 
   return message;
@@ -90,7 +90,7 @@ async function api(path, options = {}) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     if (res.status === 401) {
-      logoutToLogin("\u767b\u5f55\u5df2\u8fc7\u671f\uff0c\u8bf7\u91cd\u65b0\u767b\u5f55\u3002");
+      logoutToLogin("登录已过期，请重新登录。");
     }
     throw new Error(data.error || `HTTP ${res.status}`);
   }
@@ -191,10 +191,10 @@ function renderSessionCountdown() {
   }
 
   const text = sessionRemainingText();
-  sessionCountdown.textContent = `\u767b\u5f55\u5269\u4f59\u65f6\u95f4 ${text}`;
+  sessionCountdown.textContent = `登录剩余时间 ${text}`;
 
   if (text === "0m 00s") {
-    logoutToLogin("\u767b\u5f55\u5df2\u8fc7\u671f\uff0c\u8bf7\u91cd\u65b0\u767b\u5f55\u3002");
+    logoutToLogin("登录已过期，请重新登录。");
   }
 }
 
@@ -210,14 +210,14 @@ function renderCodes() {
     });
 
   if (!activeCodes.length) {
-    codeList.innerHTML = '<div class="receiver-empty"><img src="/assets/icons/loading.png" alt="" /> <span>\u7b49\u5f85\u63a5\u6536\u9a8c\u8bc1\u7801</span></div>';
+    codeList.innerHTML = '<div class="receiver-empty"><img src="/assets/icons/loading.png" alt="" /> <span>等待接收验证码</span></div>';
     return;
   }
 
   codeList.innerHTML = activeCodes.map((item, index) => `
     <article class="receiver-code-card ${index > 0 ? "is-older" : ""}">
       <div class="receiver-code-main">
-        <p>\u9a8c\u8bc1\u7801</p>
+        <p>验证码</p>
         <div class="receiver-code-value">${escapeHtml(normalizeCodeValue(item.code))}</div>
         <button type="button" class="copy-code-btn" data-id="${escapeHtml(item.id)}">Copy</button>
       </div>
@@ -225,14 +225,14 @@ function renderCodes() {
         <div class="info-row">
           <div class="info-icon" aria-hidden="true">@</div>
           <div>
-            <p>\u53d1\u9001\u8005</p>
-            <strong>${escapeHtml(item.from || "\u672a\u77e5\u53d1\u9001\u8005")}</strong>
+            <p>发送者</p>
+            <strong>${escapeHtml(item.from || "未知发送者")}</strong>
           </div>
         </div>
         <div class="info-row">
           <div class="info-icon" aria-hidden="true">M</div>
           <div>
-            <p>\u63a5\u6536\u8005</p>
+            <p>接收者</p>
             <strong>${escapeHtml(item.emailAddress || "")}</strong>
           </div>
         </div>
@@ -269,7 +269,7 @@ function showLogin() {
   userPanel.classList.add("hidden");
   loginPanel.classList.remove("hidden");
   if (sessionCountdown) {
-    sessionCountdown.textContent = "\u767b\u5f55\u5269\u4f59\u65f6\u95f4 --";
+    sessionCountdown.textContent = "登录剩余时间 --";
   }
 }
 
@@ -317,14 +317,14 @@ function connectSocket() {
 
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  setMessage(loginMessage, "\u6b63\u5728\u767b\u5f55...");
+  setMessage(loginMessage, "正在登录...");
 
   const formData = new FormData(loginForm);
   const username = cleanLoginAccount(formData.get("username"));
   formData.set("username", username);
 
   if (!isValidLoginAccount(username)) {
-    setMessage(loginMessage, "\u8bf7\u8f93\u5165\u6b63\u786e\u7684\u82f1\u6587\u90ae\u7bb1\u683c\u5f0f\u3002", "error");
+    setMessage(loginMessage, "请输入正确的英文邮箱格式。", "error");
     return;
   }
 
