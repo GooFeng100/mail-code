@@ -454,15 +454,15 @@ body.receiver-active .shell {
   text-align: center;
 }
 
-.receiver-empty .loader {
+.loader {
   display: flex;
   justify-content: center;
   align-items: center;
   --color: hsl(0, 0%, 33%);
-  flex: 0 0 auto;
+  --animation: 2s ease-in-out infinite;
 }
 
-.receiver-empty .loader .circle {
+.loader .circle {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -473,85 +473,81 @@ body.receiver-active .shell {
   border-radius: 50%;
   margin: 0 10px;
   background-color: transparent;
-  animation: receiver-loader-circle-keys 2s ease-in-out infinite;
+  animation: circle-keys var(--animation);
 }
 
-.receiver-empty .loader .circle .dot {
+.loader .circle .dot {
   position: absolute;
-  top: 50%;
-  left: 50%;
   transform: translate(-50%, -50%);
   width: 16px;
   height: 16px;
   border-radius: 50%;
   background-color: var(--color);
-  animation: receiver-loader-dot-keys 2s ease-in-out infinite;
+  animation: dot-keys var(--animation);
 }
 
-.receiver-empty .loader .circle .outline {
+.loader .circle .outline {
   position: absolute;
-  top: 50%;
-  left: 50%;
   transform: translate(-50%, -50%);
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  animation: receiver-loader-outline-keys 2s ease-in-out infinite;
+  animation: outline-keys var(--animation);
 }
 
-.receiver-empty .loader .circle:nth-child(2) {
+.circle:nth-child(2) {
   animation-delay: 0.3s;
 }
 
-.receiver-empty .loader .circle:nth-child(3) {
+.circle:nth-child(3) {
   animation-delay: 0.6s;
 }
 
-.receiver-empty .loader .circle:nth-child(4) {
+.circle:nth-child(4) {
   animation-delay: 0.9s;
 }
 
-.receiver-empty .loader .circle:nth-child(5) {
+.circle:nth-child(5) {
   animation-delay: 1.2s;
 }
 
-.receiver-empty .loader .circle:nth-child(2) .dot {
+.circle:nth-child(2) .dot {
   animation-delay: 0.3s;
 }
 
-.receiver-empty .loader .circle:nth-child(3) .dot {
+.circle:nth-child(3) .dot {
   animation-delay: 0.6s;
 }
 
-.receiver-empty .loader .circle:nth-child(4) .dot {
+.circle:nth-child(4) .dot {
   animation-delay: 0.9s;
 }
 
-.receiver-empty .loader .circle:nth-child(5) .dot {
+.circle:nth-child(5) .dot {
   animation-delay: 1.2s;
 }
 
-.receiver-empty .loader .circle:nth-child(1) .outline {
+.circle:nth-child(1) .outline {
   animation-delay: 0.9s;
 }
 
-.receiver-empty .loader .circle:nth-child(2) .outline {
+.circle:nth-child(2) .outline {
   animation-delay: 1.2s;
 }
 
-.receiver-empty .loader .circle:nth-child(3) .outline {
+.circle:nth-child(3) .outline {
   animation-delay: 1.5s;
 }
 
-.receiver-empty .loader .circle:nth-child(4) .outline {
+.circle:nth-child(4) .outline {
   animation-delay: 1.8s;
 }
 
-.receiver-empty .loader .circle:nth-child(5) .outline {
+.circle:nth-child(5) .outline {
   animation-delay: 2.1s;
 }
 
-@keyframes receiver-loader-circle-keys {
+@keyframes circle-keys {
   0% {
     transform: scale(1);
     opacity: 1;
@@ -568,41 +564,33 @@ body.receiver-active .shell {
   }
 }
 
-@keyframes receiver-loader-dot-keys {
+@keyframes dot-keys {
   0% {
-    transform: translate(-50%, -50%) scale(1);
+    transform: scale(1);
   }
 
   50% {
-    transform: translate(-50%, -50%) scale(0);
+    transform: scale(0);
   }
 
   100% {
-    transform: translate(-50%, -50%) scale(1);
+    transform: scale(1);
   }
 }
 
-@keyframes receiver-loader-outline-keys {
+@keyframes outline-keys {
   0% {
-    transform: translate(-50%, -50%) scale(0);
+    transform: scale(0);
     outline: solid 20px var(--color);
     outline-offset: 0;
     opacity: 1;
   }
 
   100% {
-    transform: translate(-50%, -50%) scale(1);
+    transform: scale(1);
     outline: solid 0 transparent;
     outline-offset: 20px;
     opacity: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .receiver-empty .loader .circle,
-  .receiver-empty .loader .dot,
-  .receiver-empty .loader .outline {
-    animation: none;
   }
 }
 
