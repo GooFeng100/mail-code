@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Adobe 业务管理系统</title>
   <link rel="icon" href="/assets/icons/verification.png" type="image/png" />
-  <link rel="stylesheet" href="/style.css?v=20260428-13" />
+  <link rel="stylesheet" href="/style.css?v=20260428-14" />
 </head>
 <body class="admin-page">
   <div class="admin-layout hidden" id="adminPanel">
@@ -202,7 +202,7 @@
               <span id="adobePageInfo">1 / 1</span>
               <button type="button" class="admin-secondary admin-small" id="adobeNextPageBtn">下一页</button>
               <select id="adobePageSizeSelect" aria-label="每页数量">
-                <option value="10">10 条/页</option>
+                <option value="15">15 条/页</option>
                 <option value="20">20 条/页</option>
                 <option value="50">50 条/页</option>
               </select>
@@ -472,6 +472,19 @@
               <tbody id="customersBody"></tbody>
             </table>
           </div>
+          <div class="admin-pagination" id="customerPagination">
+            <span id="customerPaginationInfo">共 0 条</span>
+            <div class="admin-pagination-controls">
+              <button type="button" class="admin-secondary admin-small" id="customerPrevPageBtn">上一页</button>
+              <span id="customerPageInfo">1 / 1</span>
+              <button type="button" class="admin-secondary admin-small" id="customerNextPageBtn">下一页</button>
+              <select id="customerPageSizeSelect" aria-label="每页数量">
+                <option value="15">15 条/页</option>
+                <option value="20">20 条/页</option>
+                <option value="50">50 条/页</option>
+              </select>
+            </div>
+          </div>
         </div>
         </div>
 
@@ -686,6 +699,19 @@
               <tbody id="assignmentsBody"></tbody>
             </table>
           </div>
+          <div class="admin-pagination" id="assignmentPagination">
+            <span id="assignmentPaginationInfo">共 0 条</span>
+            <div class="admin-pagination-controls">
+              <button type="button" class="admin-secondary admin-small" id="assignmentPrevPageBtn">上一页</button>
+              <span id="assignmentPageInfo">1 / 1</span>
+              <button type="button" class="admin-secondary admin-small" id="assignmentNextPageBtn">下一页</button>
+              <select id="assignmentPageSizeSelect" aria-label="每页数量">
+                <option value="15">15 条/页</option>
+                <option value="20">20 条/页</option>
+                <option value="50">50 条/页</option>
+              </select>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -802,6 +828,6 @@
 
   <div id="successToastRoot"></div>
 
-  <script src="/admin.js?v=20260428-13"></script>
+  <script src="/admin.js?v=20260428-14"></script>
 </body>
 </html>

@@ -12,7 +12,11 @@ const state = {
   parameters: [],
   activeSection: "adobe",
   adobePage: 1,
-  adobePageSize: 10,
+  adobePageSize: 15,
+  customerPage: 1,
+  customerPageSize: 15,
+  assignmentPage: 1,
+  assignmentPageSize: 15,
   assignmentCustomerOptions: [],
   assignmentAdobeOptions: [],
   selectedAdobeId: null,
@@ -92,6 +96,16 @@ const el = {
   adobePageSizeSelect: document.getElementById("adobePageSizeSelect"),
   adobePaginationInfo: document.getElementById("adobePaginationInfo"),
   adobePageInfo: document.getElementById("adobePageInfo"),
+  customerPrevPageBtn: document.getElementById("customerPrevPageBtn"),
+  customerNextPageBtn: document.getElementById("customerNextPageBtn"),
+  customerPageSizeSelect: document.getElementById("customerPageSizeSelect"),
+  customerPaginationInfo: document.getElementById("customerPaginationInfo"),
+  customerPageInfo: document.getElementById("customerPageInfo"),
+  assignmentPrevPageBtn: document.getElementById("assignmentPrevPageBtn"),
+  assignmentNextPageBtn: document.getElementById("assignmentNextPageBtn"),
+  assignmentPageSizeSelect: document.getElementById("assignmentPageSizeSelect"),
+  assignmentPaginationInfo: document.getElementById("assignmentPaginationInfo"),
+  assignmentPageInfo: document.getElementById("assignmentPageInfo"),
   customerSearchInput: document.getElementById("customerSearchInput"),
   clearCustomerSearchBtn: document.getElementById("clearCustomerSearchBtn"),
   customerPlanFilterSelect: document.getElementById("customerPlanFilterSelect"),
@@ -1436,6 +1450,42 @@ function renderAdobePagination(total, totalPages) {
   }
 }
 
+function renderCustomerPagination(total, totalPages) {
+  if (el.customerPaginationInfo) {
+    el.customerPaginationInfo.textContent = `共 ${total} 条`;
+  }
+  if (el.customerPageInfo) {
+    el.customerPageInfo.textContent = `${state.customerPage} / ${totalPages}`;
+  }
+  if (el.customerPrevPageBtn) {
+    el.customerPrevPageBtn.disabled = state.customerPage <= 1;
+  }
+  if (el.customerNextPageBtn) {
+    el.customerNextPageBtn.disabled = state.customerPage >= totalPages;
+  }
+  if (el.customerPageSizeSelect) {
+    el.customerPageSizeSelect.value = String(state.customerPageSize);
+  }
+}
+
+function renderAssignmentPagination(total, totalPages) {
+  if (el.assignmentPaginationInfo) {
+    el.assignmentPaginationInfo.textContent = `共 ${total} 条`;
+  }
+  if (el.assignmentPageInfo) {
+    el.assignmentPageInfo.textContent = `${state.assignmentPage} / ${totalPages}`;
+  }
+  if (el.assignmentPrevPageBtn) {
+    el.assignmentPrevPageBtn.disabled = state.assignmentPage <= 1;
+  }
+  if (el.assignmentNextPageBtn) {
+    el.assignmentNextPageBtn.disabled = state.assignmentPage >= totalPages;
+  }
+  if (el.assignmentPageSizeSelect) {
+    el.assignmentPageSizeSelect.value = String(state.assignmentPageSize);
+  }
+}
+
 function renderCustomers() {
   const keyword = String(el.customerSearchInput.value || "").trim().toLowerCase();
   const plan = String(el.customerPlanFilterSelect?.value || "");
@@ -1457,12 +1507,18 @@ function renderCustomers() {
     right.customerCode
   ));
 
-  if (!rows.length) {
+  const totalPages = Math.max(1, Math.ceil(rows.length / state.customerPageSize));
+  state.customerPage = Math.min(Math.max(1, state.customerPage), totalPages);
+  const start = (state.customerPage - 1) * state.customerPageSize;
+  const pageRows = rows.slice(start, start + state.customerPageSize);
+
+  if (!pageRows.length) {
     el.customersBody.innerHTML = emptyRow(10, "暂无客户");
+    renderCustomerPagination(rows.length, totalPages);
     return;
   }
 
-  el.customersBody.innerHTML = rows.map((customer) => `
+  el.customersBody.innerHTML = pageRows.map((customer) => `
     <tr>
       <td>${escapeHtml(displayValue(customer.customerCode))}</td>
       <td>${escapeHtml(displayValue(customer.customerNickname))}</td>
@@ -1480,6 +1536,7 @@ function renderCustomers() {
       </td>
     </tr>
   `).join("");
+  renderCustomerPagination(rows.length, totalPages);
 }
 
 function renderAssignments() {
@@ -1489,12 +1546,18 @@ function renderAssignments() {
     return !keyword || searchable.includes(keyword);
   });
 
-  if (!rows.length) {
+  const totalPages = Math.max(1, Math.ceil(rows.length / state.assignmentPageSize));
+  state.assignmentPage = Math.min(Math.max(1, state.assignmentPage), totalPages);
+  const start = (state.assignmentPage - 1) * state.assignmentPageSize;
+  const pageRows = rows.slice(start, start + state.assignmentPageSize);
+
+  if (!pageRows.length) {
     el.assignmentsBody.innerHTML = emptyRow(8, "暂无绑定关系");
+    renderAssignmentPagination(rows.length, totalPages);
     return;
   }
 
-  el.assignmentsBody.innerHTML = rows.map((assignment) => {
+  el.assignmentsBody.innerHTML = pageRows.map((assignment) => {
     const targetMissing = assignment.customerExists === false || assignment.adobeAccountExists === false;
     const status = assignment.active
       ? statusChip("有效", "success")
@@ -1525,6 +1588,7 @@ function renderAssignments() {
       </tr>
     `;
   }).join("");
+  renderAssignmentPagination(rows.length, totalPages);
 }
 
 function resetAdobeForm() {
@@ -2015,6 +2079,8 @@ document.querySelectorAll("[data-modal-close]").forEach((button) => {
 [el.adobeSearchInput, el.adobeToolbarSearchInput, el.customerSearchInput, el.assignmentSearchInput, el.parameterSearchInput].filter(Boolean).forEach((input) => {
   input.addEventListener("input", () => {
     state.adobePage = 1;
+    state.customerPage = 1;
+    state.assignmentPage = 1;
     renderAdobeAccounts();
     renderCustomers();
     renderAssignments();
@@ -2036,6 +2102,7 @@ if (el.clearAdobeSearchBtn && el.adobeSearchInput) {
 if (el.clearCustomerSearchBtn && el.customerSearchInput) {
   el.clearCustomerSearchBtn.addEventListener("click", () => {
     el.customerSearchInput.value = "";
+    state.customerPage = 1;
     renderCustomers();
     syncSearchClearButtons();
     el.customerSearchInput.focus();
@@ -2050,7 +2117,10 @@ if (el.clearCustomerSearchBtn && el.customerSearchInput) {
 });
 
 [el.customerPlanFilterSelect, el.customerExpireFilterSelect].filter(Boolean).forEach((select) => {
-  select.addEventListener("change", renderCustomers);
+  select.addEventListener("change", () => {
+    state.customerPage = 1;
+    renderCustomers();
+  });
 });
 
 if (el.adobePrevPageBtn) {
@@ -2069,9 +2139,53 @@ if (el.adobeNextPageBtn) {
 
 if (el.adobePageSizeSelect) {
   el.adobePageSizeSelect.addEventListener("change", () => {
-    state.adobePageSize = Number(el.adobePageSizeSelect.value) || 10;
+    state.adobePageSize = Number(el.adobePageSizeSelect.value) || 15;
     state.adobePage = 1;
     renderAdobeAccounts();
+  });
+}
+
+if (el.customerPrevPageBtn) {
+  el.customerPrevPageBtn.addEventListener("click", () => {
+    state.customerPage = Math.max(1, state.customerPage - 1);
+    renderCustomers();
+  });
+}
+
+if (el.customerNextPageBtn) {
+  el.customerNextPageBtn.addEventListener("click", () => {
+    state.customerPage += 1;
+    renderCustomers();
+  });
+}
+
+if (el.customerPageSizeSelect) {
+  el.customerPageSizeSelect.addEventListener("change", () => {
+    state.customerPageSize = Number(el.customerPageSizeSelect.value) || 15;
+    state.customerPage = 1;
+    renderCustomers();
+  });
+}
+
+if (el.assignmentPrevPageBtn) {
+  el.assignmentPrevPageBtn.addEventListener("click", () => {
+    state.assignmentPage = Math.max(1, state.assignmentPage - 1);
+    renderAssignments();
+  });
+}
+
+if (el.assignmentNextPageBtn) {
+  el.assignmentNextPageBtn.addEventListener("click", () => {
+    state.assignmentPage += 1;
+    renderAssignments();
+  });
+}
+
+if (el.assignmentPageSizeSelect) {
+  el.assignmentPageSizeSelect.addEventListener("change", () => {
+    state.assignmentPageSize = Number(el.assignmentPageSizeSelect.value) || 15;
+    state.assignmentPage = 1;
+    renderAssignments();
   });
 }
 
