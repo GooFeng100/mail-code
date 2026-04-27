@@ -7854,9 +7854,8 @@ td:last-child {
 .admin-page #assignmentForm.binding-modal-form .admin-form-actions button {
   height: 42px !important;
 }
-/* Final no-scroll create modal and matched binding confirm size. */
-.admin-page .admin-modal-panel.binding-bind-modal,
-.admin-page #adminConfirmModal.binding-action-open .admin-confirm-panel {
+/* Final no-scroll create modal and compact binding confirm size. */
+.admin-page .admin-modal-panel.binding-bind-modal {
   width: min(504px, calc(100vw - 56px)) !important;
   min-width: 0 !important;
   max-width: 504px !important;
@@ -7944,10 +7943,17 @@ td:last-child {
 .admin-page #adminConfirmModal.binding-action-open .admin-confirm-panel {
   display: flex !important;
   flex-direction: column !important;
+  width: min(504px, calc(100vw - 56px)) !important;
+  min-width: 0 !important;
+  max-width: 504px !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: calc(100vh - 56px) !important;
+  overflow: hidden !important;
 }
 
 .admin-page #adminConfirmModal.binding-action-open .admin-confirm-body {
-  flex: 1 1 auto !important;
+  flex: 0 1 auto !important;
   height: auto !important;
   min-height: 0 !important;
   max-height: none !important;
