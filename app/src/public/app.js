@@ -210,29 +210,7 @@ function renderCodes() {
     });
 
   if (!activeCodes.length) {
-    codeList.innerHTML = `
-      <div class="receiver-empty">
-        <div class="loader" aria-hidden="true">
-          <div class="circle">
-            <div class="dot"></div>
-            <div class="outline"></div>
-          </div>
-          <div class="circle">
-            <div class="dot"></div>
-            <div class="outline"></div>
-          </div>
-          <div class="circle">
-            <div class="dot"></div>
-            <div class="outline"></div>
-          </div>
-          <div class="circle">
-            <div class="dot"></div>
-            <div class="outline"></div>
-          </div>
-        </div>
-        <span>等待接收验证码</span>
-      </div>
-    `;
+    codeList.innerHTML = '<div class="receiver-empty"><img src="/assets/icons/loading.png" alt="" /> <span>等待接收验证码</span></div>';
     return;
   }
 
