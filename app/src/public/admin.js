@@ -744,6 +744,23 @@ function remainingTextCell(text, kind = "") {
   return `<span class="${className}">${escapeHtml(displayValue(text))}</span>`;
 }
 
+function codeNumber(value) {
+  const match = String(value || "").match(/\d+$/);
+  return match ? Number(match[0]) : 0;
+}
+
+function compareByRemainingAndCode(leftDays, leftCode, rightDays, rightCode) {
+  const leftActive = Number.isFinite(leftDays) && leftDays > 0;
+  const rightActive = Number.isFinite(rightDays) && rightDays > 0;
+  if (leftActive !== rightActive) {
+    return leftActive ? -1 : 1;
+  }
+  if (leftActive && leftDays !== rightDays) {
+    return leftDays - rightDays;
+  }
+  return codeNumber(rightCode) - codeNumber(leftCode);
+}
+
 function adobeStatusKind(account) {
   const text = adobeStatusText(account);
   const remainingDays = adobeRemainingDays(account);
@@ -1359,7 +1376,12 @@ function filteredAdobeAccounts() {
       || (enabled === "enabled" && account.enabled !== false)
       || (enabled === "disabled" && account.enabled === false);
     return matchesKeyword && matchesPlan && matchesStatus && matchesEnabled;
-  });
+  }).sort((left, right) => compareByRemainingAndCode(
+    adobeRemainingDays(left),
+    left.adobeCode,
+    adobeRemainingDays(right),
+    right.adobeCode
+  ));
 }
 
 function renderAdobeAccounts() {
@@ -1419,7 +1441,7 @@ function renderCustomers() {
   const plan = String(el.customerPlanFilterSelect?.value || "");
   const expireFilter = String(el.customerExpireFilterSelect?.value || "");
   const rows = state.customers.filter((customer) => {
-    const days = Number(customer.remainingDays);
+    const days = customerRemainingDays(customer);
     const searchable = `${customer.customerCode} ${customer.customerNickname} ${customer.customerContact} ${customer.customerContactEmail} ${customer.purchasedPlan} ${customer.remark}`.toLowerCase();
     const matchesKeyword = !keyword || keyword.split(/\s+/).every((word) => searchable.includes(word));
     const matchesPlan = !plan || customer.purchasedPlan === plan;
@@ -1428,7 +1450,12 @@ function renderCustomers() {
       || (expireFilter === "expired" && Number.isFinite(days) && days <= 0)
       || (expireFilter === "normal" && customerStatusText(customer) === "正常");
     return matchesKeyword && matchesPlan && matchesExpire;
-  });
+  }).sort((left, right) => compareByRemainingAndCode(
+    customerRemainingDays(left),
+    left.customerCode,
+    customerRemainingDays(right),
+    right.customerCode
+  ));
 
   if (!rows.length) {
     el.customersBody.innerHTML = emptyRow(10, "暂无客户");

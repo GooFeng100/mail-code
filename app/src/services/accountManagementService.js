@@ -76,11 +76,15 @@ function normalizeVerificationEmail(value) {
 
 async function nextCode(Model, field, prefix) {
   const docs = await Model.find({ [field]: new RegExp(`^${prefix}\\d+$`) }).select(field);
-  const max = docs.reduce((value, doc) => {
+  const used = new Set(docs.map((doc) => {
     const match = String(doc[field] || "").match(/\d+$/);
-    return match ? Math.max(value, Number(match[0])) : value;
-  }, 0);
-  return `${prefix}${String(max + 1).padStart(4, "0")}`;
+    return match ? Number(match[0]) : 0;
+  }).filter((value) => value > 0));
+  let next = 1;
+  while (used.has(next)) {
+    next += 1;
+  }
+  return `${prefix}${String(next).padStart(4, "0")}`;
 }
 
 function normalizeCode(value, prefix) {
