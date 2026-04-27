@@ -541,8 +541,8 @@ function renderStats() {
   const normalAdobe = state.adobeAccounts.filter((account) => adobeStatusText(account) === "正常" && account.enabled !== false).length;
   const expiredCustomers = state.customers.filter((customer) => customer.dynamicRenewalStatus === "已到期").length;
   const soonCustomers = state.customers.filter((customer) => {
-    const days = Number(customer.remainingDays);
-    return Number.isFinite(days) && days >= 0 && days <= 30;
+    const days = customerRemainingDays(customer);
+    return Number.isFinite(days) && days > 0 && days <= 30;
   }).length;
   const normalCustomers = state.customers.filter((customer) => {
     return customerStatusText(customer) === "正常";
@@ -731,7 +731,20 @@ function adobeRemainingText(account) {
   if (!Number.isFinite(days)) {
     return displayValue(account ? account.remainingText : "");
   }
-  return days <= 0 ? "已过期" : `${days} 天`;
+  return days <= 0 ? "0" : `${days} 天`;
+}
+
+function customerRemainingDays(customer) {
+  const value = Number(customer ? customer.remainingDays : NaN);
+  return Number.isFinite(value) ? value : NaN;
+}
+
+function customerRemainingText(customer) {
+  const days = customerRemainingDays(customer);
+  if (!Number.isFinite(days)) {
+    return displayValue(customer ? customer.remainingText : "");
+  }
+  return days <= 0 ? "0" : `${days} 天`;
 }
 
 function remainingTextCell(text, kind = "") {
@@ -767,7 +780,7 @@ function adobeStatusText(account) {
 
 function customerStatusKind(customer) {
   const text = customerStatusText(customer);
-  const remainingDays = Number(customer.remainingDays);
+  const remainingDays = customerRemainingDays(customer);
   if (text === "已到期") {
     return "danger";
   }
@@ -784,8 +797,8 @@ function customerStatusKind(customer) {
 }
 
 function customerStatusText(customer) {
-  const days = Number(customer ? customer.remainingDays : NaN);
-  if (Number.isFinite(days) && days < 0) {
+  const days = customerRemainingDays(customer);
+  if (Number.isFinite(days) && days <= 0) {
     return "已到期";
   }
   return "正常";
@@ -1429,9 +1442,9 @@ function renderCustomers() {
     const matchesKeyword = !keyword || keyword.split(/\s+/).every((word) => searchable.includes(word));
     const matchesPlan = !plan || customer.purchasedPlan === plan;
     const matchesExpire = !expireFilter
-      || (expireFilter === "soon" && Number.isFinite(days) && days >= 0 && days <= 30)
-      || (expireFilter === "expired" && Number.isFinite(days) && days < 0)
-      || (expireFilter === "valid" && Number.isFinite(days) && days >= 0);
+      || (expireFilter === "soon" && Number.isFinite(days) && days > 0 && days <= 30)
+      || (expireFilter === "expired" && Number.isFinite(days) && days <= 0)
+      || (expireFilter === "valid" && Number.isFinite(days) && days > 0);
     return matchesKeyword && matchesPlan && matchesExpire;
   });
 
@@ -1447,8 +1460,8 @@ function renderCustomers() {
       <td>${escapeHtml(displayValue(customer.customerContact))}</td>
       <td>${escapeHtml(planLabel(customer.purchasedPlan))}</td>
       <td>${formatDate(customer.afterSalesExpireAt)}</td>
-      <td>${escapeHtml(displayValue(customer.remainingText))}</td>
-      <td>${statusChip(customer.dynamicRenewalStatus || customer.renewalStatus, customerStatusKind(customer))}</td>
+      <td>${remainingTextCell(customerRemainingText(customer), customerStatusKind(customer))}</td>
+      <td>${statusChip(customerStatusText(customer), customerStatusKind(customer))}</td>
       <td>${customer.assignmentCount || 0}</td>
       <td class="admin-ellipsis" title="${escapeHtml(displayValue(customer.remark))}">${escapeHtml(displayValue(customer.remark))}</td>
       <td class="admin-actions-cell">
@@ -1632,7 +1645,7 @@ function renderAdobeDetail(data) {
         <td>${escapeHtml(displayValue(customer.customerContact))}</td>
         <td>${escapeHtml(planLabel(customer.purchasedPlan))}</td>
         <td>${formatDate(customer.afterSalesExpireAt)}</td>
-        <td>${escapeHtml(displayValue(customer.remainingText))}</td>
+        <td>${remainingTextCell(customerRemainingText(customer), customerStatusKind(customer))}</td>
         <td>${statusChip(customerStatusText(customer), customerStatusKind(customer))}</td>
         <td class="admin-actions-cell">
           <button type="button" class="admin-small" data-action="view-customer-detail" data-id="${escapeHtml(customer.id)}">${icon("view")}查看</button>
@@ -1678,12 +1691,12 @@ function renderCustomerDetail(data) {
     detailItem("购买计划", planLabel(customer.purchasedPlan)),
     detailItem("续费状态", customerStatusText(customer), customerStatusKind(customer)),
     detailItem("售后到期日", formatDate(customer.afterSalesExpireAt)),
-    detailItem("剩余天数", data.remainingText, customerStatusKind(customer)),
+    detailItem("剩余天数", customerRemainingText(customer), customerStatusKind(customer)),
     detailItem("备注", customer.remark, "wide")
   ].join("");
   setText("customerMetricAccounts", adobeAccounts.length);
   setText("customerMetricRenewals", (data.renewalRecords || []).length);
-  setText("customerMetricExpire", data.remainingText || customer.dynamicRenewalStatus || customer.renewalStatus || "-");
+  setText("customerMetricExpire", customerRemainingText(customer) || customer.dynamicRenewalStatus || customer.renewalStatus || "-");
 
   el.customerDetailAdobeAccounts.innerHTML = adobeAccounts.length
     ? adobeAccounts.map((account) => `

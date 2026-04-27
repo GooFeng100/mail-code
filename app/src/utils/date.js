@@ -44,7 +44,7 @@ function getRemainingText(expireAt) {
 
   const days = getRemainingDays(expire);
   if (days <= 0) {
-    return "已过期";
+    return "0";
   }
 
   return `剩余 ${days} 天`;
