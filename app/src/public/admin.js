@@ -1561,7 +1561,7 @@ async function copyTextToClipboard(text) {
 }
 
 function adobeDetailCopyText(account) {
-  const verificationCodeUrl = state.config.verificationCodeUrl || "mail.889100.com";
+  const verificationCodeUrl = state.config.verificationCodeUrl || "";
   return [
     `Adobe账户邮箱：${account.accountEmail || ""}`,
     `Adobe密码：${account.adobePassword || ""}`,

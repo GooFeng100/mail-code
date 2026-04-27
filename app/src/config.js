@@ -25,7 +25,7 @@ const config = {
   defaultAdminPassword: process.env.DEFAULT_ADMIN_PASSWORD || "admin123456",
   mailDomains,
   mailDomain: mailDomains[0],
-  verificationCodeUrl: process.env.VERIFICATION_CODE_URL || "mail.889100.com",
+  verificationCodeUrl: process.env.VERIFICATION_CODE_URL || "",
   mail: {
     host: process.env.MAIL_HOST || "",
     port: Number(process.env.MAIL_PORT || 993),
