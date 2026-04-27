@@ -529,10 +529,10 @@ function icon(name) {
 }
 
 function renderStats() {
-  const expiredAdobe = state.adobeAccounts.filter((account) => account.dynamicStatus === "已到期").length;
+  const expiredAdobe = state.adobeAccounts.filter((account) => adobeStatusText(account) === "已到期").length;
   const soonAdobe = state.adobeAccounts.filter((account) => {
     const days = adobeRemainingDays(account);
-    return Number.isFinite(days) && days >= 0 && days <= 30;
+    return Number.isFinite(days) && days > 0 && days <= 30;
   }).length;
   const riskAdobe = state.adobeAccounts.filter((account) => {
     const text = String(account.dynamicStatus || account.status || "");
@@ -731,7 +731,12 @@ function adobeRemainingText(account) {
   if (!Number.isFinite(days)) {
     return displayValue(account ? account.remainingText : "");
   }
-  return days < 0 ? `已过期 ${Math.abs(days)} 天` : `${days} 天`;
+  return days <= 0 ? "已过期" : `${days} 天`;
+}
+
+function remainingTextCell(text, kind = "") {
+  const className = kind ? `admin-remaining-text ${kind}` : "admin-remaining-text";
+  return `<span class="${className}">${escapeHtml(displayValue(text))}</span>`;
 }
 
 function adobeStatusKind(account) {
@@ -754,7 +759,7 @@ function adobeStatusKind(account) {
 
 function adobeStatusText(account) {
   const days = adobeRemainingDays(account);
-  if (Number.isFinite(days) && days < 0) {
+  if (Number.isFinite(days) && days <= 0) {
     return "已到期";
   }
   return "正常";
@@ -852,7 +857,7 @@ function statusFromExpireDate(value) {
   today.setHours(0, 0, 0, 0);
   expire.setHours(0, 0, 0, 0);
   const days = Math.ceil((expire.getTime() - today.getTime()) / 86400000);
-  if (days < 0) {
+  if (days <= 0) {
     return "已到期";
   }
   return "正常";
@@ -1355,9 +1360,9 @@ function filteredAdobeAccounts() {
     const matchesPlan = !plan || account.accountPlan === plan;
     const matchesStatus = !status || accountStatus === status;
     const matchesExpire = !expire
-      || (expire === "soon" && Number.isFinite(days) && days >= 0 && days <= 30)
-      || (expire === "expired" && Number.isFinite(days) && days < 0)
-      || (expire === "valid" && Number.isFinite(days) && days >= 0);
+      || (expire === "soon" && Number.isFinite(days) && days > 0 && days <= 30)
+      || (expire === "expired" && Number.isFinite(days) && days <= 0)
+      || (expire === "valid" && Number.isFinite(days) && days > 0);
     return matchesKeyword && matchesPlan && matchesStatus && matchesExpire;
   });
 }
@@ -1383,7 +1388,7 @@ function renderAdobeAccounts() {
       <td>${escapeHtml(planLabel(account.accountPlan))}</td>
       <td>${formatDate(account.paidAt)}</td>
       <td>${formatDate(account.accountExpireAt)}</td>
-      <td>${escapeHtml(adobeRemainingText(account))}</td>
+      <td>${remainingTextCell(adobeRemainingText(account), adobeStatusKind(account))}</td>
       <td>${statusChip(adobeStatusText(account), adobeStatusKind(account))}</td>
       <td>${isEnabledText(account.enabled)}</td>
       <td class="admin-actions-cell">
@@ -1609,7 +1614,7 @@ function renderAdobeDetail(data) {
     detailItem("Adobe密码", account.adobePassword),
     detailItem("Adobe账户到期日", formatDate(account.accountExpireAt)),
     detailItem("Adobe账户邮箱密码", account.accountEmailPassword),
-    detailItem("剩余天数", data.remainingText, adobeStatusKind(account)),
+    detailItem("剩余天数", adobeRemainingText(account), adobeStatusKind(account)),
     detailItem("验证码接收邮箱", account.verificationEmail),
     detailItem("状态", adobeStatusText(account), adobeStatusKind(account)),
     detailItem("启用状态", account.enabled ? "启用" : "禁用"),
@@ -1617,7 +1622,7 @@ function renderAdobeDetail(data) {
   ].join("");
   setText("adobeMetricCustomers", customers.length);
   setText("adobeMetricRenewals", (data.renewalRecords || []).length);
-  setText("adobeMetricExpire", data.remainingText || account.dynamicStatus || account.status || "-");
+  setText("adobeMetricExpire", adobeRemainingText(account) || account.dynamicStatus || account.status || "-");
 
   el.adobeDetailCustomers.innerHTML = customers.length
     ? customers.map((customer) => `
@@ -1688,7 +1693,7 @@ function renderCustomerDetail(data) {
         <td>${assignmentRoleChip(account.assignmentRole, account)}</td>
         <td>${escapeHtml(planLabel(account.accountPlan))}</td>
         <td>${formatDate(account.accountExpireAt)}</td>
-        <td>${escapeHtml(displayValue(account.remainingText))}</td>
+        <td>${remainingTextCell(adobeRemainingText(account), adobeStatusKind(account))}</td>
         <td>${statusChip(adobeStatusText(account), adobeStatusKind(account))}</td>
         <td class="admin-actions-cell">
           <button type="button" class="admin-small" data-action="view-adobe-detail" data-id="${escapeHtml(account.id)}">${icon("view")}查看</button>

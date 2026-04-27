@@ -2918,6 +2918,16 @@ td:last-child {
   color: var(--admin-color-neutral);
 }
 
+.admin-page .admin-remaining-text.danger {
+  color: var(--admin-color-danger);
+  font-weight: 850;
+}
+
+.admin-page .admin-remaining-text.warning {
+  color: var(--admin-color-warning);
+  font-weight: 850;
+}
+
 .admin-page .admin-empty {
   color: var(--admin-color-muted) !important;
 }
