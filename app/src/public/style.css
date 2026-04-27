@@ -4079,10 +4079,6 @@ td:last-child {
   background: rgba(255, 255, 255, 0.72);
 }
 
-.admin-page #customerDetailCard .admin-detail-item.primary {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.14), rgba(255, 255, 255, 0.62));
-}
-
 @media (max-width: 900px) {
   .admin-page #customerForm {
     grid-template-columns: 1fr;
