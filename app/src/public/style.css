@@ -7933,15 +7933,32 @@ td:last-child {
   display: grid !important;
   grid-column: 1 / -1 !important;
   place-items: center !important;
+  width: 60px !important;
+  height: 60px !important;
+  flex: 0 0 60px !important;
   margin: 4px auto !important;
   transform: none !important;
-}
-
-.admin-page #adminConfirmModal.binding-action-open .binding-bridge::after {
-  display: block !important;
-  margin: 0 auto !important;
+  background-color: transparent !important;
+  background-repeat: no-repeat !important;
   background-position: center center !important;
   background-size: contain !important;
+  animation: bindingIconPulse 1.8s ease-in-out infinite !important;
+}
+
+.admin-page #adminConfirmModal.binding-action-open .binding-bridge::before,
+.admin-page #adminConfirmModal.binding-action-open .binding-bridge::after {
+  content: none !important;
+  display: none !important;
+  background-image: none !important;
+  animation: none !important;
+}
+
+.admin-page #adminConfirmModal.binding-unbind-open .binding-bridge {
+  background-image: url("/assets/images/binding/broken-link-icon.png") !important;
+}
+
+.admin-page #adminConfirmModal.binding-restore-open .binding-bridge {
+  background-image: url("/assets/images/binding/bonding-icon.png") !important;
 }
 
 .admin-page #adminConfirmModal.binding-action-open .binding-confirm-layout > .binding-bridge.binding-bridge-unbind {
