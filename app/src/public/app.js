@@ -212,7 +212,7 @@ function renderCodes() {
   if (!activeCodes.length) {
     codeList.innerHTML = `
       <div class="receiver-empty">
-        <div class="receiver-loader" aria-hidden="true">
+        <div class="loader" aria-hidden="true">
           <div class="circle">
             <div class="dot"></div>
             <div class="outline"></div>

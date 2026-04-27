@@ -454,96 +454,108 @@ body.receiver-active .shell {
   text-align: center;
 }
 
-.receiver-loader {
-  --color: #52627a;
-  --animation: 2s ease-in-out infinite;
+.receiver-empty .loader {
   display: flex;
-  align-items: center;
   justify-content: center;
-  width: 78px;
-  height: 24px;
+  align-items: center;
+  --color: hsl(0, 0%, 33%);
+  --animation: 2s ease-in-out infinite;
   flex: 0 0 auto;
 }
 
-.receiver-loader .circle {
-  position: relative;
+.receiver-empty .loader .circle {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 10px;
-  height: 10px;
-  margin: 0 4px;
-  border: solid 1px var(--color);
+  position: relative;
+  width: 20px;
+  height: 20px;
+  border: solid 2px var(--color);
   border-radius: 50%;
+  margin: 0 10px;
   background-color: transparent;
-  animation: receiver-circle-keys var(--animation);
+  animation: circle-keys var(--animation);
 }
 
-.receiver-loader .dot {
+.receiver-empty .loader .circle .dot {
   position: absolute;
-  width: 8px;
-  height: 8px;
+  transform: translate(-50%, -50%);
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background-color: var(--color);
-  animation: receiver-dot-keys var(--animation);
+  animation: dot-keys var(--animation);
 }
 
-.receiver-loader .outline {
+.receiver-empty .loader .circle .outline {
   position: absolute;
-  width: 10px;
-  height: 10px;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
-  animation: receiver-outline-keys var(--animation);
+  animation: outline-keys var(--animation);
 }
 
-.receiver-loader .circle:nth-child(2) {
+.receiver-empty .loader .circle:nth-child(2) {
   animation-delay: 0.3s;
 }
 
-.receiver-loader .circle:nth-child(3) {
+.receiver-empty .loader .circle:nth-child(3) {
   animation-delay: 0.6s;
 }
 
-.receiver-loader .circle:nth-child(4) {
+.receiver-empty .loader .circle:nth-child(4) {
   animation-delay: 0.9s;
 }
 
-.receiver-loader .circle:nth-child(2) .dot {
-  animation-delay: 0.3s;
-}
-
-.receiver-loader .circle:nth-child(3) .dot {
-  animation-delay: 0.6s;
-}
-
-.receiver-loader .circle:nth-child(4) .dot {
-  animation-delay: 0.9s;
-}
-
-.receiver-loader .circle:nth-child(1) .outline {
-  animation-delay: 0.9s;
-}
-
-.receiver-loader .circle:nth-child(2) .outline {
+.receiver-empty .loader .circle:nth-child(5) {
   animation-delay: 1.2s;
 }
 
-.receiver-loader .circle:nth-child(3) .outline {
+.receiver-empty .loader .circle:nth-child(2) .dot {
+  animation-delay: 0.3s;
+}
+
+.receiver-empty .loader .circle:nth-child(3) .dot {
+  animation-delay: 0.6s;
+}
+
+.receiver-empty .loader .circle:nth-child(4) .dot {
+  animation-delay: 0.9s;
+}
+
+.receiver-empty .loader .circle:nth-child(5) .dot {
+  animation-delay: 1.2s;
+}
+
+.receiver-empty .loader .circle:nth-child(1) .outline {
+  animation-delay: 0.9s;
+}
+
+.receiver-empty .loader .circle:nth-child(2) .outline {
+  animation-delay: 1.2s;
+}
+
+.receiver-empty .loader .circle:nth-child(3) .outline {
   animation-delay: 1.5s;
 }
 
-.receiver-loader .circle:nth-child(4) .outline {
+.receiver-empty .loader .circle:nth-child(4) .outline {
   animation-delay: 1.8s;
 }
 
-@keyframes receiver-circle-keys {
+.receiver-empty .loader .circle:nth-child(5) .outline {
+  animation-delay: 2.1s;
+}
+
+@keyframes circle-keys {
   0% {
     transform: scale(1);
     opacity: 1;
   }
 
   50% {
-    transform: scale(1.45);
+    transform: scale(1.5);
     opacity: 0.5;
   }
 
@@ -553,7 +565,7 @@ body.receiver-active .shell {
   }
 }
 
-@keyframes receiver-dot-keys {
+@keyframes dot-keys {
   0% {
     transform: scale(1);
   }
@@ -567,10 +579,10 @@ body.receiver-active .shell {
   }
 }
 
-@keyframes receiver-outline-keys {
+@keyframes outline-keys {
   0% {
     transform: scale(0);
-    outline: solid 10px var(--color);
+    outline: solid 20px var(--color);
     outline-offset: 0;
     opacity: 1;
   }
@@ -578,15 +590,15 @@ body.receiver-active .shell {
   100% {
     transform: scale(1);
     outline: solid 0 transparent;
-    outline-offset: 10px;
+    outline-offset: 20px;
     opacity: 0;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .receiver-loader .circle,
-  .receiver-loader .dot,
-  .receiver-loader .outline {
+  .receiver-empty .loader .circle,
+  .receiver-empty .loader .dot,
+  .receiver-empty .loader .outline {
     animation: none;
   }
 }
