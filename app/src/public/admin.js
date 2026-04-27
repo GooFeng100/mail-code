@@ -1392,7 +1392,7 @@ function renderAdobeAccounts() {
   const pageRows = rows.slice(start, start + state.adobePageSize);
 
   if (!pageRows.length) {
-    el.adobeBody.innerHTML = emptyRow(11, "暂无 Adobe账户");
+    el.adobeBody.innerHTML = emptyRow(10, "暂无 Adobe账户");
     renderAdobePagination(rows.length, totalPages);
     return;
   }
@@ -1403,12 +1403,11 @@ function renderAdobeAccounts() {
       <td class="admin-ellipsis" title="${escapeHtml(displayValue(account.accountEmail))}">${escapeHtml(displayValue(account.accountEmail))}</td>
       <td class="admin-ellipsis" title="${escapeHtml(displayValue(account.verificationEmail))}">${escapeHtml(displayValue(account.verificationEmail))}</td>
       <td>${escapeHtml(planLabel(account.accountPlan))}</td>
-      <td>${formatDate(account.paidAt)}</td>
       <td>${formatDate(account.accountExpireAt)}</td>
       <td>${remainingTextCell(adobeRemainingText(account), adobeStatusKind(account))}</td>
       <td>${statusChip(adobeStatusText(account), adobeStatusKind(account))}</td>
       <td>${isEnabledText(account.enabled)}</td>
-      <td>${Number(account.assignmentCount || 0)}</td>
+      <td class="admin-count-cell">${Number(account.assignmentCount || 0)}</td>
       <td class="admin-actions-cell">
         <button type="button" class="admin-small" data-action="view" data-id="${escapeHtml(account.id)}">${icon("view")}查看</button>
         <button type="button" class="admin-small admin-secondary" data-action="edit" data-id="${escapeHtml(account.id)}">${icon("edit")}编辑</button>
@@ -1472,7 +1471,7 @@ function renderCustomers() {
       <td>${formatDate(customer.afterSalesExpireAt)}</td>
       <td>${remainingTextCell(customerRemainingText(customer), customerStatusKind(customer))}</td>
       <td>${statusChip(customerStatusText(customer), customerStatusKind(customer))}</td>
-      <td>${customer.assignmentCount || 0}</td>
+      <td class="admin-count-cell">${customer.assignmentCount || 0}</td>
       <td class="admin-ellipsis" title="${escapeHtml(displayValue(customer.remark))}">${escapeHtml(displayValue(customer.remark))}</td>
       <td class="admin-actions-cell">
         <button type="button" class="admin-small" data-action="view" data-id="${escapeHtml(customer.id)}">${icon("view")}查看</button>
@@ -2079,7 +2078,7 @@ if (el.adobePageSizeSelect) {
 if (el.exportAdobeBtn) {
   el.exportAdobeBtn.addEventListener("click", () => {
     const rows = filteredAdobeAccounts();
-    const headers = ["Adobe账户编号", "账户邮箱", "验证码邮箱", "账户计划", "付费日期", "账户到期日", "剩余天数", "状态", "启用", "绑定用户数"];
+    const headers = ["Adobe账户编号", "账户邮箱", "验证码邮箱", "账户计划", "账户到期日", "剩余天数", "状态", "启用", "绑定用户数"];
     const csvRows = [
       headers,
       ...rows.map((account) => [
@@ -2087,7 +2086,6 @@ if (el.exportAdobeBtn) {
         displayValue(account.accountEmail),
         displayValue(account.verificationEmail),
         planLabel(account.accountPlan),
-        formatDate(account.paidAt),
         formatDate(account.accountExpireAt),
         adobeRemainingText(account),
         adobeStatusText(account),

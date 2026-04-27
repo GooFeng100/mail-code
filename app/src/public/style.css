@@ -2938,6 +2938,10 @@ td:last-child {
   color: var(--admin-color-muted) !important;
 }
 
+.admin-page .admin-count-cell {
+  text-align: center;
+}
+
 .admin-page .admin-message {
   min-height: 0;
   margin: 0;
@@ -5696,7 +5700,7 @@ td:last-child {
 
 .admin-page #adobeSection .admin-table {
   width: 100%;
-  min-width: 1128px;
+  min-width: 1040px;
   table-layout: fixed;
 }
 
