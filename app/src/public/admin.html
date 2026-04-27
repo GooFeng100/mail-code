@@ -101,7 +101,13 @@
             <label><span class="admin-label-text required">Adobe账户邮箱</span><input name="accountEmail" type="email" placeholder="adobe001@outlook.com" required /></label>
             <label><span class="admin-label-text">Adobe密码</span><input name="adobePassword" type="text" placeholder="至少 6 位" /></label>
             <label><span class="admin-label-text">Adobe邮箱密码</span><input name="accountEmailPassword" type="text" placeholder="仅记录管理" /></label>
-            <label><span class="admin-label-text required">验证码接收邮箱</span><input name="verificationEmail" type="email" placeholder="user01@889100.xyz" required /></label>
+            <label class="verification-email-row">
+              <span class="admin-label-text required">验证码接收邮箱</span>
+              <span class="verification-email-field">
+                <input name="verificationEmailLocal" type="text" placeholder="请输入邮箱前缀" pattern="[a-z0-9][a-z0-9_-]{0,31}" required />
+                <select name="verificationEmailDomain" id="verificationEmailDomainSelect" required></select>
+              </span>
+            </label>
             <label><span class="admin-label-text">账户计划</span><select name="accountPlan" id="adobePlanSelect"></select></label>
             <label><span class="admin-label-text">付费日期</span><input name="paidAt" type="date" /></label>
             <label><span class="admin-label-text">初始到期日</span><input name="baseExpireAt" type="date" /></label>

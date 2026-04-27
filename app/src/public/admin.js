@@ -105,6 +105,7 @@ const el = {
   customerListView: document.getElementById("customerListView"),
   adobePlanSelect: document.getElementById("adobePlanSelect"),
   adobeStatusSelect: document.getElementById("adobeStatusSelect"),
+  verificationEmailDomainSelect: document.getElementById("verificationEmailDomainSelect"),
   customerPlanSelect: document.getElementById("customerPlanSelect"),
   customerRenewalStatusSelect: document.getElementById("customerRenewalStatusSelect"),
   adobeRenewalPlanSelect: document.getElementById("adobeRenewalPlanSelect"),
@@ -942,6 +943,37 @@ function formValue(form, name) {
   return form.elements[name] ? form.elements[name].value : "";
 }
 
+function defaultMailDomain() {
+  return (state.config.mailDomains || [])[0] || state.config.mailDomain || "";
+}
+
+function splitVerificationEmail(account = {}) {
+  const existingLocal = String(account.verificationEmailLocal || "").trim();
+  const existingDomain = String(account.verificationEmailDomain || "").trim();
+  if (existingLocal || existingDomain) {
+    return { local: existingLocal, domain: existingDomain || defaultMailDomain() };
+  }
+
+  const [local = "", domain = ""] = String(account.verificationEmail || "").trim().split("@");
+  return { local, domain: domain || defaultMailDomain() };
+}
+
+function setVerificationEmailFields(account = {}) {
+  const { local, domain } = splitVerificationEmail(account);
+  if (el.adobeForm.elements.verificationEmailLocal) {
+    el.adobeForm.elements.verificationEmailLocal.value = local;
+  }
+  if (el.adobeForm.elements.verificationEmailDomain) {
+    el.adobeForm.elements.verificationEmailDomain.value = domain || defaultMailDomain();
+  }
+}
+
+function verificationEmailValue() {
+  const local = formValue(el.adobeForm, "verificationEmailLocal").trim().toLowerCase();
+  const domain = formValue(el.adobeForm, "verificationEmailDomain").trim().toLowerCase();
+  return local && domain ? `${local}@${domain}` : "";
+}
+
 function syncAssignmentRoleField() {
   const roleField = el.assignmentForm?.elements.assignmentRole;
   const roleToggle = el.assignmentForm?.elements.assignmentRoleToggle;
@@ -1069,6 +1101,9 @@ function switchSection(section) {
 
 function populateConfigOptions() {
   fillSelect(el.adobePlanSelect, state.config.plans);
+  if (el.verificationEmailDomainSelect) {
+    fillSelect(el.verificationEmailDomainSelect, state.config.mailDomains || [state.config.mailDomain].filter(Boolean));
+  }
   fillSelect(el.customerPlanSelect, state.config.plans);
   if (el.adobeStatusSelect?.tagName === "SELECT") {
     fillSelect(el.adobeStatusSelect, state.config.adobeAccountStatuses);
@@ -1445,6 +1480,7 @@ function resetAdobeForm() {
   el.adobeForm.elements.id.value = "";
   el.adobeForm.elements.adobeCode.value = "";
   el.adobeForm.elements.enabled.checked = true;
+  setVerificationEmailFields();
   syncAdobeStatusPreview();
 }
 
@@ -1468,7 +1504,7 @@ function fillAdobeForm(account) {
   el.adobeForm.elements.accountEmail.value = account.accountEmail || "";
   el.adobeForm.elements.adobePassword.value = account.adobePassword || "";
   el.adobeForm.elements.accountEmailPassword.value = account.accountEmailPassword || "";
-  el.adobeForm.elements.verificationEmail.value = account.verificationEmail || "";
+  setVerificationEmailFields(account);
   el.adobeForm.elements.accountPlan.value = account.accountPlan || "";
   el.adobeForm.elements.paidAt.value = dateInput(account.paidAt);
   el.adobeForm.elements.baseExpireAt.value = dateInput(account.baseExpireAt);
@@ -1739,7 +1775,7 @@ function adobePayload() {
     accountEmail: formValue(el.adobeForm, "accountEmail"),
     adobePassword: formValue(el.adobeForm, "adobePassword"),
     accountEmailPassword: formValue(el.adobeForm, "accountEmailPassword"),
-    verificationEmail: formValue(el.adobeForm, "verificationEmail"),
+    verificationEmail: verificationEmailValue(),
     accountPlan: formValue(el.adobeForm, "accountPlan"),
     paidAt: formValue(el.adobeForm, "paidAt"),
     baseExpireAt: formValue(el.adobeForm, "baseExpireAt"),

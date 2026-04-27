@@ -3403,6 +3403,23 @@ td:last-child {
   background: rgba(255, 255, 255, 0.94);
 }
 
+.admin-page .admin-modal-panel.adobe-account #adobeForm .verification-email-row {
+  min-width: 0;
+}
+
+.admin-page .admin-modal-panel.adobe-account #adobeForm .verification-email-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+  min-width: 0;
+}
+
+.admin-page .admin-modal-panel.adobe-account #adobeForm .verification-email-field input,
+.admin-page .admin-modal-panel.adobe-account #adobeForm .verification-email-field select {
+  width: 100%;
+  min-width: 0;
+}
+
 .admin-page .admin-modal-panel.adobe-account #adobeForm .admin-switch-field {
   display: grid;
   align-content: start;
