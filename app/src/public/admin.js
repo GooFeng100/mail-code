@@ -848,31 +848,26 @@ function assignmentRoleLabel(value) {
   return value === "primary" ? "主要账号" : "备用账号";
 }
 
-function assignmentRoleChip(value) {
+function assignmentRoleChip(value, assignment = null) {
   const role = value === "primary" ? "primary" : "backup";
-  const id = `assignment-role-${role}-${Math.random().toString(36).slice(2, 10)}`;
-  const checked = role === "primary" ? " checked" : "";
+  const assignmentId = assignment ? assignment.assignmentId || assignment.id : "";
+  const nextRole = role === "primary" ? "backup" : "primary";
+  const disabled = !assignmentId || assignment?.active === false ? " disabled" : "";
+  const actionAttrs = assignmentId
+    ? ` data-action="set-assignment-role" data-id="${escapeHtml(assignmentId)}" data-role="${nextRole}"`
+    : "";
   return `
-    <div class="checkbox-wrapper-35 assignment-role-switch ${role}" aria-label="${assignmentRoleLabel(role)}">
-      <input value="${role}" name="${id}" id="${id}" type="checkbox" class="switch" disabled${checked}>
-      <label for="${id}">
-        <span class="switch-x-text">账号</span>
+    <button type="button" class="checkbox-wrapper-35 assignment-role-switch ${role}" aria-label="${assignmentRoleLabel(role)}"${actionAttrs}${disabled}>
+      <span class="switch-shell">
+        <span class="switch-label">
         <span class="switch-x-toggletext">
           <span class="switch-x-unchecked"><span class="switch-x-hiddenlabel">Unchecked: </span>备用</span>
           <span class="switch-x-checked"><span class="switch-x-hiddenlabel">Checked: </span>主要</span>
         </span>
-      </label>
-    </div>
+        </span>
+      </span>
+    </button>
   `;
-}
-
-function assignmentRoleToggleAction(assignment) {
-  if (!assignment || assignment.active === false) {
-    return "";
-  }
-  const nextRole = assignment.assignmentRole === "primary" ? "backup" : "primary";
-  const label = nextRole === "primary" ? "设为主要" : "设为备用";
-  return `<button type="button" class="admin-small admin-secondary" data-action="set-assignment-role" data-id="${escapeHtml(assignment.assignmentId || assignment.id)}" data-role="${nextRole}">${label}</button>`;
 }
 
 function isEnabledText(value) {
@@ -1414,8 +1409,7 @@ function renderAssignments() {
     const deleteAction = assignment.active
       ? `<button type="button" class="admin-small admin-secondary" disabled title="绑定状态不能删除，请先解绑">${icon("delete")}删除</button>`
       : `<button type="button" class="admin-small admin-danger" data-action="delete" data-id="${escapeHtml(assignment.id)}">${icon("delete")}删除</button>`;
-    const roleAction = assignmentRoleToggleAction(assignment);
-    const action = [roleAction, cancelAction, restoreAction, deleteAction].filter(Boolean).join("");
+    const action = [cancelAction, restoreAction, deleteAction].filter(Boolean).join("");
 
     return `
       <tr>
@@ -1423,7 +1417,7 @@ function renderAssignments() {
         <td>${escapeHtml(displayValue(assignment.customerNickname))}</td>
         <td>${escapeHtml(displayValue(assignment.adobeCode))}</td>
         <td>${escapeHtml(displayValue(assignment.accountEmail))}</td>
-        <td>${assignmentRoleChip(assignment.assignmentRole)}</td>
+        <td>${assignmentRoleChip(assignment.assignmentRole, assignment)}</td>
         <td>${formatDate(assignment.assignedAt)}</td>
         <td>${status}</td>
         <td class="admin-actions-cell">${action}</td>
@@ -1616,13 +1610,12 @@ function renderCustomerDetail(data) {
       <tr>
         <td>${escapeHtml(displayValue(account.adobeCode))}</td>
         <td>${escapeHtml(displayValue(account.accountEmail))}</td>
-        <td>${assignmentRoleChip(account.assignmentRole)}</td>
+        <td>${assignmentRoleChip(account.assignmentRole, account)}</td>
         <td>${escapeHtml(planLabel(account.accountPlan))}</td>
         <td>${formatDate(account.accountExpireAt)}</td>
         <td>${escapeHtml(displayValue(account.remainingText))}</td>
         <td>${statusChip(adobeStatusText(account), adobeStatusKind(account))}</td>
         <td class="admin-actions-cell">
-          ${assignmentRoleToggleAction(account)}
           <button type="button" class="admin-small" data-action="view-adobe-detail" data-id="${escapeHtml(account.id)}">${icon("view")}查看</button>
         </td>
       </tr>
