@@ -301,11 +301,17 @@ async function updateAdobeAccount(id, data) {
 
 async function listAdobeAccounts() {
   const accounts = await AdobeAccount.find().sort({ createdAt: -1 });
-  const assignmentCounts = await CustomerAssignment.aggregate([
-    { $match: { active: true } },
-    { $group: { _id: "$adobeAccountId", count: { $sum: 1 } } }
-  ]);
-  const countMap = new Map(assignmentCounts.map((item) => [String(item._id), item.count]));
+  const assignments = await CustomerAssignment.find({ active: true }).select("adobeAccountId customerId");
+  const customers = await Customer.find({ _id: { $in: assignments.map((item) => item.customerId) } }).select("_id");
+  const existingCustomerIds = new Set(customers.map((customer) => customer._id.toString()));
+  const countMap = assignments.reduce((map, assignment) => {
+    if (!existingCustomerIds.has(assignment.customerId.toString())) {
+      return map;
+    }
+    const key = assignment.adobeAccountId.toString();
+    map.set(key, (map.get(key) || 0) + 1);
+    return map;
+  }, new Map());
   return accounts.map((account) => ({
     ...decorateAdobeAccount(account),
     assignmentCount: countMap.get(account._id.toString()) || 0
