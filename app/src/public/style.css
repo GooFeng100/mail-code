@@ -5640,28 +5640,35 @@ td:last-child {
 .admin-page .checkbox-wrapper-35.assignment-role-switch {
   display: inline-flex;
   align-items: center;
+  gap: 8px;
   white-space: nowrap;
 }
 
-.admin-page button.checkbox-wrapper-35.assignment-role-switch {
-  height: auto;
+.admin-page .checkbox-wrapper-35.assignment-role-switch .switch-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 25px;
+  height: 15px;
   padding: 0;
   border: 0;
-  background: transparent;
-  color: #64748b;
+  background: transparent !important;
+  box-shadow: none !important;
+  appearance: none;
   cursor: pointer;
-  font: inherit;
 }
 
-.admin-page button.checkbox-wrapper-35.assignment-role-switch:disabled {
+.admin-page .checkbox-wrapper-35.assignment-role-switch .switch-button:disabled {
   cursor: not-allowed;
   opacity: 0.58;
 }
 
 .admin-page .checkbox-wrapper-35.assignment-role-switch .switch-shell {
-  display: flex;
-  align-items: center;
-  color: #78768d;
+  display: block;
+  width: 25px;
+  height: 15px;
+  color: inherit;
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-size: 12px;
   line-height: 15px;
@@ -5679,7 +5686,7 @@ td:last-child {
   background-color: #9ca3af;
   border-radius: 500px;
   height: 15px;
-  margin-right: 8px;
+  margin-right: 0;
   transition: background-color 0.125s ease-out;
   width: 25px;
 }
@@ -5707,13 +5714,18 @@ td:last-child {
 .admin-page .checkbox-wrapper-35.assignment-role-switch .switch-label {
   display: flex;
   align-items: center;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  color: #64748b;
+  pointer-events: none;
 }
 
 .admin-page .checkbox-wrapper-35.assignment-role-switch .switch-x-toggletext {
   display: block;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
   font-weight: bold;
   height: 15px;
   overflow: hidden;
@@ -5730,11 +5742,13 @@ td:last-child {
 }
 
 .admin-page .checkbox-wrapper-35.assignment-role-switch .switch-x-unchecked {
+  color: #64748b;
   opacity: 1;
   transform: none;
 }
 
 .admin-page .checkbox-wrapper-35.assignment-role-switch .switch-x-checked {
+  color: #15803d;
   opacity: 0;
   transform: translate3d(0, 100%, 0);
 }

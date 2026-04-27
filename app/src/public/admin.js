@@ -857,16 +857,17 @@ function assignmentRoleChip(value, assignment = null) {
     ? ` data-action="set-assignment-role" data-id="${escapeHtml(assignmentId)}" data-role="${nextRole}"`
     : "";
   return `
-    <button type="button" class="checkbox-wrapper-35 assignment-role-switch ${role}" aria-label="${assignmentRoleLabel(role)}"${actionAttrs}${disabled}>
-      <span class="switch-shell">
-        <span class="switch-label">
+    <span class="checkbox-wrapper-35 assignment-role-switch ${role}" aria-label="${assignmentRoleLabel(role)}">
+      <button type="button" class="switch-button" aria-label="${assignmentRoleLabel(role)}"${actionAttrs}${disabled}>
+        <span class="switch-shell"></span>
+      </button>
+      <span class="switch-label" aria-hidden="true">
         <span class="switch-x-toggletext">
           <span class="switch-x-unchecked"><span class="switch-x-hiddenlabel">Unchecked: </span>备用</span>
           <span class="switch-x-checked"><span class="switch-x-hiddenlabel">Checked: </span>主要</span>
         </span>
-        </span>
       </span>
-    </button>
+    </span>
   `;
 }
 
