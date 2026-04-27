@@ -479,6 +479,8 @@ body.receiver-active .shell {
 
 .receiver-empty .loader .circle .dot {
   position: absolute;
+  top: 50%;
+  left: 50%;
   transform: translate(-50%, -50%);
   width: 16px;
   height: 16px;
@@ -489,6 +491,8 @@ body.receiver-active .shell {
 
 .receiver-empty .loader .circle .outline {
   position: absolute;
+  top: 50%;
+  left: 50%;
   transform: translate(-50%, -50%);
   width: 20px;
   height: 20px;
@@ -567,28 +571,28 @@ body.receiver-active .shell {
 
 @keyframes dot-keys {
   0% {
-    transform: scale(1);
+    transform: translate(-50%, -50%) scale(1);
   }
 
   50% {
-    transform: scale(0);
+    transform: translate(-50%, -50%) scale(0);
   }
 
   100% {
-    transform: scale(1);
+    transform: translate(-50%, -50%) scale(1);
   }
 }
 
 @keyframes outline-keys {
   0% {
-    transform: scale(0);
+    transform: translate(-50%, -50%) scale(0);
     outline: solid 20px var(--color);
     outline-offset: 0;
     opacity: 1;
   }
 
   100% {
-    transform: scale(1);
+    transform: translate(-50%, -50%) scale(1);
     outline: solid 0 transparent;
     outline-offset: 20px;
     opacity: 0;
