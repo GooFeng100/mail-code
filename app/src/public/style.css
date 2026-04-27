@@ -7900,6 +7900,35 @@ td:last-child {
 .admin-page #assignmentForm.binding-modal-form .admin-form-actions button {
   height: 42px !important;
 }
+
+.admin-page #assignmentForm.binding-modal-form .binding-bridge-layout {
+  overflow: visible !important;
+}
+
+.admin-page #assignmentForm.binding-modal-form .binding-choice-card {
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+.admin-page #assignmentForm.binding-modal-form .binding-choice-card:focus-within,
+.admin-page #assignmentForm.binding-modal-form .binding-choice-card:has(.binding-combobox-menu.open) {
+  z-index: 60 !important;
+}
+
+.admin-page #assignmentForm.binding-modal-form .binding-select-shell {
+  position: relative !important;
+  z-index: 65 !important;
+}
+
+.admin-page #assignmentForm.binding-modal-form .binding-combobox-menu {
+  z-index: 70 !important;
+}
+
+.admin-page #assignmentForm.binding-modal-form .binding-bridge {
+  position: relative !important;
+  z-index: 1 !important;
+  pointer-events: none !important;
+}
 /* Final no-scroll create modal and compact binding confirm size. */
 .admin-page .admin-modal-panel.binding-bind-modal {
   width: min(504px, calc(100vw - 56px)) !important;
