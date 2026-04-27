@@ -5641,6 +5641,8 @@ td:last-child {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  height: 15px;
+  vertical-align: middle;
   white-space: nowrap;
 }
 
@@ -5714,6 +5716,7 @@ td:last-child {
 .admin-page .checkbox-wrapper-35.assignment-role-switch .switch-label {
   display: flex;
   align-items: center;
+  height: 15px;
   background: transparent !important;
   border: 0 !important;
   box-shadow: none !important;
@@ -5728,6 +5731,7 @@ td:last-child {
   box-shadow: none !important;
   font-weight: bold;
   height: 15px;
+  line-height: 15px;
   overflow: hidden;
   position: relative;
   width: 25px;
@@ -5735,6 +5739,10 @@ td:last-child {
 
 .admin-page .checkbox-wrapper-35.assignment-role-switch .switch-x-unchecked,
 .admin-page .checkbox-wrapper-35.assignment-role-switch .switch-x-checked {
+  display: flex;
+  align-items: center;
+  height: 15px;
+  line-height: 15px;
   left: 0;
   position: absolute;
   top: 0;
