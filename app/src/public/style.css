@@ -7942,6 +7942,10 @@ td:last-child {
   background-size: contain !important;
 }
 
+.admin-page #adminConfirmModal.binding-unbind-open .binding-bridge {
+  transform: translateX(-10px) !important;
+}
+
 .admin-page #assignmentForm.binding-modal-form .admin-form-actions {
   margin: 14px -28px 0 !important;
   padding: 12px 28px 16px !important;
