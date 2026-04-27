@@ -1392,7 +1392,7 @@ function renderAdobeAccounts() {
   const pageRows = rows.slice(start, start + state.adobePageSize);
 
   if (!pageRows.length) {
-    el.adobeBody.innerHTML = emptyRow(10, "暂无 Adobe账户");
+    el.adobeBody.innerHTML = emptyRow(11, "暂无 Adobe账户");
     renderAdobePagination(rows.length, totalPages);
     return;
   }
@@ -1408,6 +1408,7 @@ function renderAdobeAccounts() {
       <td>${remainingTextCell(adobeRemainingText(account), adobeStatusKind(account))}</td>
       <td>${statusChip(adobeStatusText(account), adobeStatusKind(account))}</td>
       <td>${isEnabledText(account.enabled)}</td>
+      <td>${Number(account.assignmentCount || 0)}</td>
       <td class="admin-actions-cell">
         <button type="button" class="admin-small" data-action="view" data-id="${escapeHtml(account.id)}">${icon("view")}查看</button>
         <button type="button" class="admin-small admin-secondary" data-action="edit" data-id="${escapeHtml(account.id)}">${icon("edit")}编辑</button>
@@ -2078,7 +2079,7 @@ if (el.adobePageSizeSelect) {
 if (el.exportAdobeBtn) {
   el.exportAdobeBtn.addEventListener("click", () => {
     const rows = filteredAdobeAccounts();
-    const headers = ["Adobe账户编号", "账户邮箱", "验证码邮箱", "账户计划", "付费日期", "账户到期日", "剩余天数", "状态", "启用"];
+    const headers = ["Adobe账户编号", "账户邮箱", "验证码邮箱", "账户计划", "付费日期", "账户到期日", "剩余天数", "状态", "启用", "绑定用户数"];
     const csvRows = [
       headers,
       ...rows.map((account) => [
@@ -2090,7 +2091,8 @@ if (el.exportAdobeBtn) {
         formatDate(account.accountExpireAt),
         adobeRemainingText(account),
         adobeStatusText(account),
-        account.enabled ? "启用" : "禁用"
+        account.enabled ? "启用" : "禁用",
+        Number(account.assignmentCount || 0)
       ])
     ];
     const csv = csvRows.map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(",")).join("\n");

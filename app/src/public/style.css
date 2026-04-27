@@ -5696,7 +5696,7 @@ td:last-child {
 
 .admin-page #adobeSection .admin-table {
   width: 100%;
-  min-width: 1064px;
+  min-width: 1128px;
   table-layout: fixed;
 }
 
@@ -5723,6 +5723,10 @@ td:last-child {
 .admin-page #adobeSection .adobe-col-status,
 .admin-page #adobeSection .adobe-col-enabled {
   width: 68px;
+}
+
+.admin-page #adobeSection .adobe-col-count {
+  width: 88px;
 }
 
 .admin-page #adobeSection .adobe-col-actions {
@@ -6216,6 +6220,7 @@ td:last-child {
 .admin-page #adobeSection .adobe-col-days,
 .admin-page #adobeSection .adobe-col-status,
 .admin-page #adobeSection .adobe-col-enabled,
+.admin-page #adobeSection .adobe-col-count,
 .admin-page #adobeSection .adobe-col-actions {
   width: auto !important;
 }

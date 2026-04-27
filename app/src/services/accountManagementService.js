@@ -301,7 +301,15 @@ async function updateAdobeAccount(id, data) {
 
 async function listAdobeAccounts() {
   const accounts = await AdobeAccount.find().sort({ createdAt: -1 });
-  return accounts.map(decorateAdobeAccount);
+  const assignmentCounts = await CustomerAssignment.aggregate([
+    { $match: { active: true } },
+    { $group: { _id: "$adobeAccountId", count: { $sum: 1 } } }
+  ]);
+  const countMap = new Map(assignmentCounts.map((item) => [String(item._id), item.count]));
+  return accounts.map((account) => ({
+    ...decorateAdobeAccount(account),
+    assignmentCount: countMap.get(account._id.toString()) || 0
+  }));
 }
 
 async function getAdobeAccount(id) {
