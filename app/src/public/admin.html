@@ -606,14 +606,18 @@
             </label>
             <fieldset class="binding-role-row">
               <legend>账号主备</legend>
-              <label>
-                <input type="radio" name="assignmentRole" value="primary" />
-                <span>主要账号</span>
-              </label>
-              <label>
-                <input type="radio" name="assignmentRole" value="backup" checked />
-                <span>备用账号</span>
-              </label>
+              <input type="hidden" name="assignmentRole" value="backup" />
+              <div class="checkbox binding-role-checkbox">
+                <input id="assignmentRoleToggle" name="assignmentRoleToggle" type="checkbox" />
+                <label for="assignmentRoleToggle">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 200 200" aria-hidden="true">
+                    <mask fill="white" id="assignment-role-checkbox-mask"><rect height="200" width="200"></rect></mask>
+                    <rect mask="url(#assignment-role-checkbox-mask)" stroke-width="40" height="200" width="200"></rect>
+                    <path stroke-width="15" d="M52 111.018L76.9867 136L149 64"></path>
+                  </svg>
+                  <span>主要账号</span>
+                </label>
+              </div>
             </fieldset>
             <div class="binding-bridge-layout">
               <section class="binding-choice-card">

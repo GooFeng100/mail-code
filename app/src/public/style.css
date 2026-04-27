@@ -5178,6 +5178,52 @@ td:last-child {
   accent-color: #2563eb;
 }
 
+.admin-page #assignmentForm.binding-modal-form .binding-role-row .binding-role-checkbox {
+  --light: rgba(207, 205, 205, 0.425);
+  --primary-color: #8c00ff;
+  --duration: 0.3s;
+  --ease: ease-in-out;
+}
+
+.admin-page #assignmentForm.binding-modal-form .binding-role-row .binding-role-checkbox input[type="checkbox"] {
+  display: none;
+}
+
+.admin-page #assignmentForm.binding-modal-form .binding-role-row .binding-role-checkbox label {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+}
+
+.admin-page #assignmentForm.binding-modal-form .binding-role-row .binding-role-checkbox label span {
+  margin-left: 8px;
+}
+
+.admin-page #assignmentForm.binding-modal-form .binding-role-row .binding-role-checkbox svg {
+  height: 30px;
+  width: 30px;
+}
+
+.admin-page #assignmentForm.binding-modal-form .binding-role-row .binding-role-checkbox svg > rect {
+  fill: var(--light);
+  stroke: #8c00ff;
+  stroke-dasharray: 400%;
+  stroke-dashoffset: 400%;
+  transition: var(--duration) stroke-dashoffset var(--ease);
+}
+
+.admin-page #assignmentForm.binding-modal-form .binding-role-row .binding-role-checkbox svg path {
+  stroke: var(--primary-color);
+  stroke-dasharray: 100%;
+  stroke-dashoffset: 100%;
+  transition: var(--duration) stroke-dashoffset var(--ease);
+}
+
+.admin-page #assignmentForm.binding-modal-form .binding-role-row .binding-role-checkbox input[type="checkbox"]:checked + label svg > rect,
+.admin-page #assignmentForm.binding-modal-form .binding-role-row .binding-role-checkbox input[type="checkbox"]:checked + label svg path {
+  stroke-dashoffset: 0;
+}
+
 /* Compact binding dialogs: match the regular modal scale and avoid inner scrollbars. */
 .admin-page .admin-modal-panel.binding-bind-modal,
 .admin-page #adminConfirmModal.binding-action-open .admin-confirm-panel {

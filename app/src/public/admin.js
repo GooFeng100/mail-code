@@ -479,6 +479,10 @@ function openAssignmentCreateModal(prefill = {}) {
   if (el.assignmentForm.elements.assignmentRole) {
     el.assignmentForm.elements.assignmentRole.value = "backup";
   }
+  if (el.assignmentForm.elements.assignmentRoleToggle) {
+    el.assignmentForm.elements.assignmentRoleToggle.checked = false;
+  }
+  syncAssignmentRoleField();
   prefillAssignmentCombobox("customer", prefill.customerId);
   prefillAssignmentCombobox("adobe", prefill.adobeAccountId);
   openModal("新增绑定关系", el.assignmentFormCard, "binding-bind-modal");
@@ -936,6 +940,15 @@ function showCustomerListMode() {
 
 function formValue(form, name) {
   return form.elements[name] ? form.elements[name].value : "";
+}
+
+function syncAssignmentRoleField() {
+  const roleField = el.assignmentForm?.elements.assignmentRole;
+  const roleToggle = el.assignmentForm?.elements.assignmentRoleToggle;
+  if (!roleField || !roleToggle) {
+    return;
+  }
+  roleField.value = roleToggle.checked ? "primary" : "backup";
 }
 
 function setText(id, value) {
@@ -1865,11 +1878,17 @@ if (resetCustomerFormBtn) {
 }
 const resetAssignmentFormBtn = document.getElementById("resetAssignmentFormBtn");
 if (resetAssignmentFormBtn) {
-  resetAssignmentFormBtn.addEventListener("click", () => el.assignmentForm.reset());
+  resetAssignmentFormBtn.addEventListener("click", () => {
+    el.assignmentForm.reset();
+    syncAssignmentRoleField();
+  });
 }
 document.getElementById("resetParameterFormBtn").addEventListener("click", resetParameterForm);
 bindAssignmentCombobox("customer");
 bindAssignmentCombobox("adobe");
+if (el.assignmentForm.elements.assignmentRoleToggle) {
+  el.assignmentForm.elements.assignmentRoleToggle.addEventListener("change", syncAssignmentRoleField);
+}
 document.querySelectorAll("[data-binding-clear]").forEach((button) => {
   button.addEventListener("click", () => clearAssignmentCombobox(button.dataset.bindingClear));
 });
@@ -2066,6 +2085,7 @@ el.customerForm.addEventListener("submit", async (event) => {
 
 el.assignmentForm.addEventListener("submit", async (event) => {
   event.preventDefault();
+  syncAssignmentRoleField();
   const customerId = syncAssignmentCombobox(el.assignmentCustomerInput, el.assignmentCustomerSelect);
   const adobeAccountId = syncAssignmentCombobox(el.assignmentAdobeInput, el.assignmentAdobeSelect);
   if (!customerId || !adobeAccountId) {
