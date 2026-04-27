@@ -1,0 +1,47 @@
+services:
+  mail-code-app:
+    image: node:20-alpine
+    container_name: mail-code-app
+    working_dir: /app
+    volumes:
+      - /vol1/1000/docker/mail-code/app:/app
+    ports:
+      - "3001:3000"
+    env_file:
+      - /vol1/1000/docker/mail-code/app/.env
+    command: sh -c "npm install && npm start"
+    restart: unless-stopped
+    depends_on:
+      - mail-code-redis
+      - mail-code-db
+    networks:
+      - mail-code-net
+
+  mail-code-redis:
+    image: redis:7-alpine
+    container_name: mail-code-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - /vol1/1000/docker/mail-code/redis-data:/data
+    networks:
+      - mail-code-net
+
+  mail-code-db:
+    image: mongo:7
+    container_name: mail-code-db
+    restart: unless-stopped
+    ports:
+      - "27018:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mailcode
+      MONGO_INITDB_ROOT_PASSWORD: mailcode_change_this_password
+    volumes:
+      - /vol1/1000/docker/mail-code/mongodb-data:/data/db
+    networks:
+      - mail-code-net
+
+networks:
+  mail-code-net:
+    name: mail-code-net
+    driver: bridge

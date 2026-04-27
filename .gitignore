@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+app/node_modules/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+app/.env
+app/.env.*
+!app/.env.example
+
+# Runtime data
+mongodb-data/
+redis-data/
+data/
+*.pid
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# Temporary / backup archives
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+*.zip
+*.7z
+*.rar
+
+# Local design handoff references, not required at runtime
+app/design_refs/

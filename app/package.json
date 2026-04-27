@@ -1,0 +1,23 @@
+{
+  "name": "mail-code-app",
+  "version": "1.0.0",
+  "description": "Mail code receiver system",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "node src/app.js",
+    "test:imap": "node src/test-imap.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.19.2",
+    "imapflow": "^1.0.191",
+    "jsonwebtoken": "^9.0.2",
+    "mailparser": "^3.7.2",
+    "mongoose": "^8.8.3",
+    "redis": "^4.7.0",
+    "socket.io": "^4.8.1"
+  }
+}

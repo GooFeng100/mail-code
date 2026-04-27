@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Code Receiver</title>
+  <link rel="icon" href="/assets/icons/verification.png" type="image/png" />
+  <link rel="stylesheet" href="/style.css?v=20260426-2" />
+</head>
+<body class="login-active">
+  <main class="shell">
+    <section class="login-screen" id="loginPanel">
+      <div class="login-card">
+        <header class="login-header">
+          <div class="login-mark" aria-hidden="true">
+            <img src="/assets/icons/verification.png" alt="" />
+          </div>
+          <h1>验证码接收助手</h1>
+        </header>
+
+        <form id="loginForm" class="login-form">
+          <label>
+            Adobe账户
+            <span class="field-shell">
+              <span class="field-icon" aria-hidden="true"><img src="/assets/icons/account-male.png" alt="" /></span>
+              <input name="username" type="text" inputmode="email" autocomplete="email" placeholder="请输入Adobe账户邮箱" required />
+            </span>
+          </label>
+          <label>
+            密码
+            <span class="field-shell">
+              <span class="field-icon" aria-hidden="true"><img src="/assets/icons/password.png" alt="" /></span>
+              <input name="password" type="password" autocomplete="current-password" placeholder="请输入密码" required />
+            </span>
+          </label>
+          <button type="submit" class="login-button">
+            <img src="/assets/icons/login.png" alt="" />
+            <span>登 录</span>
+          </button>
+        </form>
+        <p class="message" id="loginMessage"></p>
+      </div>
+    </section>
+
+    <section class="receiver-screen hidden" id="userPanel">
+      <header class="receiver-header">
+        <div class="account-block">
+          <div class="account-avatar" id="accountAvatar" aria-hidden="true">U</div>
+          <div>
+            <h1>当前用户</h1>
+            <p id="userInfo"></p>
+          </div>
+        </div>
+        <div class="receiver-actions">
+          <div>
+            <p id="sessionCountdown">登录剩余时间 --</p>
+          </div>
+          <button id="refreshBtn" type="button" class="receiver-icon-button" aria-label="Refresh">
+            <img src="/assets/icons/synchronize.png" alt="" />
+          </button>
+          <button id="logoutBtn" type="button" class="receiver-icon-button" aria-label="Logout">
+            <img src="/assets/icons/logout.png" alt="" />
+          </button>
+        </div>
+      </header>
+
+      <div id="codeList" class="code-list receiver-list"></div>
+    </section>
+  </main>
+
+  <audio id="newCodeSound" preload="auto" src="/assets/sounds/new-notification.mp3"></audio>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/app.js?v=20260425-16"></script>
+</body>
+</html>

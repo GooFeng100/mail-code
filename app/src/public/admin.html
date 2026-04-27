@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Adobe 业务管理系统</title>
+  <link rel="icon" href="/assets/icons/verification.png" type="image/png" />
+  <link rel="stylesheet" href="/style.css?v=20260426-12" />
+</head>
+<body class="admin-page">
+  <div class="admin-layout hidden" id="adminPanel">
+    <aside class="admin-sidebar">
+      <div class="admin-brand">
+        <div class="admin-brand-mark">
+          <img src="/assets/icons/data-warehouse.png" alt="" />
+        </div>
+        <div>
+          <strong>Adobe 业务管理</strong>
+          <span>管理控制台</span>
+        </div>
+      </div>
+
+      <nav class="admin-nav" aria-label="后台模块">
+        <button type="button" class="active" data-section="adobe">
+          <img src="/assets/icons/admin/adobe-account.png" alt="" />Adobe账户
+        </button>
+        <button type="button" data-section="customers">
+          <img src="/assets/icons/admin/customer.png" alt="" />客户管理
+        </button>
+        <button type="button" data-section="assignments">
+          <img src="/assets/icons/admin/assignment.png" alt="" />绑定关系
+        </button>
+        <button type="button" data-section="parameters">
+          <img src="/assets/icons/admin/settings.png" alt="" />参数设置
+        </button>
+      </nav>
+
+      <div class="admin-sidebar-actions">
+        <div class="admin-sidebar-profile">
+          <img src="/assets/icons/account-male.png" alt="" />
+          <div>
+            <strong>Admin 管理员</strong>
+            <span id="adminInfo">超级管理员</span>
+          </div>
+        </div>
+        <button id="logoutBtn" type="button" class="admin-secondary admin-icon-button">
+          <img src="/assets/icons/logout.png" alt="" />退出登录        </button>
+      </div>
+    </aside>
+
+    <main class="admin-main">
+      <p class="admin-message" id="adminMessage"></p>
+
+      <section class="admin-section active" id="adobeSection">
+        <div class="adobe-list-view" id="adobeListView">
+        <div class="admin-stats adobe-list-stats" aria-label="Adobe账户统计">
+          <div class="admin-stat adobe-stat-total">
+            <img src="/assets/icons/admin/adobe-account.png" alt="" />
+            <div>
+              <span>账户总数</span>
+              <strong id="adobeStatTotal">0</strong>
+              <small id="adobeStatHint">绛夊緟鍔犺浇</small>
+            </div>
+          </div>
+          <div class="admin-stat adobe-stat-normal">
+            <img src="/assets/icons/admin/success.png" alt="" />
+            <div>
+              <span>正常账户</span>
+              <strong id="adobeStatNormal">0</strong>
+              <small>当前可用</small>
+            </div>
+          </div>
+          <div class="admin-stat adobe-stat-soon">
+            <img src="/assets/icons/admin/calendar.png" alt="" />
+            <div>
+              <span>即将到期</span>
+              <strong id="adobeStatSoon">0</strong>
+              <small>30天内到期</small>
+            </div>
+          </div>
+          <div class="admin-stat adobe-stat-risk">
+            <img src="/assets/icons/admin/warning.png" alt="" />
+            <div>
+              <span>已停用 / 异常账户</span>
+              <strong id="adobeStatRisk">0</strong>
+              <small>需关注</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="admin-card admin-form-card" id="adobeFormCard">
+          <div class="admin-section-head">
+            <div>
+              <h2>Adobe账户</h2>
+            </div>
+          </div>
+
+          <form id="adobeForm" class="admin-form admin-form-wide">
+            <input type="hidden" name="id" />
+            <label><span class="admin-label-text">Adobe账户编号</span><input name="adobeCode" placeholder="自动生成，例如 A0001" readonly /></label>
+            <label><span class="admin-label-text required">Adobe账户邮箱</span><input name="accountEmail" type="email" placeholder="adobe001@outlook.com" required /></label>
+            <label><span class="admin-label-text">Adobe密码</span><input name="adobePassword" type="text" placeholder="至少 6 位" /></label>
+            <label><span class="admin-label-text">Adobe邮箱密码</span><input name="accountEmailPassword" type="text" placeholder="仅记录管理" /></label>
+            <label><span class="admin-label-text required">验证码接收邮箱</span><input name="verificationEmail" type="email" placeholder="user01@889100.xyz" required /></label>
+            <label><span class="admin-label-text">账户计划</span><select name="accountPlan" id="adobePlanSelect"></select></label>
+            <label><span class="admin-label-text">付费日期</span><input name="paidAt" type="date" /></label>
+            <label><span class="admin-label-text">初始到期日</span><input name="baseExpireAt" type="date" /></label>
+            <label><span class="admin-label-text">状态</span><input id="adobeStatusSelect" type="text" value="根据到期日自动计算" readonly /></label>
+            <label class="admin-switch-field">
+              <span class="admin-label-text">启用</span>
+              <span class="admin-switch-control">
+                <input name="enabled" type="checkbox" checked />
+                <span class="admin-switch-track" aria-hidden="true"></span>
+              </span>
+            </label>
+            <label class="admin-span-2"><span class="admin-label-text">备注</span><textarea name="remark" rows="2"></textarea></label>
+            <div class="admin-form-actions">
+              <button type="button" class="admin-secondary" data-modal-close>取消</button>
+              <button type="submit">保存 Adobe账户</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="admin-card adobe-list-card">
+          <div class="adobe-filter-bar">
+            <div>
+              <h2>账户列表</h2>
+              <p>只显示必要信息，详情、编辑和续费记录在弹窗中处理。</p>
+            </div>
+            <div class="adobe-filter-grid">
+              <label class="admin-search-field">
+                <input id="adobeSearchInput" class="admin-search" placeholder="搜索账户编号 / 账户邮箱 / 验证码邮箱" />
+                <button type="button" class="admin-search-clear" id="clearAdobeSearchBtn" aria-label="清空账户搜索">×</button>
+              </label>
+              <label>
+                <select id="adobePlanFilterSelect"></select>
+              </label>
+              <label>
+                <select id="adobeStatusFilterSelect"></select>
+              </label>
+              <label>
+                <select id="adobeExpireFilterSelect">
+                  <option value="">全部到期时间</option>
+                  <option value="soon">30天内到期</option>
+                  <option value="expired">已到期</option>
+                  <option value="valid">未到期</option>
+                </select>
+              </label>
+              <div class="adobe-filter-actions">
+                <button type="button" id="addAdobeBtn"><img class="admin-action-icon" src="/assets/icons/admin/add.png" alt="" />新增Adobe账户</button>
+                <button type="button" class="admin-secondary" id="exportAdobeBtn">
+                  <img class="admin-action-icon" src="/assets/icons/admin/view.png" alt="" />导出
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <colgroup>
+                <col class="adobe-col-code" />
+                <col class="adobe-col-email" />
+                <col class="adobe-col-email" />
+                <col class="adobe-col-plan" />
+                <col class="adobe-col-date" />
+                <col class="adobe-col-date" />
+                <col class="adobe-col-days" />
+                <col class="adobe-col-status" />
+                <col class="adobe-col-enabled" />
+                <col class="adobe-col-actions" />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>账户编号</th>
+                  <th>账户邮箱</th>
+                  <th>验证码邮箱</th>
+                  <th>账户计划</th>
+                  <th>付费日期</th>
+                  <th>到期日</th>
+                  <th>剩余天数</th>
+                  <th>状态</th>
+                  <th>启用</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="adobeBody"></tbody>
+            </table>
+          </div>
+          <div class="admin-pagination" id="adobePagination">
+            <span id="adobePaginationInfo">共 0 条</span>
+            <div class="admin-pagination-controls">
+              <button type="button" class="admin-secondary admin-small" id="adobePrevPageBtn">上一页</button>
+              <span id="adobePageInfo">1 / 1</span>
+              <button type="button" class="admin-secondary admin-small" id="adobeNextPageBtn">下一页</button>
+              <select id="adobePageSizeSelect" aria-label="每页数量">
+                <option value="10">10 条/页</option>
+                <option value="20">20 条/页</option>
+                <option value="50">50 条/页</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        </div>
+
+        <div class="admin-card hidden admin-detail-card adobe-detail-page" id="adobeDetailCard">
+          <div class="admin-section-head">
+            <div>
+              <h2>Adobe账户</h2>
+              <p id="adobeDetailHint">选择一个账户查看详情、当前使用客户和续费记录。</p>
+            </div>
+            <div class="adobe-detail-actions">
+              <button type="button" class="admin-secondary" id="copyAdobeDetailBtn">
+                <img class="admin-action-icon" src="/assets/icons/admin/save.png" alt="" />详情复制
+              </button>
+              <button type="button" class="admin-secondary" id="editSelectedAdobeBtn">
+                <img class="admin-action-icon" src="/assets/icons/admin/edit.png" alt="" />编辑账户
+              </button>
+              <button type="button" class="admin-secondary" id="backAdobeListBtn">返回账户列表</button>
+            </div>
+          </div>
+          <div class="adobe-detail-layout">
+            <section class="adobe-info-card" aria-label="账户信息">
+              <div id="adobeDetailSummary" class="admin-detail-grid"></div>
+            </section>
+            <aside class="adobe-metrics-grid" aria-label="账户统计">
+              <article class="adobe-metric-card">
+                <span class="adobe-metric-icon blue"><img src="/assets/icons/admin/customer.png" alt="" /></span>
+                <div>
+                  <div class="adobe-metric-title">绑定客户数</div>
+                  <div class="adobe-metric-value blue" id="adobeMetricCustomers">0</div>
+                </div>
+              </article>
+              <article class="adobe-metric-card">
+                <span class="adobe-metric-icon green"><img src="/assets/icons/admin/renewal.png" alt="" /></span>
+                <div>
+                  <div class="adobe-metric-title">续费记录数</div>
+                  <div class="adobe-metric-value green" id="adobeMetricRenewals">0</div>
+                </div>
+              </article>
+              <article class="adobe-metric-card wide">
+                <span class="adobe-metric-icon orange"><img src="/assets/icons/admin/calendar.png" alt="" /></span>
+                <div>
+                  <div class="adobe-metric-title">账户到期状态</div>
+                  <div class="adobe-metric-value compact" id="adobeMetricExpire">-</div>
+                </div>
+              </article>
+            </aside>
+          </div>
+
+          <div class="admin-detail-table-card">
+            <div class="admin-detail-table-head">
+              <h3>当前使用客户</h3>
+              <button type="button" class="admin-secondary admin-small" id="addBindingFromAdobeBtn">
+                <img class="admin-action-icon" src="/assets/icons/admin/add.png" alt="" />新增绑定
+              </button>
+            </div>
+            <div class="admin-table-wrap">
+              <table class="admin-table compact">
+                <thead>
+                  <tr>
+                    <th>客户编号</th>
+                    <th>客户昵称</th>
+                    <th>联系方式</th>
+                    <th>购买计划</th>
+                    <th>售后到期日</th>
+                    <th>剩余天数</th>
+                    <th>续费状态</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="adobeDetailCustomers"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="admin-detail-table-card">
+            <div class="admin-detail-table-head">
+              <h3>Adobe账户续费记录</h3>
+              <button type="button" id="addAdobeRenewalBtn">
+                <img class="admin-action-icon renewal-cash-icon" src="/assets/icons/admin/cash-payment-bills.png" alt="" />新增续费
+              </button>
+            </div>
+            <div class="admin-table-wrap">
+              <table class="admin-table compact">
+                <thead>
+                  <tr>
+                    <th>续费日期</th>
+                    <th>续费套餐</th>
+                    <th>增加天数</th>
+                    <th>续费前到期日</th>
+                    <th>续费后到期日</th>
+                    <th>备注</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="adobeRenewalsBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="admin-card hidden admin-renewal-card" id="adobeRenewalFormCard">
+          <div class="admin-section-head">
+            <div>
+              <h2>新增续费记录</h2>
+              <p>为当前 Adobe账户新增续费记录，系统将根据套餐天数自动计算新的到期日。</p>
+            </div>
+            <button type="button" class="admin-secondary admin-renewal-close" data-modal-close aria-label="关闭">×</button>
+          </div>
+          <form id="adobeRenewalForm" class="admin-form admin-renewal-form">
+            <label>续费日期<input name="renewalDate" type="date" /></label>
+            <label>续费套餐<select name="planName" id="adobeRenewalPlanSelect"></select></label>
+            <label>增加天数<input id="adobeRenewalDaysPreview" type="text" readonly placeholder="选择套餐后自动计算" /></label>
+            <label>续费前到期日<input id="adobeRenewalBeforePreview" type="text" readonly /></label>
+            <label>续费后到期日<input id="adobeRenewalAfterPreview" type="text" readonly /></label>
+            <label class="admin-span-2">备注<textarea name="remark" rows="3" placeholder="请输入备注（选填）"></textarea></label>
+            <div class="admin-form-actions">
+              <button type="button" class="admin-secondary" data-modal-close>取消</button>
+              <button type="submit">保存续费</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section class="admin-section" id="customersSection">
+        <div class="customer-list-view" id="customerListView">
+        <div class="admin-module-hero customer-hero">
+          <div>
+            <p class="admin-eyebrow">Customers</p>
+            <h2>客户管理</h2>
+            <span>维护真实客户资料、购买计划、售后到期状态和续费记录数</span>
+          </div>
+          <button type="button" id="addCustomerHeroBtn">
+            <img class="admin-action-icon" src="/assets/icons/admin/add.png" alt="" />新增客户
+          </button>
+        </div>
+
+        <div class="admin-stats adobe-list-stats customer-list-stats" aria-label="客户统计">
+          <div class="admin-stat customer-stat-total">
+            <img src="/assets/icons/admin/customer.png" alt="" />
+            <div>
+              <span>用户总数</span>
+              <strong id="customerStatTotal">0</strong>
+              <small id="customerStatHint">绛夊緟鍔犺浇</small>
+            </div>
+          </div>
+          <div class="admin-stat customer-stat-normal">
+            <img src="/assets/icons/admin/success.png" alt="" />
+            <div>
+              <span>正常账户数</span>
+              <strong id="customerStatNormal">0</strong>
+              <small>售后正常</small>
+            </div>
+          </div>
+          <div class="admin-stat customer-stat-soon">
+            <img src="/assets/icons/admin/calendar.png" alt="" />
+            <div>
+              <span>即将到期日</span>
+              <strong id="customerStatSoon">0</strong>
+              <small>30天内到期</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="admin-card admin-form-card customer-modal-card" id="customerFormCard">
+          <div class="customer-modal-header">
+            <h2 id="customerModalTitle">新增客户</h2>
+            <button type="button" class="customer-modal-close" data-modal-close aria-label="关闭">×</button>
+          </div>
+
+          <form id="customerForm" class="admin-form customer-modal-form">
+            <input type="hidden" name="id" />
+            <label class="customer-form-row">
+              <span class="customer-form-label">客户编号（自动生成）</span>
+              <span class="customer-field"><input name="customerCode" placeholder="保存后自动生成" readonly /></span>
+            </label>
+            <label class="customer-form-row">
+              <span class="customer-form-label required">客户昵称</span>
+              <span class="customer-field"><input name="customerNickname" required placeholder="请输入客户昵称" /></span>
+            </label>
+            <label class="customer-form-row">
+              <span class="customer-form-label required">联系方式</span>
+              <span class="customer-field"><input name="customerContact" placeholder="QQ / 微信 / 电话" /></span>
+            </label>
+            <label class="customer-form-row">
+              <span class="customer-form-label">联系邮箱</span>
+              <span class="customer-field"><input name="customerContactEmail" type="email" placeholder="请输入联系邮箱" /></span>
+            </label>
+            <label class="customer-form-row">
+              <span class="customer-form-label required">购买计划</span>
+              <span class="customer-field customer-select-field"><select name="purchasedPlan" id="customerPlanSelect"></select></span>
+            </label>
+            <label class="customer-form-row">
+              <span class="customer-form-label required">首次购买日期</span>
+              <span class="customer-field customer-date-field"><input name="firstPaidAt" type="date" /></span>
+            </label>
+            <label class="customer-form-row">
+              <span class="customer-form-label required">初始售后到期日</span>
+              <span class="customer-field customer-date-field"><input name="baseAfterSalesExpireAt" type="date" /></span>
+            </label>
+            <label class="customer-form-row">
+              <span class="customer-form-label">续费状态</span>
+              <span class="customer-field"><input id="customerRenewalStatusSelect" type="text" value="根据售后到期日自动计算" readonly /></span>
+            </label>
+            <label class="customer-form-row">
+              <span class="customer-form-label">备注</span>
+              <span class="customer-field customer-textarea-field">
+                <textarea name="remark" rows="2" maxlength="200" placeholder="请输入备注（选填）"></textarea>
+                <span class="customer-char-count" id="customerRemarkCount">0/200</span>
+              </span>
+            </label>
+            <div class="admin-form-actions">
+              <button type="button" class="admin-secondary" data-modal-close>取消</button>
+              <button type="submit">保存</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="admin-card customer-list-card">
+          <div class="adobe-filter-bar customer-filter-bar">
+            <div>
+              <h2>客户列表</h2>
+              <p>只显示客户管理所需核心信息，详情、编辑和续费记录在弹窗中处理。</p>
+            </div>
+            <div class="adobe-filter-grid customer-filter-grid">
+              <label class="admin-search-field">
+                <input id="customerSearchInput" class="admin-search" placeholder="搜索客户编号 / 昵称 / 联系方式" />
+                <button type="button" class="admin-search-clear" id="clearCustomerSearchBtn" aria-label="清空客户搜索">×</button>
+              </label>
+              <label>
+                <select id="customerPlanFilterSelect"></select>
+              </label>
+              <label>
+                <select id="customerExpireFilterSelect">
+                  <option value="">全部到期时间</option>
+                  <option value="soon">30天内到期</option>
+                  <option value="expired">已到期</option>
+                  <option value="valid">未到期</option>
+                </select>
+              </label>
+              <div class="adobe-filter-actions customer-filter-actions">
+                <button type="button" id="addCustomerBtn"><img class="admin-action-icon" src="/assets/icons/admin/add.png" alt="" />新增客户</button>
+              </div>
+            </div>
+          </div>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>客户编号</th>
+                  <th>客户昵称</th>
+                  <th>联系方式</th>
+                  <th>购买计划</th>
+                  <th>售后到期日</th>
+                  <th>剩余天数</th>
+                  <th>续费状态</th>
+                  <th>绑定账户数</th>
+                  <th>备注</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="customersBody"></tbody>
+            </table>
+          </div>
+        </div>
+        </div>
+
+        <div class="admin-card hidden admin-detail-card adobe-detail-page customer-detail-page" id="customerDetailCard">
+          <div class="admin-section-head">
+            <div>
+              <h2>客户详情</h2>
+              <p>选择一个客户查看资料、使用中的 Adobe账户和续费记录。</p>
+            </div>
+            <div class="adobe-detail-actions">
+              <button type="button" class="admin-secondary" id="editSelectedCustomerBtn">
+                <img class="admin-action-icon" src="/assets/icons/admin/edit.png" alt="" />编辑客户
+              </button>
+              <button type="button" class="admin-secondary" id="backCustomerListBtn">返回客户列表</button>
+            </div>
+          </div>
+          <div class="adobe-detail-layout">
+            <section class="adobe-info-card" aria-label="客户信息">
+              <div id="customerDetailSummary" class="admin-detail-grid"></div>
+            </section>
+            <aside class="adobe-metrics-grid" aria-label="客户统计">
+              <article class="adobe-metric-card">
+                <span class="adobe-metric-icon blue"><img src="/assets/icons/admin/adobe-account.png" alt="" /></span>
+                <div>
+                  <div class="adobe-metric-title">绑定账户数</div>
+                  <div class="adobe-metric-value blue" id="customerMetricAccounts">0</div>
+                </div>
+              </article>
+              <article class="adobe-metric-card">
+                <span class="adobe-metric-icon green"><img src="/assets/icons/admin/renewal.png" alt="" /></span>
+                <div>
+                  <div class="adobe-metric-title">续费记录数</div>
+                  <div class="adobe-metric-value green" id="customerMetricRenewals">0</div>
+                </div>
+              </article>
+              <article class="adobe-metric-card wide">
+                <span class="adobe-metric-icon orange"><img src="/assets/icons/admin/calendar.png" alt="" /></span>
+                <div>
+                  <div class="adobe-metric-title">售后到期状态</div>
+                  <div class="adobe-metric-value compact" id="customerMetricExpire">-</div>
+                </div>
+              </article>
+            </aside>
+          </div>
+
+          <div class="admin-detail-table-card">
+            <div class="admin-detail-table-head">
+              <h3>使用中的 Adobe账户</h3>
+              <button type="button" class="admin-secondary admin-small" id="addBindingFromCustomerBtn">
+                <img class="admin-action-icon" src="/assets/icons/admin/add.png" alt="" />新增绑定
+              </button>
+            </div>
+            <div class="admin-table-wrap">
+              <table class="admin-table compact">
+                <thead>
+                  <tr>
+                    <th>Adobe账户编号</th>
+                    <th>Adobe账户邮箱</th>
+                    <th>主备标识</th>
+                    <th>账户计划</th>
+                    <th>到期日</th>
+                    <th>剩余天数</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="customerDetailAdobeAccounts"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="admin-detail-table-card">
+            <div class="admin-detail-table-head">
+              <h3>客户续费记录</h3>
+              <button type="button" id="addCustomerRenewalBtn">
+                <img class="admin-action-icon renewal-cash-icon" src="/assets/icons/admin/cash-payment-bills.png" alt="" />新增续费
+              </button>
+            </div>
+            <div class="admin-table-wrap">
+              <table class="admin-table compact">
+                <thead>
+                  <tr>
+                    <th>续费日期</th>
+                    <th>续费套餐</th>
+                    <th>增加天数</th>
+                    <th>续费前售后到期日</th>
+                    <th>续费后售后到期日</th>
+                    <th>备注</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="customerRenewalsBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="admin-card hidden admin-renewal-card" id="customerRenewalFormCard">
+          <div class="admin-section-head">
+            <div>
+              <h2>新增续费记录</h2>
+              <p>为当前客户新增续费记录，系统将根据套餐天数自动计算新的售后到期日。</p>
+            </div>
+            <button type="button" class="admin-secondary admin-renewal-close" data-modal-close aria-label="关闭">×</button>
+          </div>
+          <form id="customerRenewalForm" class="admin-form admin-renewal-form">
+            <label>续费日期<input name="renewalDate" type="date" /></label>
+            <label>续费套餐<select name="planName" id="customerRenewalPlanSelect"></select></label>
+            <label>增加天数<input id="customerRenewalDaysPreview" type="text" readonly placeholder="选择套餐后自动计算" /></label>
+            <label>续费前售后到期日<input id="customerRenewalBeforePreview" type="text" readonly /></label>
+            <label>续费后售后到期日<input id="customerRenewalAfterPreview" type="text" readonly /></label>
+            <label class="admin-span-2">备注<textarea name="remark" rows="3" placeholder="请输入备注（选填）"></textarea></label>
+            <div class="admin-form-actions">
+              <button type="button" class="admin-secondary" data-modal-close>取消</button>
+              <button type="submit">保存续费</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section class="admin-section" id="assignmentsSection">
+        <div class="admin-module-hero assignment-hero">
+          <div>
+            <p class="admin-eyebrow">Bindings</p>
+            <h2>绑定关系</h2>
+            <span>维护客户与 Adobe账户的使用关系，列表只保留当前状态和必要操作。</span>
+          </div>
+          <button type="button" id="addAssignmentHeroBtn">
+            <img class="admin-action-icon" src="/assets/icons/admin/add.png" alt="" />新增绑定
+          </button>
+        </div>
+
+        <div class="admin-card admin-form-card binding-modal-card" id="assignmentFormCard">
+          <form id="assignmentForm" class="admin-form assignment-form binding-modal-form">
+            <div class="binding-modal-header">
+              <h2 class="binding-modal-title">新增绑定关系</h2>
+              <p>将客户与 Adobe 账户进行绑定管理</p>
+            </div>
+            <label class="binding-date-row">
+              <span>绑定日期</span>
+              <input name="assignedAt" type="date" />
+            </label>
+            <fieldset class="binding-role-row">
+              <legend>账号主备</legend>
+              <label>
+                <input type="radio" name="assignmentRole" value="primary" />
+                <span>主要账号</span>
+              </label>
+              <label>
+                <input type="radio" name="assignmentRole" value="backup" checked />
+                <span>备用账号</span>
+              </label>
+            </fieldset>
+            <div class="binding-bridge-layout">
+              <section class="binding-choice-card">
+                <h3>客户选择</h3>
+                <label class="binding-select-shell">
+                  <input class="binding-combobox-input" id="assignmentCustomerInput" placeholder="请选择客户" autocomplete="off" required />
+                  <select name="customerId" id="assignmentCustomerSelect" class="binding-hidden-select" tabindex="-1" aria-hidden="true"></select>
+                  <button type="button" class="binding-combobox-clear" data-binding-clear="customer" aria-label="清空客户选择">×</button>
+                  <div class="binding-combobox-menu" id="assignmentCustomerMenu" role="listbox"></div>
+                </label>
+                <p>选择需要使用该 Adobe 账户的客户</p>
+              </section>
+              <div class="binding-bridge binding-bridge-bind" aria-hidden="true"></div>
+              <section class="binding-choice-card">
+                <h3>Adobe 账户选择</h3>
+                <label class="binding-select-shell">
+                  <input class="binding-combobox-input" id="assignmentAdobeInput" placeholder="请选择 Adobe 账户" autocomplete="off" required />
+                  <select name="adobeAccountId" id="assignmentAdobeSelect" class="binding-hidden-select" tabindex="-1" aria-hidden="true"></select>
+                  <button type="button" class="binding-combobox-clear" data-binding-clear="adobe" aria-label="清空 Adobe 账户选择">×</button>
+                  <div class="binding-combobox-menu" id="assignmentAdobeMenu" role="listbox"></div>
+                </label>
+                <p>选择要绑定的 Adobe 账户</p>
+              </section>
+            </div>
+            <label class="binding-remark-row">备注<input name="remark" /></label>
+            <div class="admin-form-actions">
+              <button type="button" class="admin-secondary" data-modal-close>取消</button>
+              <button type="submit">确认绑定</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="admin-card">
+          <div class="admin-table-head">
+            <div>
+              <h2>绑定列表</h2>
+              <p>仅展示客户、Adobe账户、绑定日期、状态和必要操作。</p>
+            </div>
+            <div class="admin-table-tools">
+              <input id="assignmentSearchInput" class="admin-search" placeholder="搜索客户或 Adobe账户" />
+              <button type="button" id="addAssignmentBtn"><img class="admin-action-icon" src="/assets/icons/admin/add.png" alt="" />新增绑定</button>
+            </div>
+          </div>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>客户编号</th>
+                  <th>客户昵称</th>
+                  <th>Adobe账户编号</th>
+                  <th>Adobe账户邮箱</th>
+                  <th>主备标识</th>
+                  <th>绑定日期</th>
+                  <th>是否有效</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="assignmentsBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="admin-section" id="parametersSection">
+        <div class="admin-module-hero parameter-hero">
+          <div>
+            <p class="admin-eyebrow">Settings</p>
+            <h2>参数设置</h2>
+            <span>维护动态数据库参数，供 Adobe账户、客户状态和计划下拉选项使用。</span>
+          </div>
+          <button type="button" id="addParameterHeroBtn">
+            <img class="admin-action-icon" src="/assets/icons/admin/add.png" alt="" />新增参数
+          </button>
+        </div>
+
+        <div class="admin-parameter-tabs" role="tablist" aria-label="参数分类">
+          <button type="button" class="active" data-parameter-filter="">全部参数</button>
+          <button type="button" data-parameter-filter="plan">账户计划</button>
+          <button type="button" data-parameter-filter="adobeAccountStatus">Adobe账户状态</button>
+          <button type="button" data-parameter-filter="customerStatus">客户状态</button>
+        </div>
+
+        <div class="admin-card admin-form-card settings-modal-card" id="parameterFormCard">
+          <div class="settings-modal-head">
+            <div class="settings-title-group">
+              <div class="settings-title-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z" stroke="currentColor" stroke-width="2"></path>
+                  <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.04.04a2.06 2.06 0 1 1-2.91 2.91l-.04-.04A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .3 1.7 1.7 0 0 0-.83 1.46V21a2.06 2.06 0 1 1-4.12 0v-.06A1.7 1.7 0 0 0 8.22 19.5a1.7 1.7 0 0 0-1-.3 1.7 1.7 0 0 0-1.88.34l-.04.04a2.06 2.06 0 1 1-2.91-2.91l.04-.04A1.7 1.7 0 0 0 2.6 15a1.7 1.7 0 0 0-.3-1 1.7 1.7 0 0 0-1.46-.83H.8a2.06 2.06 0 1 1 0-4.12h.06A1.7 1.7 0 0 0 2.3 8.22a1.7 1.7 0 0 0 .3-1A1.7 1.7 0 0 0 2.26 5.34l-.04-.04A2.06 2.06 0 1 1 5.13 2.4l.04.04A1.7 1.7 0 0 0 7 2.6a1.7 1.7 0 0 0 1-.3A1.7 1.7 0 0 0 8.83.84V.8a2.06 2.06 0 1 1 4.12 0v.06A1.7 1.7 0 0 0 13.78 2.3a1.7 1.7 0 0 0 1 .3 1.7 1.7 0 0 0 1.88-.34l.04-.04a2.06 2.06 0 1 1 2.91 2.91l-.04.04A1.7 1.7 0 0 0 19.4 7a1.7 1.7 0 0 0 .3 1 1.7 1.7 0 0 0 1.46.83h.04a2.06 2.06 0 1 1 0 4.12h-.06A1.7 1.7 0 0 0 19.7 13.78a1.7 1.7 0 0 0-.3 1Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
+                </svg>
+              </div>
+              <div>
+                <h2 id="settingsModalTitle">参数设置</h2>
+                <p>维护 Adobe账户状态、客户状态、账户计划。账户计划的有效期会用于自动计算到期日和续费天数。</p>
+              </div>
+            </div>
+            <button type="button" class="settings-clear-btn" id="resetParameterFormBtn">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M5 7h14M10 11v6M14 11v6M9 7l1-2h4l1 2M7 7l1 14h8l1-14" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path>
+              </svg>
+              娓呯┖
+            </button>
+          </div>
+
+          <form id="parameterForm" class="admin-form parameter-form settings-form">
+            <input type="hidden" name="id" />
+            <div class="settings-form-grid">
+              <label class="settings-field">参数类型
+                <span class="settings-select-wrap">
+                  <select name="category" id="parameterCategorySelect">
+                    <option value="plan">账户计划</option>
+                    <option value="adobeAccountStatus">Adobe账户状态</option>
+                    <option value="customerStatus">客户状态</option>
+                  </select>
+                </span>
+              </label>
+              <label class="settings-field">名称<input name="name" placeholder="例如 全家桶年付 / 正常" required /></label>
+              <label class="settings-field">有效期天数<input name="days" type="number" min="0" step="1" placeholder="仅账户计划需要" /></label>
+              <label class="settings-field">排序<input name="sortOrder" type="number" min="1" step="1" placeholder="数字越小越靠前" required /></label>
+            </div>
+            <label class="settings-switch-card">
+              <span class="settings-switch-title">启用</span>
+              <span class="settings-switch">
+                <input name="enabled" type="checkbox" checked />
+                <span aria-hidden="true"></span>
+              </span>
+              <span class="settings-switch-text">已启用</span>
+            </label>
+            <label class="settings-field settings-remark-field">备注<textarea name="remark" placeholder="请输入备注（可选）"></textarea></label>
+            <div class="admin-form-actions">
+              <button type="button" class="admin-secondary" data-modal-close>取消</button>
+              <button type="submit">保存</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="admin-card">
+          <div class="admin-table-head">
+            <div>
+              <h2>参数列表</h2>
+              <p>仅展示当前模型已有字段，不包含价格、计划类型等额外信息。</p>
+            </div>
+            <div class="admin-table-tools">
+              <input id="parameterSearchInput" class="admin-search" placeholder="搜索参数类型或名称" />
+              <button type="button" id="addParameterBtn"><img class="admin-action-icon" src="/assets/icons/admin/add.png" alt="" />新增参数</button>
+            </div>
+          </div>
+          <div class="admin-table-wrap">
+            <table class="admin-table compact">
+              <thead>
+                <tr>
+                  <th>参数分类</th>
+                  <th>参数名称</th>
+                  <th>浣跨敤澶╂暟</th>
+                  <th>启用状态</th>
+                  <th>鎺掑簭</th>
+                  <th>备注</th>
+                  <th>鏇存柊鏃堕棿</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="parametersBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="adminModalStaging" class="hidden"></div>
+
+  <div class="admin-modal hidden" id="adminModal" role="dialog" aria-modal="true" aria-label="后台操作弹窗">
+    <div class="admin-modal-panel" id="adminModalPanel">
+      <div class="admin-modal-body" id="adminModalBody"></div>
+    </div>
+  </div>
+
+  <div class="admin-modal hidden" id="adminConfirmModal" role="dialog" aria-modal="true" aria-label="确认操作弹窗">
+    <div class="admin-modal-panel admin-confirm-panel">
+      <div class="admin-confirm-body">
+        <div class="admin-confirm-title-row">
+          <span class="admin-confirm-icon"><img src="/assets/icons/admin/warning.png" alt="" /></span>
+          <h2 id="adminConfirmTitle">确认操作</h2>
+          <button type="button" class="admin-confirm-close" id="adminConfirmClose" aria-label="关闭">×</button>
+        </div>
+        <p id="adminConfirmText">确认继续？</p>
+        <div id="adminConfirmDetails" class="admin-confirm-details hidden"></div>
+        <small id="adminConfirmHint" class="admin-confirm-hint"></small>
+      </div>
+      <div class="admin-confirm-actions">
+        <button type="button" class="admin-secondary" id="adminConfirmCancel">取消</button>
+        <button type="button" class="admin-danger" id="adminConfirmOk">确认删除</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="successToastRoot"></div>
+
+  <script src="/admin.js?v=20260426-12"></script>
+</body>
+</html>
