@@ -83,7 +83,7 @@ const el = {
   adobeToolbarSearchInput: null,
   adobePlanFilterSelect: document.getElementById("adobePlanFilterSelect"),
   adobeStatusFilterSelect: document.getElementById("adobeStatusFilterSelect"),
-  adobeExpireFilterSelect: document.getElementById("adobeExpireFilterSelect"),
+  adobeEnabledFilterSelect: document.getElementById("adobeEnabledFilterSelect"),
   adobeListView: document.getElementById("adobeListView"),
   backAdobeListBtn: document.getElementById("backAdobeListBtn"),
   exportAdobeBtn: document.getElementById("exportAdobeBtn"),
@@ -1148,9 +1148,6 @@ function populateConfigOptions() {
   if (el.adobePlanFilterSelect) {
     fillSelect(el.adobePlanFilterSelect, state.config.plans, "全部账户计划");
   }
-  if (el.adobeStatusFilterSelect) {
-    fillSelect(el.adobeStatusFilterSelect, ["正常", "已到期"], "全部状态");
-  }
 }
 
 function populateAssignmentOptions() {
@@ -1345,7 +1342,7 @@ function filteredAdobeAccounts() {
   const toolbarKeyword = String(el.adobeToolbarSearchInput ? el.adobeToolbarSearchInput.value : "").trim().toLowerCase();
   const plan = el.adobePlanFilterSelect ? el.adobePlanFilterSelect.value : "";
   const status = el.adobeStatusFilterSelect ? el.adobeStatusFilterSelect.value : "";
-  const expire = el.adobeExpireFilterSelect ? el.adobeExpireFilterSelect.value : "";
+  const enabled = el.adobeEnabledFilterSelect ? el.adobeEnabledFilterSelect.value : "";
   const searchText = [keyword, toolbarKeyword].filter(Boolean).join(" ");
 
   return state.adobeAccounts.filter((account) => {
@@ -1354,12 +1351,14 @@ function filteredAdobeAccounts() {
     const searchable = `${account.adobeCode} ${account.accountEmail} ${account.verificationEmail} ${account.accountPlan} ${account.remark}`.toLowerCase();
     const matchesKeyword = !searchText || searchText.split(/\s+/).every((word) => searchable.includes(word));
     const matchesPlan = !plan || account.accountPlan === plan;
-    const matchesStatus = !status || accountStatus === status;
-    const matchesExpire = !expire
-      || (expire === "soon" && Number.isFinite(days) && days > 0 && days <= 30)
-      || (expire === "expired" && Number.isFinite(days) && days <= 0)
-      || (expire === "valid" && Number.isFinite(days) && days > 0);
-    return matchesKeyword && matchesPlan && matchesStatus && matchesExpire;
+    const matchesStatus = !status
+      || (status === "normal" && accountStatus === "正常" && (!Number.isFinite(days) || days > 30))
+      || (status === "soon" && Number.isFinite(days) && days > 0 && days <= 30)
+      || (status === "expired" && Number.isFinite(days) && days <= 0);
+    const matchesEnabled = !enabled
+      || (enabled === "enabled" && account.enabled !== false)
+      || (enabled === "disabled" && account.enabled === false);
+    return matchesKeyword && matchesPlan && matchesStatus && matchesEnabled;
   });
 }
 
@@ -2016,7 +2015,7 @@ if (el.clearCustomerSearchBtn && el.customerSearchInput) {
   });
 }
 
-[el.adobePlanFilterSelect, el.adobeStatusFilterSelect, el.adobeExpireFilterSelect].filter(Boolean).forEach((select) => {
+[el.adobePlanFilterSelect, el.adobeStatusFilterSelect, el.adobeEnabledFilterSelect].filter(Boolean).forEach((select) => {
   select.addEventListener("change", () => {
     state.adobePage = 1;
     renderAdobeAccounts();

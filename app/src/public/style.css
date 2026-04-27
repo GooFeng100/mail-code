@@ -2758,6 +2758,12 @@ td:last-child {
   padding: 12px;
 }
 
+.admin-page input::placeholder,
+.admin-page textarea::placeholder {
+  color: var(--admin-color-muted);
+  opacity: 0.4;
+}
+
 .admin-page input:focus,
 .admin-page select:focus,
 .admin-page textarea:focus {
