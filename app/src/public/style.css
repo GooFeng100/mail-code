@@ -8092,3 +8092,24 @@ td:last-child {
   height: 42px !important;
   min-width: 96px !important;
 }
+
+/* Final modal opacity normalization. Match the Adobe account modal surface. */
+.admin-page .admin-modal,
+.admin-page #adminModal.admin-modal.adobe-form-open,
+.admin-page #adminConfirmModal.admin-modal {
+  background: transparent !important;
+  backdrop-filter: brightness(60%) !important;
+  -webkit-backdrop-filter: brightness(60%) !important;
+}
+
+.admin-page .admin-modal-panel,
+.admin-page #adminConfirmModal .admin-confirm-panel {
+  border: 1px solid rgba(255, 255, 255, 0.72) !important;
+  background:
+    linear-gradient(180deg, #ffffff, #f8fbff),
+    #ffffff !important;
+  box-shadow: var(--admin-shadow-pop) !important;
+  backdrop-filter: blur(34px) saturate(1.16) !important;
+  -webkit-backdrop-filter: blur(34px) saturate(1.16) !important;
+  opacity: 1 !important;
+}
