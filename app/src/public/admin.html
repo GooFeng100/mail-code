@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Adobe 业务管理系统</title>
   <link rel="icon" href="/assets/icons/verification.png" type="image/png" />
-  <link rel="stylesheet" href="/style.css?v=20260428-06" />
+  <link rel="stylesheet" href="/style.css?v=20260428-07" />
 </head>
 <body class="admin-page">
   <div class="admin-layout hidden" id="adminPanel">
@@ -697,11 +697,6 @@
           </button>
         </div>
 
-        <div class="admin-parameter-tabs" role="tablist" aria-label="参数分类">
-          <button type="button" class="active" data-parameter-filter="">全部参数</button>
-          <button type="button" data-parameter-filter="plan">账户计划</button>
-        </div>
-
         <div class="admin-card admin-form-card settings-modal-card" id="parameterFormCard">
           <div class="settings-modal-head">
             <div class="settings-title-group">
@@ -716,24 +711,11 @@
                 <p>维护账户计划。账户计划的有效期会用于自动计算到期日和续费天数。</p>
               </div>
             </div>
-            <button type="button" class="settings-clear-btn" id="resetParameterFormBtn">
-              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M5 7h14M10 11v6M14 11v6M9 7l1-2h4l1 2M7 7l1 14h8l1-14" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path>
-              </svg>
-              娓呯┖
-            </button>
           </div>
 
           <form id="parameterForm" class="admin-form parameter-form settings-form">
             <input type="hidden" name="id" />
             <div class="settings-form-grid">
-              <label class="settings-field">参数类型
-                <span class="settings-select-wrap">
-                  <select name="category" id="parameterCategorySelect">
-                    <option value="plan">账户计划</option>
-                  </select>
-                </span>
-              </label>
               <label class="settings-field">名称<input name="name" placeholder="例如 全家桶年付" required /></label>
               <label class="settings-field">有效期天数<input name="days" type="number" min="0" step="1" placeholder="仅账户计划需要" /></label>
               <label class="settings-field">排序<input name="sortOrder" type="number" min="1" step="1" placeholder="数字越小越靠前" required /></label>
@@ -816,6 +798,6 @@
 
   <div id="successToastRoot"></div>
 
-  <script src="/admin.js?v=20260428-06"></script>
+  <script src="/admin.js?v=20260428-07"></script>
 </body>
 </html>

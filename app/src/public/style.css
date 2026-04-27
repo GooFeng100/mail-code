@@ -4434,30 +4434,6 @@ td:last-child {
   line-height: 1.65;
 }
 
-.admin-page .settings-clear-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  height: 40px;
-  min-width: 94px;
-  margin-top: 14px;
-  padding: 0 14px;
-  border: 1px solid rgba(146, 163, 190, 0.28);
-  border-radius: 13px;
-  background: rgba(255, 255, 255, 0.82);
-  color: #30405e;
-  font-size: 14px;
-  font-weight: 800;
-  box-shadow: 0 12px 32px rgba(30, 64, 175, 0.1);
-  cursor: pointer;
-}
-
-.admin-page .settings-clear-btn svg {
-  width: 17px;
-  height: 17px;
-}
-
 .admin-page .admin-modal-panel.settings-modal #parameterForm {
   display: block !important;
   padding: 10px 36px 0 !important;
@@ -4652,10 +4628,6 @@ td:last-child {
   .admin-page .settings-modal-head {
     flex-direction: column;
     padding: 28px 24px 18px;
-  }
-
-  .admin-page .settings-clear-btn {
-    margin-top: 0;
   }
 
   .admin-page .admin-modal-panel.settings-modal #parameterForm {
@@ -7095,30 +7067,6 @@ td:last-child {
   line-height: 1.65;
 }
 
-.admin-page .settings-clear-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  height: 40px;
-  min-width: 94px;
-  margin-top: 14px;
-  padding: 0 14px;
-  border: 1px solid rgba(146, 163, 190, 0.28);
-  border-radius: 13px;
-  background: rgba(255, 255, 255, 0.82);
-  color: #30405e;
-  font-size: 14px;
-  font-weight: 800;
-  box-shadow: 0 12px 32px rgba(30, 64, 175, 0.1);
-  cursor: pointer;
-}
-
-.admin-page .settings-clear-btn svg {
-  width: 17px;
-  height: 17px;
-}
-
 .admin-page .admin-modal-panel.settings-modal #parameterForm {
   display: block !important;
   padding: 10px 36px 0 !important;
@@ -7313,10 +7261,6 @@ td:last-child {
   .admin-page .settings-modal-head {
     flex-direction: column;
     padding: 28px 24px 18px;
-  }
-
-  .admin-page .settings-clear-btn {
-    margin-top: 0;
   }
 
   .admin-page .admin-modal-panel.settings-modal #parameterForm {

@@ -11,7 +11,6 @@ const state = {
   assignments: [],
   parameters: [],
   activeSection: "adobe",
-  parameterCategoryFilter: "",
   adobePage: 1,
   adobePageSize: 10,
   assignmentCustomerOptions: [],
@@ -59,7 +58,6 @@ const el = {
   confirmOk: document.getElementById("adminConfirmOk"),
   confirmClose: document.getElementById("adminConfirmClose"),
   navButtons: Array.from(document.querySelectorAll(".admin-nav button")),
-  parameterFilterButtons: Array.from(document.querySelectorAll("[data-parameter-filter]")),
   sections: {
     adobe: document.getElementById("adobeSection"),
     customers: document.getElementById("customersSection"),
@@ -139,7 +137,6 @@ const el = {
   backCustomerListBtn: document.getElementById("backCustomerListBtn"),
   customerRenewalForm: document.getElementById("customerRenewalForm"),
   customerRenewalsBody: document.getElementById("customerRenewalsBody"),
-  parameterCategorySelect: document.getElementById("parameterCategorySelect")
 };
 
 let currentModalContent = null;
@@ -1318,8 +1315,7 @@ function renderParameters() {
   const rows = state.parameters.filter((item) => {
     const searchable = `${parameterCategoryLabel(item.category)} ${item.name} ${item.remark}`.toLowerCase();
     const matchesKeyword = !keyword || searchable.includes(keyword);
-    const matchesCategory = !state.parameterCategoryFilter || item.category === state.parameterCategoryFilter;
-    return matchesKeyword && matchesCategory;
+    return matchesKeyword;
   });
 
   if (!rows.length) {
@@ -1525,7 +1521,6 @@ function resetParameterForm() {
   el.parameterForm.reset();
   el.parameterForm.elements.id.value = "";
   el.parameterForm.elements.enabled.checked = true;
-  syncParameterDaysState();
 }
 
 function fillAdobeForm(account) {
@@ -1834,7 +1829,7 @@ function parameterPayload() {
   }
 
   return {
-    category: formValue(el.parameterForm, "category"),
+    category: "plan",
     name: formValue(el.parameterForm, "name"),
     days: formValue(el.parameterForm, "days"),
     sortOrder,
@@ -1845,21 +1840,11 @@ function parameterPayload() {
 
 function fillParameterForm(item) {
   el.parameterForm.elements.id.value = item.id;
-  el.parameterForm.elements.category.value = item.category || "plan";
   el.parameterForm.elements.name.value = item.name || "";
-  el.parameterForm.elements.days.value = item.category === "plan" ? Number(item.days || 0) : "";
+  el.parameterForm.elements.days.value = Number(item.days || 0);
   el.parameterForm.elements.sortOrder.value = Number(item.sortOrder || 0);
   el.parameterForm.elements.enabled.checked = Boolean(item.enabled);
   el.parameterForm.elements.remark.value = item.remark || "";
-  syncParameterDaysState();
-}
-
-function syncParameterDaysState() {
-  const isPlan = el.parameterForm.elements.category.value === "plan";
-  el.parameterForm.elements.days.disabled = !isPlan;
-  if (!isPlan) {
-    el.parameterForm.elements.days.value = "";
-  }
 }
 
 el.navButtons.forEach((button) => {
@@ -1949,7 +1934,6 @@ if (resetAssignmentFormBtn) {
     syncAssignmentRoleField();
   });
 }
-document.getElementById("resetParameterFormBtn").addEventListener("click", resetParameterForm);
 bindAssignmentCombobox("customer");
 bindAssignmentCombobox("adobe");
 if (el.assignmentForm.elements.assignmentRoleToggle) {
@@ -2000,16 +1984,6 @@ document.getElementById("editSelectedCustomerBtn").addEventListener("click", () 
 });
 document.querySelectorAll("[data-modal-close]").forEach((button) => {
   button.addEventListener("click", closeModal);
-});
-
-el.parameterFilterButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    state.parameterCategoryFilter = button.dataset.parameterFilter || "";
-    el.parameterFilterButtons.forEach((item) => {
-      item.classList.toggle("active", item === button);
-    });
-    renderParameters();
-  });
 });
 
 [el.adobeSearchInput, el.adobeToolbarSearchInput, el.customerSearchInput, el.assignmentSearchInput, el.parameterSearchInput].filter(Boolean).forEach((input) => {
@@ -2104,7 +2078,6 @@ if (el.exportAdobeBtn) {
   });
 }
 
-el.parameterCategorySelect.addEventListener("change", syncParameterDaysState);
 el.adobeForm.elements.accountPlan.addEventListener("change", syncAdobeExpireFromPlan);
 el.adobeForm.elements.paidAt.addEventListener("change", syncAdobeExpireFromPlan);
 el.adobeForm.elements.baseExpireAt.addEventListener("change", syncAdobeStatusPreview);
@@ -2553,7 +2526,6 @@ prepareModalCards();
     }
     await loadConfig();
     await refreshAll();
-    syncParameterDaysState();
     el.adminPanel.classList.remove("hidden");
   } catch (error) {
     clearSessionAndReturnHome();
