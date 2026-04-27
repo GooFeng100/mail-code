@@ -7931,8 +7931,10 @@ td:last-child {
   align-self: center !important;
   justify-self: center !important;
   display: grid !important;
+  grid-column: 1 / -1 !important;
   place-items: center !important;
   margin: 4px auto !important;
+  transform: none !important;
 }
 
 .admin-page #adminConfirmModal.binding-action-open .binding-bridge::after {
@@ -7942,8 +7944,12 @@ td:last-child {
   background-size: contain !important;
 }
 
-.admin-page #adminConfirmModal.binding-unbind-open .binding-bridge {
-  transform: translateX(-10px) !important;
+.admin-page #adminConfirmModal.binding-action-open .binding-confirm-layout > .binding-bridge.binding-bridge-unbind {
+  align-self: center !important;
+  justify-self: center !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  transform: none !important;
 }
 
 .admin-page #assignmentForm.binding-modal-form .admin-form-actions {
