@@ -23,6 +23,10 @@ const adobeRenewalRecordSchema = new mongoose.Schema(
       type: String,
       required: true
     },
+    planId: {
+      type: String,
+      default: ""
+    },
     planDays: {
       type: Number,
       required: true

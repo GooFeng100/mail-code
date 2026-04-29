@@ -51,7 +51,15 @@ const adobeAccountSchema = new mongoose.Schema(
       type: String,
       required: true
     },
+    accountPlanId: {
+      type: String,
+      default: ""
+    },
     initialAccountPlan: {
+      type: String,
+      default: ""
+    },
+    initialAccountPlanId: {
       type: String,
       default: ""
     },

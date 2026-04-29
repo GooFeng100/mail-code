@@ -718,16 +718,24 @@ function fillSelect(select, options, placeholder) {
   select.innerHTML = [
     placeholder ? `<option value="">${escapeHtml(placeholder)}</option>` : "",
     ...options.map((item) => {
-      const value = typeof item === "string" ? item : item.name;
+      const value = typeof item === "string" ? item : item.id || item.name;
       const label = typeof item === "string" ? item : `${item.name}（${item.days}天）`;
       return `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`;
     })
   ].join("");
 }
 
-function planDays(planName) {
+function isSamePlan(item, planValue) {
+  const value = String(planValue || "");
+  if (typeof item === "string") {
+    return item === value;
+  }
+  return String(item.id || "") === value || item.name === value;
+}
+
+function planDays(planValue) {
   const plan = (state.config.plans || []).find((item) => {
-    return (typeof item === "string" ? item : item.name) === planName;
+    return isSamePlan(item, planValue);
   });
 
   if (!plan || typeof plan === "string") {
@@ -737,13 +745,14 @@ function planDays(planName) {
   return Number(plan.days || 0);
 }
 
-function optionDays(options, optionName) {
-  const option = (options || []).find((item) => (typeof item === "string" ? item : item.name) === optionName);
+function optionDays(options, optionValue) {
+  const option = (options || []).find((item) => isSamePlan(item, optionValue));
   return option && typeof option !== "string" ? Number(option.days || 0) : 0;
 }
 
-function planLabel(planName, fallbackDays = 0) {
-  const name = String(planName || "");
+function planLabel(planValue, fallbackDays = 0) {
+  const value = String(planValue || "");
+  const name = value;
   if (!name) {
     return "-";
   }
@@ -753,11 +762,12 @@ function planLabel(planName, fallbackDays = 0) {
     ...(state.config.renewalPlans || [])
   ];
   const plan = options.find((item) => {
-    return (typeof item === "string" ? item : item.name) === name;
+    return isSamePlan(item, value);
   });
+  const label = plan && typeof plan !== "string" ? plan.name : name;
   const days = Number((plan && typeof plan !== "string" ? plan.days : fallbackDays) || 0);
 
-  return days > 0 ? `${name}（${days}天）` : name;
+  return days > 0 ? `${label}（${days}天）` : label;
 }
 
 function addDaysToDateInput(dateValue, days) {
@@ -1484,7 +1494,7 @@ function filteredAdobeAccounts() {
     const accountStatus = adobeStatusText(account);
     const searchable = `${account.adobeCode} ${account.accountEmail} ${account.verificationEmail} ${account.accountPlan} ${account.remark}`.toLowerCase();
     const matchesKeyword = !searchText || searchText.split(/\s+/).every((word) => searchable.includes(word));
-    const matchesPlan = !plan || account.accountPlan === plan;
+    const matchesPlan = !plan || String(account.accountPlanId || "") === plan || account.accountPlan === plan;
     const matchesStatus = !status
       || (status === "normal" && accountStatus === "正常")
       || (status === "soon" && Number.isFinite(days) && days > 0 && days <= 30)
@@ -1524,7 +1534,7 @@ function renderAdobeAccounts() {
       <td>${escapeHtml(displayValue(account.adobeCode))}</td>
       <td class="admin-ellipsis" title="${escapeHtml(displayValue(account.accountEmail))}">${escapeHtml(displayValue(account.accountEmail))}</td>
       <td class="admin-ellipsis" title="${escapeHtml(displayValue(account.verificationEmail))}">${escapeHtml(displayValue(account.verificationEmail))}</td>
-      <td>${escapeHtml(planLabel(account.accountPlan))}</td>
+      <td>${escapeHtml(planLabel(account.accountPlanId || account.accountPlan))}</td>
       <td>${formatDate(account.accountExpireAt)}</td>
       <td>${remainingTextCell(adobeRemainingText(account), adobeStatusKind(account))}</td>
       <td>${statusChip(adobeStatusText(account), adobeStatusKind(account))}</td>
@@ -1607,7 +1617,7 @@ function renderCustomers() {
     const days = customerRemainingDays(customer);
     const searchable = `${customer.customerCode} ${customer.customerNickname} ${customer.customerContact} ${customer.customerContactEmail} ${customer.purchasedPlan} ${customer.remark}`.toLowerCase();
     const matchesKeyword = !keyword || keyword.split(/\s+/).every((word) => searchable.includes(word));
-    const matchesPlan = !plan || customer.purchasedPlan === plan;
+    const matchesPlan = !plan || String(customer.purchasedPlanId || "") === plan || customer.purchasedPlan === plan;
     const matchesExpire = !expireFilter
       || (expireFilter === "soon" && Number.isFinite(days) && days > 0 && days <= 30)
       || (expireFilter === "expired" && Number.isFinite(days) && days <= 0)
@@ -1636,7 +1646,7 @@ function renderCustomers() {
       <td>${escapeHtml(displayValue(customer.customerCode))}</td>
       <td>${escapeHtml(displayValue(customer.customerNickname))}</td>
       <td>${escapeHtml(displayValue(customer.customerContact))}</td>
-      <td>${escapeHtml(planLabel(customer.purchasedPlan))}</td>
+      <td>${escapeHtml(planLabel(customer.purchasedPlanId || customer.purchasedPlan))}</td>
       <td>${formatDate(customer.afterSalesExpireAt)}</td>
       <td>${remainingTextCell(customerRemainingText(customer), customerStatusKind(customer))}</td>
       <td>${statusChip(customerStatusText(customer), customerStatusKind(customer))}</td>
@@ -1738,7 +1748,7 @@ function fillAdobeForm(account) {
   el.adobeForm.elements.adobePassword.value = account.adobePassword || "";
   el.adobeForm.elements.accountEmailPassword.value = account.accountEmailPassword || "";
   setVerificationEmailFields(account);
-  el.adobeForm.elements.accountPlan.value = account.accountPlan || "";
+  el.adobeForm.elements.accountPlan.value = account.accountPlanId || account.accountPlan || "";
   el.adobeForm.elements.paidAt.value = dateInput(account.paidAt);
   el.adobeForm.elements.baseExpireAt.value = dateInput(account.baseExpireAt);
   if (el.adobeStatusSelect) {
@@ -1754,7 +1764,7 @@ function fillCustomerForm(customer) {
   el.customerForm.elements.customerNickname.value = customer.customerNickname || "";
   el.customerForm.elements.customerContact.value = customer.customerContact || "";
   el.customerForm.elements.customerContactEmail.value = customer.customerContactEmail || "";
-  el.customerForm.elements.purchasedPlan.value = customer.purchasedPlan || "";
+  el.customerForm.elements.purchasedPlan.value = customer.purchasedPlanId || customer.purchasedPlan || "";
   el.customerForm.elements.firstPaidAt.value = dateInput(customer.firstPaidAt);
   el.customerForm.elements.baseAfterSalesExpireAt.value = dateInput(customer.baseAfterSalesExpireAt);
   if (el.customerRenewalStatusSelect) {
@@ -1811,7 +1821,7 @@ function renderAdobeDetail(data) {
   el.adobeRenewalForm.dataset.id = account.id;
   el.adobeDetailSummary.innerHTML = [
     detailItem("Adobe账户", account.adobeCode, "primary"),
-    detailItem("账户计划", planLabel(account.accountPlan)),
+    detailItem("账户计划", planLabel(account.accountPlanId || account.accountPlan)),
     detailItem("Adobe账户邮箱", account.accountEmail),
     detailItem("付费日期", formatDate(account.paidAt)),
     detailItem("Adobe密码", account.adobePassword),
@@ -1833,7 +1843,7 @@ function renderAdobeDetail(data) {
         <td>${escapeHtml(displayValue(customer.customerCode))}</td>
         <td>${escapeHtml(displayValue(customer.customerNickname))}</td>
         <td>${escapeHtml(displayValue(customer.customerContact))}</td>
-        <td>${escapeHtml(planLabel(customer.purchasedPlan))}</td>
+        <td>${escapeHtml(planLabel(customer.purchasedPlanId || customer.purchasedPlan))}</td>
         <td>${formatDate(customer.afterSalesExpireAt)}</td>
         <td>${remainingTextCell(customerRemainingText(customer), customerStatusKind(customer))}</td>
         <td>${statusChip(customerStatusText(customer), customerStatusKind(customer))}</td>
@@ -1852,7 +1862,7 @@ function renderAdobeRenewals(records) {
     ? rows.map((record) => `
       <tr>
         <td>${formatDate(record.renewalDate)}</td>
-        <td>${escapeHtml(planLabel(record.planName, record.planDays))}</td>
+        <td>${escapeHtml(planLabel(record.planId || record.planName, record.planDays))}</td>
         <td>${escapeHtml(displayValue(record.planDays))}</td>
         <td>${formatDate(record.beforeExpireAt)}</td>
         <td>${formatDate(record.afterExpireAt)}</td>
@@ -1878,7 +1888,7 @@ function renderCustomerDetail(data) {
     detailItem("客户昵称", customer.customerNickname),
     detailItem("联系方式", customer.customerContact),
     detailItem("联系邮箱", customer.customerContactEmail),
-    detailItem("购买计划", planLabel(customer.purchasedPlan)),
+    detailItem("购买计划", planLabel(customer.purchasedPlanId || customer.purchasedPlan)),
     detailItem("续费状态", customerStatusText(customer), customerStatusKind(customer)),
     detailItem("售后到期日", formatDate(customer.afterSalesExpireAt)),
     detailItem("剩余天数", customerRemainingText(customer), customerStatusKind(customer)),
@@ -1894,7 +1904,7 @@ function renderCustomerDetail(data) {
         <td>${escapeHtml(displayValue(account.adobeCode))}</td>
         <td>${escapeHtml(displayValue(account.accountEmail))}</td>
         <td>${assignmentRoleChip(account.assignmentRole, account)}</td>
-        <td>${escapeHtml(planLabel(account.accountPlan))}</td>
+        <td>${escapeHtml(planLabel(account.accountPlanId || account.accountPlan))}</td>
         <td>${formatDate(account.accountExpireAt)}</td>
         <td>${remainingTextCell(adobeRemainingText(account), adobeStatusKind(account))}</td>
         <td>${statusChip(adobeStatusText(account), adobeStatusKind(account))}</td>
@@ -1913,7 +1923,7 @@ function renderCustomerRenewals(records) {
     ? rows.map((record) => `
       <tr>
         <td>${formatDate(record.renewalDate)}</td>
-        <td>${escapeHtml(planLabel(record.planName, record.planDays))}</td>
+        <td>${escapeHtml(planLabel(record.planId || record.planName, record.planDays))}</td>
         <td>${escapeHtml(displayValue(record.planDays))}</td>
         <td>${formatDate(record.beforeExpireAt)}</td>
         <td>${formatDate(record.afterExpireAt)}</td>
@@ -2341,7 +2351,7 @@ if (el.exportAdobeBtn) {
         displayValue(account.adobeCode),
         displayValue(account.accountEmail),
         displayValue(account.verificationEmail),
-        planLabel(account.accountPlan),
+        planLabel(account.accountPlanId || account.accountPlan),
         formatDate(account.accountExpireAt),
         adobeRemainingText(account),
         adobeStatusText(account),
@@ -2749,7 +2759,7 @@ el.adobeRenewalsBody.addEventListener("click", async (event) => {
         [
           { label: "Adobe账户", value: account ? `${account.adobeCode} | ${account.accountEmail}` : "-" },
           { label: "续费日期", value: record ? formatDate(record.renewalDate) : "-" },
-          { label: "续费套餐", value: record ? planLabel(record.planName, record.planDays) : "-" },
+          { label: "续费套餐", value: record ? planLabel(record.planId || record.planName, record.planDays) : "-" },
           { label: "增加天数", value: record ? `${record.planDays || 0} 天` : "-" },
           { label: "续费前到期日", value: record ? formatDate(record.beforeExpireAt) : "-" },
           { label: "续费后到期日", value: record ? formatDate(record.afterExpireAt) : "-" }
@@ -2815,7 +2825,7 @@ el.customerRenewalsBody.addEventListener("click", async (event) => {
         [
           { label: "客户", value: customer ? `${customer.customerCode} | ${customer.customerNickname}` : "-" },
           { label: "续费日期", value: record ? formatDate(record.renewalDate) : "-" },
-          { label: "续费套餐", value: record ? planLabel(record.planName, record.planDays) : "-" },
+          { label: "续费套餐", value: record ? planLabel(record.planId || record.planName, record.planDays) : "-" },
           { label: "增加天数", value: record ? `${record.planDays || 0} 天` : "-" },
           { label: "续费前售后到期日", value: record ? formatDate(record.beforeExpireAt) : "-" },
           { label: "续费后售后到期日", value: record ? formatDate(record.afterExpireAt) : "-" }

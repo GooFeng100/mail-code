@@ -28,7 +28,15 @@ const customerSchema = new mongoose.Schema(
       type: String,
       required: true
     },
+    purchasedPlanId: {
+      type: String,
+      default: ""
+    },
     initialPurchasedPlan: {
+      type: String,
+      default: ""
+    },
+    initialPurchasedPlanId: {
       type: String,
       default: ""
     },

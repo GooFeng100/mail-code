@@ -1,4 +1,5 @@
 const ParameterOption = require("../models/ParameterOption");
+const mongoose = require("mongoose");
 
 const CATEGORIES = {
   plan: "账户计划"
@@ -103,6 +104,7 @@ async function getOptionConfig() {
   const plans = await enabledOptions("plan");
 
   const planItems = plans.map((item) => ({
+    id: item._id.toString(),
     name: item.name,
     days: Number(item.days || 0)
   }));
@@ -110,8 +112,9 @@ async function getOptionConfig() {
   return {
     plans: planItems,
     renewalPlans: planItems.map((item) => ({
+      id: item.id,
       name: item.name,
-      plan: item.name,
+      plan: item.id,
       days: item.days
     })),
     parameterCategories: CATEGORIES
@@ -119,11 +122,16 @@ async function getOptionConfig() {
 }
 
 async function findEnabledOption(category, name) {
-  return ParameterOption.findOne({
+  const value = normalizeName(name);
+  const query = {
     category,
-    name: normalizeName(name),
-    enabled: true
-  });
+    enabled: true,
+    $or: [{ name: value }]
+  };
+  if (mongoose.Types.ObjectId.isValid(value)) {
+    query.$or.push({ _id: value });
+  }
+  return ParameterOption.findOne(query);
 }
 
 async function assertEnabledOption(category, name, fieldName) {
