@@ -28,6 +28,7 @@ const {
   listAssignments,
   listCustomers,
   listCustomerRenewals,
+  syncPlanParameterChange,
   updateAdobeAccount,
   updateAssignment,
   updateCustomer
@@ -73,7 +74,9 @@ router.post("/parameters", async (req, res, next) => {
 
 router.put("/parameters/:id", async (req, res, next) => {
   try {
-    res.json({ ok: true, parameter: await updateParameterOption(req.params.id, req.body) });
+    const result = await updateParameterOption(req.params.id, req.body);
+    await syncPlanParameterChange(result.previousOption, result.parameter);
+    res.json({ ok: true, parameter: result.parameter });
   } catch (error) {
     next(error);
   }

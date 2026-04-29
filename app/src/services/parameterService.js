@@ -161,6 +161,7 @@ async function updateParameterOption(id, data) {
     error.status = 404;
     throw error;
   }
+  const previousOption = publicOption(option);
 
   const nextCategory = data.category ? normalizeCategory(data.category) : option.category;
   const nextName = typeof data.name === "string" ? normalizeName(data.name) : option.name;
@@ -189,7 +190,10 @@ async function updateParameterOption(id, data) {
   }
 
   await option.save();
-  return publicOption(option);
+  return {
+    previousOption,
+    parameter: publicOption(option)
+  };
 }
 
 async function deleteParameterOption(id) {
