@@ -57,7 +57,7 @@ const config = {
   redisUrl: process.env.REDIS_URL || "redis://127.0.0.1:6379",
   jwtSecret: process.env.JWT_SECRET || "change_this_to_a_long_random_string",
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "10m",
-  adminJwtExpiresIn: process.env.ADMIN_JWT_EXPIRES_IN || "1h",
+  adminJwtExpiresIn: "1h",
   adobeJwtExpiresIn: process.env.ADOBE_JWT_EXPIRES_IN || process.env.JWT_EXPIRES_IN || "10m",
   codeTtlSeconds: Number(process.env.CODE_TTL_SECONDS || 600),
   defaultAdminUsername: process.env.DEFAULT_ADMIN_USERNAME || "admin",
