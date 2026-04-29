@@ -472,6 +472,13 @@ async function syncAdobePlanChange(previousName, nextName, nextDays, nextId = ""
   }
 }
 
+async function recalculateAllAdobeExpires() {
+  const accounts = await AdobeAccount.find().select("_id");
+  for (const account of accounts) {
+    await recalculateAdobeExpire(account._id);
+  }
+}
+
 async function findRenewalPlan(planName) {
   return assertEnabledOption("plan", planName, "planName");
 }
@@ -727,6 +734,13 @@ async function syncCustomerPlanChange(previousName, nextName, nextDays, nextId =
   }
 }
 
+async function recalculateAllCustomerExpires() {
+  const customers = await Customer.find().select("_id");
+  for (const customer of customers) {
+    await recalculateCustomerExpire(customer._id);
+  }
+}
+
 async function syncPlanParameterChange(previousOption, nextOption) {
   if (!previousOption || previousOption.category !== "plan" || !nextOption || nextOption.category !== "plan") {
     return;
@@ -735,6 +749,8 @@ async function syncPlanParameterChange(previousOption, nextOption) {
   const previousName = String(previousOption.name || "").trim();
   const nextName = String(nextOption.name || "").trim();
   if (!previousName || !nextName) {
+    await recalculateAllAdobeExpires();
+    await recalculateAllCustomerExpires();
     return;
   }
 
@@ -742,6 +758,8 @@ async function syncPlanParameterChange(previousOption, nextOption) {
   const nextId = String(nextOption.id || "").trim();
   await syncAdobePlanChange(previousName, nextName, nextDays, nextId);
   await syncCustomerPlanChange(previousName, nextName, nextDays, nextId);
+  await recalculateAllAdobeExpires();
+  await recalculateAllCustomerExpires();
 }
 
 async function listCustomerRenewals(id) {
