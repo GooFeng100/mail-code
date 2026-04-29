@@ -10,6 +10,14 @@ const state = {
   customers: [],
   assignments: [],
   parameters: [],
+  loading: {
+    adobeAccounts: false,
+    customers: false,
+    assignments: false,
+    parameters: false
+  },
+  modalSubmitting: false,
+  confirmSubmitting: false,
   activeSection: "adobe",
   adobePage: 1,
   adobePageSize: 15,
@@ -156,6 +164,7 @@ const el = {
 let currentModalContent = null;
 let confirmResolver = null;
 let successFeedbackTimer = null;
+const loadingIcon = "/assets/images/loading2.apng.png";
 const adminSounds = {
   deleteAlert: "/assets/sounds/alerm.wav",
   success: "/assets/sounds/verify.wav"
@@ -294,6 +303,9 @@ function openModal(title, content, size = "") {
 }
 
 function closeModal() {
+  if (state.modalSubmitting) {
+    return;
+  }
   if (currentModalContent) {
     currentModalContent.classList.add("hidden");
     el.modalStaging.appendChild(currentModalContent);
@@ -304,7 +316,63 @@ function closeModal() {
   document.body.classList.remove("admin-modal-open");
 }
 
+function loadingMarkup(text = "加载中") {
+  return `
+    <span class="admin-loading-inline">
+      <img src="${loadingIcon}" alt="" />
+      <span>${escapeHtml(text)}</span>
+    </span>
+  `;
+}
+
+function loadingRow(colspan, text = "加载中") {
+  return `<tr><td colspan="${colspan}" class="admin-empty admin-loading-cell">${loadingMarkup(text)}</td></tr>`;
+}
+
+function setFormSubmitting(form, submitting) {
+  state.modalSubmitting = submitting;
+  const buttons = Array.from(form.querySelectorAll("button"));
+  const submitButton = form.querySelector('button[type="submit"]');
+  buttons.forEach((button) => {
+    button.disabled = submitting;
+  });
+  if (el.modalClose) {
+    el.modalClose.disabled = submitting;
+  }
+  if (submitButton) {
+    if (!submitButton.dataset.defaultHtml) {
+      submitButton.dataset.defaultHtml = submitButton.innerHTML;
+    }
+    submitButton.innerHTML = submitting ? `${loadingMarkup("处理中")}` : submitButton.dataset.defaultHtml;
+  }
+}
+
+function setConfirmSubmitting(submitting) {
+  state.confirmSubmitting = submitting;
+  [el.confirmCancel, el.confirmOk, el.confirmClose].filter(Boolean).forEach((button) => {
+    button.disabled = submitting;
+  });
+  if (el.confirmOk) {
+    if (!el.confirmOk.dataset.defaultHtml) {
+      el.confirmOk.dataset.defaultHtml = el.confirmOk.innerHTML;
+    }
+    el.confirmOk.innerHTML = submitting ? loadingMarkup("处理中") : el.confirmOk.dataset.defaultHtml;
+  }
+}
+
+function closeConfirmModal() {
+  setConfirmSubmitting(false);
+  el.confirmModal.classList.add("hidden");
+  el.confirmModal.classList.remove("binding-unbind-open");
+  el.confirmModal.classList.remove("binding-restore-open");
+  el.confirmModal.classList.remove("binding-action-open");
+  if (el.modal.classList.contains("hidden")) {
+    document.body.classList.remove("admin-modal-open");
+  }
+}
+
 function askConfirm(text, title = "确认操作", details = [], hint = "") {
+  setConfirmSubmitting(false);
   const isDeleteAction = title.includes("删除");
   const isBindingUnbind = title.includes("取消绑定");
   const isBindingRestore = title.includes("恢复绑定");
@@ -320,6 +388,7 @@ function askConfirm(text, title = "确认操作", details = [], hint = "") {
   }
   if (el.confirmOk) {
     el.confirmOk.textContent = confirmOkText(title);
+    el.confirmOk.dataset.defaultHtml = el.confirmOk.innerHTML;
   }
   if (isBindingAction) {
     const findDetail = (label) => (details || []).find((item) => item.label === label)?.value || "";
@@ -413,16 +482,32 @@ function confirmOkText(title) {
 }
 
 function resolveConfirm(value) {
-  el.confirmModal.classList.add("hidden");
-  el.confirmModal.classList.remove("binding-unbind-open");
-  el.confirmModal.classList.remove("binding-restore-open");
-  el.confirmModal.classList.remove("binding-action-open");
-  if (el.modal.classList.contains("hidden")) {
-    document.body.classList.remove("admin-modal-open");
+  if (state.confirmSubmitting) {
+    return;
+  }
+  if (value) {
+    setConfirmSubmitting(true);
+  } else {
+    closeConfirmModal();
   }
   if (confirmResolver) {
     confirmResolver(value);
     confirmResolver = null;
+  }
+}
+
+async function runConfirmedAction(confirmPromise, action) {
+  const ok = await confirmPromise;
+  if (!ok) {
+    return false;
+  }
+  try {
+    await action();
+    closeConfirmModal();
+    return true;
+  } catch (error) {
+    setConfirmSubmitting(false);
+    throw error;
   }
 }
 
@@ -1353,6 +1438,10 @@ function parameterSummaryDetails(item) {
 }
 
 function renderParameters() {
+  if (state.loading.parameters) {
+    el.parametersBody.innerHTML = loadingRow(8);
+    return;
+  }
   const keyword = String(el.parameterSearchInput.value || "").trim().toLowerCase();
   const rows = state.parameters.filter((item) => {
     const searchable = `${parameterCategoryLabel(item.category)} ${item.name} ${item.remark}`.toLowerCase();
@@ -1413,6 +1502,11 @@ function filteredAdobeAccounts() {
 }
 
 function renderAdobeAccounts() {
+  if (state.loading.adobeAccounts) {
+    el.adobeBody.innerHTML = loadingRow(10);
+    renderAdobePagination(0, 1);
+    return;
+  }
   const rows = filteredAdobeAccounts();
   const totalPages = Math.max(1, Math.ceil(rows.length / state.adobePageSize));
   state.adobePage = Math.min(Math.max(1, state.adobePage), totalPages);
@@ -1501,6 +1595,11 @@ function renderAssignmentPagination(total, totalPages) {
 }
 
 function renderCustomers() {
+  if (state.loading.customers) {
+    el.customersBody.innerHTML = loadingRow(10);
+    renderCustomerPagination(0, 1);
+    return;
+  }
   const keyword = String(el.customerSearchInput.value || "").trim().toLowerCase();
   const plan = String(el.customerPlanFilterSelect?.value || "");
   const expireFilter = String(el.customerExpireFilterSelect?.value || "");
@@ -1554,6 +1653,11 @@ function renderCustomers() {
 }
 
 function renderAssignments() {
+  if (state.loading.assignments) {
+    el.assignmentsBody.innerHTML = loadingRow(8);
+    renderAssignmentPagination(0, 1);
+    return;
+  }
   const keyword = String(el.assignmentSearchInput.value || "").trim().toLowerCase();
   const rows = state.assignments.filter((assignment) => {
     const searchable = `${assignment.customerCode} ${assignment.customerNickname} ${assignment.adobeCode} ${assignment.accountEmail}`.toLowerCase();
@@ -1821,31 +1925,55 @@ function renderCustomerRenewals(records) {
 }
 
 async function loadAdobeAccounts() {
-  const data = await api("/api/admin/adobe-accounts");
-  state.adobeAccounts = data.adobeAccounts || [];
+  state.loading.adobeAccounts = true;
   renderAdobeAccounts();
-  renderStats();
+  try {
+    const data = await api("/api/admin/adobe-accounts");
+    state.adobeAccounts = data.adobeAccounts || [];
+  } finally {
+    state.loading.adobeAccounts = false;
+    renderAdobeAccounts();
+    renderStats();
+  }
 }
 
 async function loadCustomers() {
-  const data = await api("/api/admin/customers");
-  state.customers = data.customers || [];
+  state.loading.customers = true;
   renderCustomers();
-  renderStats();
+  try {
+    const data = await api("/api/admin/customers");
+    state.customers = data.customers || [];
+  } finally {
+    state.loading.customers = false;
+    renderCustomers();
+    renderStats();
+  }
 }
 
 async function loadAssignments() {
-  const data = await api("/api/admin/assignments");
-  state.assignments = data.assignments || [];
+  state.loading.assignments = true;
   renderAssignments();
-  renderStats();
+  try {
+    const data = await api("/api/admin/assignments");
+    state.assignments = data.assignments || [];
+  } finally {
+    state.loading.assignments = false;
+    renderAssignments();
+    renderStats();
+  }
 }
 
 async function loadParameters() {
-  const data = await api("/api/admin/parameters");
-  state.parameters = data.parameters || [];
+  state.loading.parameters = true;
   renderParameters();
-  renderStats();
+  try {
+    const data = await api("/api/admin/parameters");
+    state.parameters = data.parameters || [];
+  } finally {
+    state.loading.parameters = false;
+    renderParameters();
+    renderStats();
+  }
 }
 
 async function loadConfig() {
@@ -2245,6 +2373,7 @@ el.customerRenewalForm.elements.planName.addEventListener("change", updateCustom
 el.adobeForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const id = el.adobeForm.elements.id.value;
+  setFormSubmitting(el.adobeForm, true);
   try {
     await api(id ? `/api/admin/adobe-accounts/${id}` : "/api/admin/adobe-accounts", {
       method: id ? "PUT" : "POST",
@@ -2252,16 +2381,20 @@ el.adobeForm.addEventListener("submit", async (event) => {
     });
     resetAdobeForm();
     await refreshAll();
+    setFormSubmitting(el.adobeForm, false);
     closeModal();
     setMessage("Adobe账户已保存", "success");
   } catch (error) {
     setMessage(error.message, "error");
+  } finally {
+    setFormSubmitting(el.adobeForm, false);
   }
 });
 
 el.customerForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const id = el.customerForm.elements.id.value;
+  setFormSubmitting(el.customerForm, true);
   try {
     await api(id ? `/api/admin/customers/${id}` : "/api/admin/customers", {
       method: id ? "PUT" : "POST",
@@ -2269,10 +2402,13 @@ el.customerForm.addEventListener("submit", async (event) => {
     });
     resetCustomerForm();
     await refreshAll();
+    setFormSubmitting(el.customerForm, false);
     closeModal();
     setMessage("客户已保存", "success");
   } catch (error) {
     setMessage(error.message, "error");
+  } finally {
+    setFormSubmitting(el.customerForm, false);
   }
 });
 
@@ -2285,6 +2421,7 @@ el.assignmentForm.addEventListener("submit", async (event) => {
     setMessage("请选择有效的客户和 Adobe账户", "error");
     return;
   }
+  setFormSubmitting(el.assignmentForm, true);
   try {
     await api("/api/admin/assignments", {
       method: "POST",
@@ -2298,16 +2435,20 @@ el.assignmentForm.addEventListener("submit", async (event) => {
     });
     el.assignmentForm.reset();
     await refreshAll();
+    setFormSubmitting(el.assignmentForm, false);
     closeModal();
     setMessage("绑定关系已创建", "success");
   } catch (error) {
     setMessage(error.message, "error");
+  } finally {
+    setFormSubmitting(el.assignmentForm, false);
   }
 });
 
 el.parameterForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const id = el.parameterForm.elements.id.value;
+  setFormSubmitting(el.parameterForm, true);
   try {
     await api(id ? `/api/admin/parameters/${id}` : "/api/admin/parameters", {
       method: id ? "PUT" : "POST",
@@ -2316,10 +2457,13 @@ el.parameterForm.addEventListener("submit", async (event) => {
     resetParameterForm();
     await loadConfig();
     await refreshAll();
+    setFormSubmitting(el.parameterForm, false);
     closeModal();
     setMessage("参数已保存", "success");
   } catch (error) {
     setMessage(error.message, "error");
+  } finally {
+    setFormSubmitting(el.parameterForm, false);
   }
 });
 
@@ -2339,16 +2483,21 @@ el.parametersBody.addEventListener("click", async (event) => {
       openParameterEditModal(item);
       return;
     }
-    if (button.dataset.action === "delete" && await askConfirm(
-      "确认删除该参数？删除后相关下拉选项将不再显示，请谨慎操作。",
-      "删除参数",
-      parameterSummaryDetails(item),
-      "该操作不可撤销。"
-    )) {
-      await api(`/api/admin/parameters/${item.id}`, { method: "DELETE" });
-      await loadConfig();
-      await refreshAll();
-      setMessage("参数已删除", "success");
+    if (button.dataset.action === "delete") {
+      await runConfirmedAction(
+        askConfirm(
+          "确认删除该参数？删除后相关下拉选项将不再显示，请谨慎操作。",
+          "删除参数",
+          parameterSummaryDetails(item),
+          "该操作不可撤销。"
+        ),
+        async () => {
+          await api(`/api/admin/parameters/${item.id}`, { method: "DELETE" });
+          await loadConfig();
+          await refreshAll();
+          setMessage("参数已删除", "success");
+        }
+      );
     }
   } catch (error) {
     setMessage(error.message, "error");
@@ -2379,20 +2528,25 @@ el.adobeBody.addEventListener("click", async (event) => {
       openAdobeRenewalModal();
       return;
     }
-    if (button.dataset.action === "delete" && await askConfirm(
-      "确认删除该 Adobe账户？删除后无法恢复，请谨慎操作。",
-      "删除 Adobe账户",
-      [
-        { label: "账户编号", value: account.adobeCode },
-        { label: "Adobe账户", value: account.accountEmail },
-        { label: "验证码邮箱", value: account.verificationEmail },
-        { label: "到期日", value: formatDate(account.accountExpireAt) }
-      ],
-      "该操作不可撤销。"
-    )) {
-      await api(`/api/admin/adobe-accounts/${account.id}`, { method: "DELETE" });
-      await refreshAll();
-      setMessage("Adobe账户已删除", "success");
+    if (button.dataset.action === "delete") {
+      await runConfirmedAction(
+        askConfirm(
+          "确认删除该 Adobe账户？删除后无法恢复，请谨慎操作。",
+          "删除 Adobe账户",
+          [
+            { label: "账户编号", value: account.adobeCode },
+            { label: "Adobe账户", value: account.accountEmail },
+            { label: "验证码邮箱", value: account.verificationEmail },
+            { label: "到期日", value: formatDate(account.accountExpireAt) }
+          ],
+          "该操作不可撤销。"
+        ),
+        async () => {
+          await api(`/api/admin/adobe-accounts/${account.id}`, { method: "DELETE" });
+          await refreshAll();
+          setMessage("Adobe账户已删除", "success");
+        }
+      );
     }
   } catch (error) {
     setMessage(error.message, "error");
@@ -2418,20 +2572,25 @@ el.customersBody.addEventListener("click", async (event) => {
       openCustomerEditModal(customer);
       return;
     }
-    if (button.dataset.action === "delete" && await askConfirm(
-      "确认删除该客户？删除后无法恢复，请谨慎操作。",
-      "删除客户",
-      [
-        { label: "客户编号", value: customer.customerCode },
-        { label: "客户昵称", value: customer.customerNickname },
-        { label: "联系方式", value: customer.customerContact },
-        { label: "售后到期日", value: formatDate(customer.afterSalesExpireAt) }
-      ],
-      "该操作不可撤销。"
-    )) {
-      await api(`/api/admin/customers/${customer.id}`, { method: "DELETE" });
-      await refreshAll();
-      setMessage("客户已删除", "success");
+    if (button.dataset.action === "delete") {
+      await runConfirmedAction(
+        askConfirm(
+          "确认删除该客户？删除后无法恢复，请谨慎操作。",
+          "删除客户",
+          [
+            { label: "客户编号", value: customer.customerCode },
+            { label: "客户昵称", value: customer.customerNickname },
+            { label: "联系方式", value: customer.customerContact },
+            { label: "售后到期日", value: formatDate(customer.afterSalesExpireAt) }
+          ],
+          "该操作不可撤销。"
+        ),
+        async () => {
+          await api(`/api/admin/customers/${customer.id}`, { method: "DELETE" });
+          await refreshAll();
+          setMessage("客户已删除", "success");
+        }
+      );
     }
   } catch (error) {
     setMessage(error.message, "error");
@@ -2483,55 +2642,61 @@ el.assignmentsBody.addEventListener("click", async (event) => {
   }
 
   try {
+    let changed = false;
     if (button.dataset.action === "set-assignment-role") {
       await updateAssignmentRole(assignment.id, button.dataset.role);
       return;
     }
     if (button.dataset.action === "cancel") {
-      const ok = await askConfirm(
-        "确认取消该绑定关系？取消后该客户将不再显示在该 Adobe账户下。",
-        "取消绑定关系",
-        assignmentSummaryDetails(assignment),
-        "该操作会保留历史记录。"
+      changed = await runConfirmedAction(
+        askConfirm(
+          "确认取消该绑定关系？取消后该客户将不再显示在该 Adobe账户下。",
+          "取消绑定关系",
+          assignmentSummaryDetails(assignment),
+          "该操作会保留历史记录。"
+        ),
+        async () => {
+          await api(`/api/admin/assignments/${assignment.id}`, {
+            method: "PUT",
+            body: JSON.stringify({ active: false })
+          });
+          setMessage("绑定已取消", "success");
+        }
       );
-      if (!ok) {
-        return;
-      }
-      await api(`/api/admin/assignments/${assignment.id}`, {
-        method: "PUT",
-        body: JSON.stringify({ active: false })
-      });
-      setMessage("绑定已取消", "success");
     }
     if (button.dataset.action === "restore") {
-      const ok = await askConfirm(
-        "确认恢复该绑定关系？",
-        "恢复绑定关系",
-        assignmentSummaryDetails(assignment)
+      changed = await runConfirmedAction(
+        askConfirm(
+          "确认恢复该绑定关系？",
+          "恢复绑定关系",
+          assignmentSummaryDetails(assignment)
+        ),
+        async () => {
+          await api(`/api/admin/assignments/${assignment.id}`, {
+            method: "PUT",
+            body: JSON.stringify({ active: true })
+          });
+          setMessage("绑定已恢复", "success");
+        }
       );
-      if (!ok) {
-        return;
-      }
-      await api(`/api/admin/assignments/${assignment.id}`, {
-        method: "PUT",
-        body: JSON.stringify({ active: true })
-      });
-      setMessage("绑定已恢复", "success");
     }
     if (button.dataset.action === "delete") {
-      const ok = await askConfirm(
-        "您即将删除以下绑定记录，此操作不可撤销。",
-        "删除绑定关系",
-        assignmentSummaryDetails(assignment),
-        "删除后该绑定关系记录将从数据库移除。"
+      changed = await runConfirmedAction(
+        askConfirm(
+          "您即将删除以下绑定记录，此操作不可撤销。",
+          "删除绑定关系",
+          assignmentSummaryDetails(assignment),
+          "删除后该绑定关系记录将从数据库移除。"
+        ),
+        async () => {
+          await api(`/api/admin/assignments/${assignment.id}`, { method: "DELETE" });
+          setMessage("绑定记录已删除", "success");
+        }
       );
-      if (!ok) {
-        return;
-      }
-      await api(`/api/admin/assignments/${assignment.id}`, { method: "DELETE" });
-      setMessage("绑定记录已删除", "success");
     }
-    await refreshAll();
+    if (changed) {
+      await refreshAll();
+    }
   } catch (error) {
     setMessage(error.message, "error");
   }
@@ -2545,6 +2710,7 @@ el.adobeRenewalForm.addEventListener("submit", async (event) => {
     return;
   }
 
+  setFormSubmitting(el.adobeRenewalForm, true);
   try {
     await api(`/api/admin/adobe-accounts/${id}/renewals`, {
       method: "POST",
@@ -2557,10 +2723,13 @@ el.adobeRenewalForm.addEventListener("submit", async (event) => {
     el.adobeRenewalForm.reset();
     await loadAdobeAccounts();
     await loadAdobeDetail(id);
+    setFormSubmitting(el.adobeRenewalForm, false);
     closeModal();
     setMessage("Adobe续费记录已新增", "success");
   } catch (error) {
     setMessage(error.message, "error");
+  } finally {
+    setFormSubmitting(el.adobeRenewalForm, false);
   }
 });
 
@@ -2573,26 +2742,27 @@ el.adobeRenewalsBody.addEventListener("click", async (event) => {
   try {
     const record = selectedAdobeRenewalRecord(button.dataset.id);
     const account = state.selectedAdobeDetail ? state.selectedAdobeDetail.adobeAccount : null;
-    const ok = await askConfirm(
-      "删除后，系统将自动回滚到期日，请确认是否继续。",
-      "确认删除续费记录",
-      [
-        { label: "Adobe账户", value: account ? `${account.adobeCode} | ${account.accountEmail}` : "-" },
-        { label: "续费日期", value: record ? formatDate(record.renewalDate) : "-" },
-        { label: "续费套餐", value: record ? planLabel(record.planName, record.planDays) : "-" },
-        { label: "增加天数", value: record ? `${record.planDays || 0} 天` : "-" },
-        { label: "续费前到期日", value: record ? formatDate(record.beforeExpireAt) : "-" },
-        { label: "续费后到期日", value: record ? formatDate(record.afterExpireAt) : "-" }
-      ],
-      "该操作不可撤销。"
+    await runConfirmedAction(
+      askConfirm(
+        "删除后，系统将自动回滚到期日，请确认是否继续。",
+        "确认删除续费记录",
+        [
+          { label: "Adobe账户", value: account ? `${account.adobeCode} | ${account.accountEmail}` : "-" },
+          { label: "续费日期", value: record ? formatDate(record.renewalDate) : "-" },
+          { label: "续费套餐", value: record ? planLabel(record.planName, record.planDays) : "-" },
+          { label: "增加天数", value: record ? `${record.planDays || 0} 天` : "-" },
+          { label: "续费前到期日", value: record ? formatDate(record.beforeExpireAt) : "-" },
+          { label: "续费后到期日", value: record ? formatDate(record.afterExpireAt) : "-" }
+        ],
+        "该操作不可撤销。"
+      ),
+      async () => {
+        await api(`/api/admin/adobe-accounts/${id}/renewals/${button.dataset.id}`, { method: "DELETE" });
+        await loadAdobeAccounts();
+        await loadAdobeDetail(id);
+        setMessage("Adobe续费记录已删除并重算到期日", "success");
+      }
     );
-    if (!ok) {
-      return;
-    }
-    await api(`/api/admin/adobe-accounts/${id}/renewals/${button.dataset.id}`, { method: "DELETE" });
-    await loadAdobeAccounts();
-    await loadAdobeDetail(id);
-    setMessage("Adobe续费记录已删除并重算到期日", "success");
   } catch (error) {
     setMessage(error.message, "error");
   }
@@ -2606,6 +2776,7 @@ el.customerRenewalForm.addEventListener("submit", async (event) => {
     return;
   }
 
+  setFormSubmitting(el.customerRenewalForm, true);
   try {
     await api(`/api/admin/customers/${id}/renewals`, {
       method: "POST",
@@ -2618,10 +2789,13 @@ el.customerRenewalForm.addEventListener("submit", async (event) => {
     el.customerRenewalForm.reset();
     await loadCustomers();
     await loadCustomerDetail(id);
+    setFormSubmitting(el.customerRenewalForm, false);
     closeModal();
     setMessage("客户续费记录已新增", "success");
   } catch (error) {
     setMessage(error.message, "error");
+  } finally {
+    setFormSubmitting(el.customerRenewalForm, false);
   }
 });
 
@@ -2634,26 +2808,27 @@ el.customerRenewalsBody.addEventListener("click", async (event) => {
   try {
     const record = selectedCustomerRenewalRecord(button.dataset.id);
     const customer = state.selectedCustomerDetail ? state.selectedCustomerDetail.customer : null;
-    const ok = await askConfirm(
-      "删除后，系统将自动回滚客户售后到期日，请确认是否继续。",
-      "确认删除客户续费记录",
-      [
-        { label: "客户", value: customer ? `${customer.customerCode} | ${customer.customerNickname}` : "-" },
-        { label: "续费日期", value: record ? formatDate(record.renewalDate) : "-" },
-        { label: "续费套餐", value: record ? planLabel(record.planName, record.planDays) : "-" },
-        { label: "增加天数", value: record ? `${record.planDays || 0} 天` : "-" },
-        { label: "续费前售后到期日", value: record ? formatDate(record.beforeExpireAt) : "-" },
-        { label: "续费后售后到期日", value: record ? formatDate(record.afterExpireAt) : "-" }
-      ],
-      "该操作不可撤销。"
+    await runConfirmedAction(
+      askConfirm(
+        "删除后，系统将自动回滚客户售后到期日，请确认是否继续。",
+        "确认删除客户续费记录",
+        [
+          { label: "客户", value: customer ? `${customer.customerCode} | ${customer.customerNickname}` : "-" },
+          { label: "续费日期", value: record ? formatDate(record.renewalDate) : "-" },
+          { label: "续费套餐", value: record ? planLabel(record.planName, record.planDays) : "-" },
+          { label: "增加天数", value: record ? `${record.planDays || 0} 天` : "-" },
+          { label: "续费前售后到期日", value: record ? formatDate(record.beforeExpireAt) : "-" },
+          { label: "续费后售后到期日", value: record ? formatDate(record.afterExpireAt) : "-" }
+        ],
+        "该操作不可撤销。"
+      ),
+      async () => {
+        await api(`/api/admin/customers/${id}/renewals/${button.dataset.id}`, { method: "DELETE" });
+        await loadCustomers();
+        await loadCustomerDetail(id);
+        setMessage("客户续费记录已删除并重算售后到期日", "success");
+      }
     );
-    if (!ok) {
-      return;
-    }
-    await api(`/api/admin/customers/${id}/renewals/${button.dataset.id}`, { method: "DELETE" });
-    await loadCustomers();
-    await loadCustomerDetail(id);
-    setMessage("客户续费记录已删除并重算售后到期日", "success");
   } catch (error) {
     setMessage(error.message, "error");
   }
@@ -2679,8 +2854,8 @@ prepareModalCards();
       el.adminInfo.textContent = `当前管理员：${state.currentUser.username}`;
     }
     await loadConfig();
-    await refreshAll();
     el.adminPanel.classList.remove("hidden");
+    await refreshAll();
   } catch (error) {
     clearSessionAndReturnHome();
   }

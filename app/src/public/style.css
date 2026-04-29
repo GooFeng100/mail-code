@@ -2938,6 +2938,40 @@ td:last-child {
   color: var(--admin-color-muted) !important;
 }
 
+.admin-page .admin-loading-cell {
+  height: 92px;
+  text-align: center;
+}
+
+.admin-page .admin-loading-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--admin-color-muted);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.admin-page .admin-loading-inline img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.admin-page button .admin-loading-inline {
+  color: inherit;
+}
+
+.admin-page button .admin-loading-inline img {
+  width: 18px;
+  height: 18px;
+}
+
+.admin-page button:disabled {
+  cursor: not-allowed;
+}
+
 .admin-page .admin-count-cell {
   text-align: center;
 }
