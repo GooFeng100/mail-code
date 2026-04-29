@@ -39,7 +39,7 @@ app.get("/api/env-check", (req, res) => {
     port: config.port,
     mailHostConfigured: Boolean(process.env.MAIL_HOST),
     mailUserConfigured: Boolean(process.env.MAIL_USER),
-    mailDomainConfigured: Boolean(process.env.MAIL_DOMAIN),
+    mailDomainConfigured: Boolean(config.mailDomains.length),
     redisConfigured: Boolean(process.env.REDIS_URL),
     mongoConfigured: Boolean(process.env.MONGO_URL)
   });

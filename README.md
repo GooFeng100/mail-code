@@ -146,7 +146,8 @@ MAIL_PORT=993
 MAIL_SECURE=true
 MAIL_USER=adobesaleteam@gmail.com
 MAIL_PASS=Gmail应用专用密码
-MAIL_DOMAIN=889100.xyz
+MAIL_DOMAINS=889100.xyz
+VERIFICATION_CODE_URL=mail.889100.xyz
 
 REDIS_URL=redis://mail-code-redis:6379
 
@@ -395,7 +396,8 @@ MAIL_PORT=993
 MAIL_SECURE=true
 MAIL_USER=adobesaleteam@gmail.com
 MAIL_PASS=Gmail应用专用密码
-MAIL_DOMAIN=889100.xyz
+MAIL_DOMAINS=889100.xyz
+VERIFICATION_CODE_URL=mail.889100.xyz
 REDIS_URL=redis://mail-code-redis:6379
 MONGO_URL=mongodb://mailcode:数据库密码@mail-code-db:27017/mailcode?authSource=admin
 JWT_SECRET=请填写随机长字符串
