@@ -1013,6 +1013,20 @@ function defaultMailDomain() {
   return (state.config.mailDomains || [])[0] || state.config.mailDomain || "";
 }
 
+function verificationCodeUrlForDomain(domain) {
+  const targetDomain = String(domain || defaultMailDomain()).trim().toLowerCase();
+  const configItem = (state.config.mailDomainConfigs || []).find((item) => (
+    String(item.domain || "").trim().toLowerCase() === targetDomain
+  ));
+  if (configItem && configItem.verificationCodeUrl) {
+    return configItem.verificationCodeUrl;
+  }
+  if (state.config.verificationCodeUrls && state.config.verificationCodeUrls[targetDomain]) {
+    return state.config.verificationCodeUrls[targetDomain];
+  }
+  return state.config.verificationCodeUrl || "";
+}
+
 function splitVerificationEmail(account = {}) {
   const existingLocal = String(account.verificationEmailLocal || "").trim();
   const existingDomain = String(account.verificationEmailDomain || "").trim();
@@ -1676,7 +1690,7 @@ async function copyTextToClipboard(text) {
 }
 
 function adobeDetailCopyText(account) {
-  const verificationCodeUrl = state.config.verificationCodeUrl || "";
+  const verificationCodeUrl = verificationCodeUrlForDomain(splitVerificationEmail(account).domain);
   return [
     `Adobe账户邮箱：${account.accountEmail || ""}`,
     `Adobe密码：${account.adobePassword || ""}`,

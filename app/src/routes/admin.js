@@ -44,7 +44,9 @@ router.get("/config", async (req, res, next) => {
     res.json({
       ok: true,
       mailDomain: config.mailDomain,
+      mailDomainConfigs: config.mailDomainConfigs,
       mailDomains: config.mailDomains,
+      verificationCodeUrls: config.verificationCodeUrls,
       verificationCodeUrl: config.verificationCodeUrl,
       ...(await getOptionConfig())
     });

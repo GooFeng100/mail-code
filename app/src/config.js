@@ -1,16 +1,55 @@
 require("dotenv").config();
 
-function parseMailDomains() {
-  const raw = process.env.MAIL_DOMAINS || process.env.MAIL_DOMAIN || "889100.xyz";
-  const domains = raw
+function parseList(value) {
+  return String(value || "")
     .split(",")
-    .map((item) => item.trim().toLowerCase())
+    .map((item) => item.trim())
     .filter(Boolean);
-
-  return Array.from(new Set(domains));
 }
 
-const mailDomains = parseMailDomains();
+function normalizeDomain(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function parseMailDomainConfig() {
+  if (process.env.MAIL_DOMAIN_CONFIG) {
+    try {
+      const parsed = JSON.parse(process.env.MAIL_DOMAIN_CONFIG);
+      if (Array.isArray(parsed)) {
+        const configs = parsed
+          .map((item) => ({
+            domain: normalizeDomain(item && item.domain),
+            verificationCodeUrl: String(item && item.verificationCodeUrl || "").trim()
+          }))
+          .filter((item) => item.domain);
+
+        if (configs.length) {
+          return configs;
+        }
+      }
+    } catch (error) {
+      console.warn("MAIL_DOMAIN_CONFIG must be a JSON array. Falling back to MAIL_DOMAINS.");
+    }
+  }
+
+  const domains = parseList(process.env.MAIL_DOMAINS || process.env.MAIL_DOMAIN || "889100.xyz")
+    .map(normalizeDomain)
+    .filter(Boolean);
+  const urls = parseList(process.env.VERIFICATION_CODE_URLS || process.env.VERIFICATION_CODE_URL);
+
+  return domains.map((domain, index) => ({
+    domain,
+    verificationCodeUrl: urls[index] || (domains.length === 1 ? urls[0] || "" : "")
+  }));
+}
+
+const mailDomainConfigs = Array.from(
+  new Map(parseMailDomainConfig().map((item) => [item.domain, item])).values()
+);
+const mailDomains = mailDomainConfigs.map((item) => item.domain);
+const verificationCodeUrls = Object.fromEntries(
+  mailDomainConfigs.map((item) => [item.domain, item.verificationCodeUrl || ""])
+);
 
 const config = {
   port: Number(process.env.PORT || 3000),
@@ -23,9 +62,11 @@ const config = {
   codeTtlSeconds: Number(process.env.CODE_TTL_SECONDS || 600),
   defaultAdminUsername: process.env.DEFAULT_ADMIN_USERNAME || "admin",
   defaultAdminPassword: process.env.DEFAULT_ADMIN_PASSWORD || "admin123456",
+  mailDomainConfigs,
   mailDomains,
   mailDomain: mailDomains[0],
-  verificationCodeUrl: process.env.VERIFICATION_CODE_URL || "",
+  verificationCodeUrls,
+  verificationCodeUrl: (mailDomainConfigs[0] && mailDomainConfigs[0].verificationCodeUrl) || "",
   mail: {
     host: process.env.MAIL_HOST || "",
     port: Number(process.env.MAIL_PORT || 993),
