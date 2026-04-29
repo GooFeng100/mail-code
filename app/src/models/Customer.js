@@ -48,10 +48,6 @@ const customerSchema = new mongoose.Schema(
       type: Date,
       default: null
     },
-    afterSalesExpireAt: {
-      type: Date,
-      default: null
-    },
     remark: {
       type: String,
       default: ""

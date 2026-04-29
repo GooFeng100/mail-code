@@ -71,10 +71,6 @@ const adobeAccountSchema = new mongoose.Schema(
       type: Date,
       default: null
     },
-    accountExpireAt: {
-      type: Date,
-      default: null
-    },
     enabled: {
       type: Boolean,
       default: true

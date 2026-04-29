@@ -21,23 +21,11 @@ const adobeRenewalRecordSchema = new mongoose.Schema(
     },
     planName: {
       type: String,
-      required: true
+      default: ""
     },
     planId: {
       type: String,
-      default: ""
-    },
-    planDays: {
-      type: Number,
       required: true
-    },
-    beforeExpireAt: {
-      type: Date,
-      default: null
-    },
-    afterExpireAt: {
-      type: Date,
-      default: null
     },
     remark: {
       type: String,

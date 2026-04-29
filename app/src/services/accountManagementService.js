@@ -17,6 +17,23 @@ const {
   assertEnabledOption
 } = require("./parameterService");
 
+let computedFieldCleanupPromise = null;
+
+function ensureComputedFieldCleanup() {
+  if (!computedFieldCleanupPromise) {
+    computedFieldCleanupPromise = Promise.all([
+      AdobeAccount.collection.updateMany({}, { $unset: { accountExpireAt: "" } }),
+      Customer.collection.updateMany({}, { $unset: { afterSalesExpireAt: "" } }),
+      AdobeRenewalRecord.collection.updateMany({ planId: { $type: "string", $ne: "" } }, { $unset: { planName: "", planDays: "", beforeExpireAt: "", afterExpireAt: "" } }),
+      CustomerRenewalRecord.collection.updateMany({ planId: { $type: "string", $ne: "" } }, { $unset: { planName: "", planDays: "", beforeExpireAt: "", afterExpireAt: "" } })
+    ]).catch((error) => {
+      computedFieldCleanupPromise = null;
+      throw error;
+    });
+  }
+  return computedFieldCleanupPromise;
+}
+
 function badRequest(message) {
   const error = new Error(message);
   error.status = 400;
@@ -131,27 +148,29 @@ async function hashPassword(value) {
   return bcrypt.hash(text, 10);
 }
 
-function decorateAdobeAccount(account) {
+async function decorateAdobeAccount(account) {
   const data = publicDoc(account);
   if (!data) {
     return null;
   }
 
-  data.remainingDays = getRemainingDays(account.accountExpireAt);
-  data.remainingText = getRemainingText(account.accountExpireAt);
-  data.dynamicStatus = getDynamicStatus(account.accountExpireAt);
+  data.accountExpireAt = await computeAdobeExpireAt(account);
+  data.remainingDays = getRemainingDays(data.accountExpireAt);
+  data.remainingText = getRemainingText(data.accountExpireAt);
+  data.dynamicStatus = getDynamicStatus(data.accountExpireAt);
   return data;
 }
 
-function decorateCustomer(customer) {
+async function decorateCustomer(customer) {
   const data = publicDoc(customer);
   if (!data) {
     return null;
   }
 
-  data.remainingDays = getRemainingDays(customer.afterSalesExpireAt);
-  data.remainingText = getRemainingText(customer.afterSalesExpireAt);
-  data.dynamicRenewalStatus = getDynamicStatus(customer.afterSalesExpireAt);
+  data.afterSalesExpireAt = await computeCustomerExpireAt(customer);
+  data.remainingDays = getRemainingDays(data.afterSalesExpireAt);
+  data.remainingText = getRemainingText(data.afterSalesExpireAt);
+  data.dynamicRenewalStatus = getDynamicStatus(data.afterSalesExpireAt);
   return data;
 }
 
@@ -211,34 +230,108 @@ async function planSnapshot(identifier, fallbackName = "") {
   };
 }
 
+async function computeAdobeTimeline(account) {
+  await ensureComputedFieldCleanup();
+  if (!account) {
+    return { expireAt: null, records: [] };
+  }
+
+  let expireAt = toDate(account.baseExpireAt);
+  const records = await AdobeRenewalRecord.find({ adobeAccountId: account._id }).sort({ renewalDate: 1, createdAt: 1 });
+  const computedRecords = [];
+
+  for (const record of records) {
+    const beforeExpireAt = expireAt;
+    const plan = await planSnapshot(record.planId, record.planName);
+    const planDays = Number(plan.days || 0);
+    if (plan.id && (!record.planId || record.planName)) {
+      await AdobeRenewalRecord.collection.updateOne(
+        { _id: record._id },
+        { $set: { planId: plan.id }, $unset: { planName: "", planDays: "", beforeExpireAt: "", afterExpireAt: "" } }
+      );
+    }
+    expireAt = expireAt ? addDays(expireAt, planDays) : null;
+    computedRecords.push({
+      ...publicDoc(record),
+      planId: plan.id || record.planId || "",
+      planName: plan.name || record.planName || "",
+      planDays,
+      beforeExpireAt,
+      afterExpireAt: expireAt
+    });
+  }
+
+  return { expireAt, records: computedRecords };
+}
+
+async function computeCustomerTimeline(customer) {
+  await ensureComputedFieldCleanup();
+  if (!customer) {
+    return { expireAt: null, records: [] };
+  }
+
+  let expireAt = toDate(customer.baseAfterSalesExpireAt);
+  const records = await CustomerRenewalRecord.find({ customerId: customer._id }).sort({ renewalDate: 1, createdAt: 1 });
+  const computedRecords = [];
+
+  for (const record of records) {
+    const beforeExpireAt = expireAt;
+    const plan = await planSnapshot(record.planId, record.planName);
+    const planDays = Number(plan.days || 0);
+    if (plan.id && (!record.planId || record.planName)) {
+      await CustomerRenewalRecord.collection.updateOne(
+        { _id: record._id },
+        { $set: { planId: plan.id }, $unset: { planName: "", planDays: "", beforeExpireAt: "", afterExpireAt: "" } }
+      );
+    }
+    expireAt = expireAt ? addDays(expireAt, planDays) : null;
+    computedRecords.push({
+      ...publicDoc(record),
+      planId: plan.id || record.planId || "",
+      planName: plan.name || record.planName || "",
+      planDays,
+      beforeExpireAt,
+      afterExpireAt: expireAt
+    });
+  }
+
+  return { expireAt, records: computedRecords };
+}
+
+async function computeAdobeExpireAt(account) {
+  return (await computeAdobeTimeline(account)).expireAt;
+}
+
+async function computeCustomerExpireAt(customer) {
+  return (await computeCustomerTimeline(customer)).expireAt;
+}
+
 async function adobeInitialRenewalRecord(account) {
   const plan = await planSnapshot(account.initialAccountPlanId || account.accountPlanId, account.initialAccountPlan || account.accountPlan);
-  const afterExpireAt = account.paidAt && plan.days ? addDays(account.paidAt, plan.days) : account.baseExpireAt;
   return {
     id: `initial-${account._id.toString()}`,
     initial: true,
     renewalDate: account.paidAt,
     planId: plan.id,
     planName: plan.name,
-    planDays: plan.days || daysBetween(account.paidAt, account.baseExpireAt),
+    planDays: daysBetween(account.paidAt, account.baseExpireAt) || plan.days,
     beforeExpireAt: null,
-    afterExpireAt,
+    afterExpireAt: account.baseExpireAt,
     remark: "首次购买"
   };
 }
 
 async function customerInitialRenewalRecord(customer) {
   const plan = await planSnapshot(customer.initialPurchasedPlanId || customer.purchasedPlanId, customer.initialPurchasedPlan || customer.purchasedPlan);
-  const afterExpireAt = customer.firstPaidAt && plan.days ? addDays(customer.firstPaidAt, plan.days) : customer.baseAfterSalesExpireAt;
   return {
     id: `initial-${customer._id.toString()}`,
     initial: true,
     renewalDate: customer.firstPaidAt,
     planId: plan.id,
     planName: plan.name,
-    planDays: plan.days || daysBetween(customer.firstPaidAt, customer.baseAfterSalesExpireAt),
+    planDays: daysBetween(customer.firstPaidAt, customer.baseAfterSalesExpireAt) || plan.days,
     beforeExpireAt: null,
-    afterExpireAt,
+    afterExpireAt: customer.baseAfterSalesExpireAt,
     remark: "首次购买"
   };
 }
@@ -246,14 +339,14 @@ async function customerInitialRenewalRecord(customer) {
 async function withAdobeInitialRenewal(account, records) {
   return [
     await adobeInitialRenewalRecord(account),
-    ...records.map(publicDoc)
+    ...records
   ];
 }
 
 async function withCustomerInitialRenewal(customer, records) {
   return [
     await customerInitialRenewalRecord(customer),
-    ...records.map(publicDoc)
+    ...records
   ];
 }
 
@@ -263,7 +356,7 @@ async function createAdobeAccount(data) {
   const adobePassword = String(data.adobePassword || "");
   const plan = await assertEnabledOption("plan", data.accountPlan, "accountPlan");
   const paidAt = toDate(data.paidAt);
-  const baseExpireAt = paidAt && plan.days ? addDays(paidAt, plan.days) : toDate(data.baseExpireAt);
+  const baseExpireAt = toDate(data.baseExpireAt) || (paidAt && plan.days ? addDays(paidAt, plan.days) : null);
 
   const account = await AdobeAccount.create({
     adobeCode,
@@ -278,7 +371,6 @@ async function createAdobeAccount(data) {
     initialAccountPlan: plan.name,
     paidAt,
     baseExpireAt,
-    accountExpireAt: baseExpireAt,
     enabled: data.enabled !== false,
     remark: String(data.remark || "")
   });
@@ -338,13 +430,10 @@ async function updateAdobeAccount(id, data) {
     adobeCode: account.adobeCode,
     accountEmail: account.accountEmail
   });
-  await recalculateAdobeExpire(account._id);
   return decorateAdobeAccount(await AdobeAccount.findById(account._id));
 }
 
 async function listAdobeAccounts() {
-  const initialAccounts = await AdobeAccount.find().select("_id");
-  await Promise.all(initialAccounts.map((account) => recalculateAdobeExpire(account._id)));
   const accounts = await AdobeAccount.find().sort({ createdAt: -1 });
   const assignments = await CustomerAssignment.find({ active: true }).select("adobeAccountId customerId");
   const customers = await Customer.find({ _id: { $in: assignments.map((item) => item.customerId) } }).select("_id");
@@ -357,14 +446,13 @@ async function listAdobeAccounts() {
     map.set(key, (map.get(key) || 0) + 1);
     return map;
   }, new Map());
-  return accounts.map((account) => ({
-    ...decorateAdobeAccount(account),
+  return Promise.all(accounts.map(async (account) => ({
+    ...(await decorateAdobeAccount(account)),
     assignmentCount: countMap.get(account._id.toString()) || 0
-  }));
+  })));
 }
 
 async function getAdobeAccount(id) {
-  await recalculateAdobeExpire(id);
   const account = await AdobeAccount.findById(id);
   if (!account) {
     notFound("Adobe account not found");
@@ -387,39 +475,7 @@ async function recalculateAdobeExpire(id) {
     notFound("Adobe account not found");
   }
 
-  let expireAt = toDate(account.baseExpireAt);
-  const initialPlan = await planSnapshot(account.initialAccountPlanId || account.accountPlanId, account.initialAccountPlan || account.accountPlan);
-  if (initialPlan.id) {
-    account.initialAccountPlanId = initialPlan.id;
-    account.initialAccountPlan = initialPlan.name;
-    if (account.paidAt) {
-      account.baseExpireAt = addDays(account.paidAt, initialPlan.days);
-      expireAt = account.baseExpireAt;
-    }
-  }
-  let currentPlan = initialPlan;
-  const records = await AdobeRenewalRecord.find({ adobeAccountId: account._id }).sort({ renewalDate: 1, createdAt: 1 });
-  for (const record of records) {
-    const recordPlan = await planSnapshot(record.planId, record.planName);
-    if (recordPlan.id) {
-      record.planId = recordPlan.id;
-      record.planName = recordPlan.name;
-      record.planDays = recordPlan.days;
-    }
-    record.beforeExpireAt = expireAt;
-    expireAt = expireAt ? addDays(expireAt, record.planDays) : null;
-    record.afterExpireAt = expireAt;
-    currentPlan = recordPlan.id ? recordPlan : currentPlan;
-    await record.save();
-  }
-
-  if (!account.initialAccountPlan) {
-    account.initialAccountPlan = initialPlan.name;
-  }
-  account.accountPlanId = currentPlan.id || account.accountPlanId;
-  account.accountPlan = currentPlan.name || account.accountPlan;
-  account.accountExpireAt = expireAt;
-  await account.save();
+  account.accountExpireAt = await computeAdobeExpireAt(account);
   return account;
 }
 
@@ -443,9 +499,6 @@ async function syncAdobePlanChange(previousName, nextName, nextDays, nextId = ""
       account.accountPlanId = nextId;
       account.accountPlan = nextName;
     }
-    if (account.paidAt) {
-      account.baseExpireAt = addDays(account.paidAt, nextDays);
-    }
     await account.save();
   }
 
@@ -456,11 +509,11 @@ async function syncAdobePlanChange(previousName, nextName, nextDays, nextId = ""
     ]
   });
   for (const record of renewalRecords) {
-    record.planId = nextId;
-    record.planName = nextName;
-    record.planDays = nextDays;
     accountIds.add(record.adobeAccountId.toString());
-    await record.save();
+    await AdobeRenewalRecord.collection.updateOne(
+      { _id: record._id },
+      { $set: { planId: nextId }, $unset: { planName: "", planDays: "", beforeExpireAt: "", afterExpireAt: "" } }
+    );
   }
 
   if (planChanged) {
@@ -489,10 +542,11 @@ async function listAdobeRenewals(id) {
     notFound("Adobe account not found");
   }
 
-  await recalculateAdobeExpire(account._id);
-  const refreshed = await AdobeAccount.findById(account._id);
-  const records = await AdobeRenewalRecord.find({ adobeAccountId: id }).sort({ renewalDate: -1, createdAt: -1 });
-  return withAdobeInitialRenewal(refreshed, records);
+  const timeline = await computeAdobeTimeline(account);
+  const records = timeline.records.sort((a, b) => {
+    return new Date(b.renewalDate).getTime() - new Date(a.renewalDate).getTime();
+  });
+  return withAdobeInitialRenewal(account, records);
 }
 
 async function createAdobeRenewal(id, data) {
@@ -502,22 +556,15 @@ async function createAdobeRenewal(id, data) {
   }
 
   const plan = await findRenewalPlan(data.planName);
-  const refreshed = await recalculateAdobeExpire(account._id);
-  const beforeExpireAt = toDate(refreshed.accountExpireAt);
   await AdobeRenewalRecord.create({
     adobeAccountId: account._id,
     adobeCode: account.adobeCode,
     accountEmail: account.accountEmail,
     renewalDate: toDate(data.renewalDate) || new Date(),
     planId: plan._id.toString(),
-    planName: plan.name,
-    planDays: plan.days,
-    beforeExpireAt,
-    afterExpireAt: beforeExpireAt ? addDays(beforeExpireAt, plan.days) : null,
     remark: String(data.remark || "")
   });
 
-  await recalculateAdobeExpire(account._id);
   return listAdobeRenewals(account._id);
 }
 
@@ -526,7 +573,6 @@ async function deleteAdobeRenewal(id, renewalId) {
   if (!deleted) {
     notFound("Adobe renewal record not found");
   }
-  await recalculateAdobeExpire(id);
   return listAdobeRenewals(id);
 }
 
@@ -534,7 +580,7 @@ async function createCustomer(data) {
   const customerCode = normalizeCode(data.customerCode, "C") || await nextCode(Customer, "customerCode", "C");
   const plan = await assertEnabledOption("plan", data.purchasedPlan, "purchasedPlan");
   const firstPaidAt = toDate(data.firstPaidAt);
-  const baseAfterSalesExpireAt = firstPaidAt && plan.days ? addDays(firstPaidAt, plan.days) : toDate(data.baseAfterSalesExpireAt);
+  const baseAfterSalesExpireAt = toDate(data.baseAfterSalesExpireAt) || (firstPaidAt && plan.days ? addDays(firstPaidAt, plan.days) : null);
   const customerNickname = String(data.customerNickname || "").trim();
   if (!customerNickname) {
     badRequest("customerNickname is required");
@@ -551,7 +597,6 @@ async function createCustomer(data) {
     initialPurchasedPlan: plan.name,
     firstPaidAt,
     baseAfterSalesExpireAt,
-    afterSalesExpireAt: baseAfterSalesExpireAt,
     remark: String(data.remark || "")
   });
 
@@ -606,27 +651,23 @@ async function updateCustomer(id, data) {
     customerCode: customer.customerCode,
     customerNickname: customer.customerNickname
   });
-  await recalculateCustomerExpire(customer._id);
   return decorateCustomer(await Customer.findById(customer._id));
 }
 
 async function listCustomers() {
-  const initialCustomers = await Customer.find().select("_id");
-  await Promise.all(initialCustomers.map((customer) => recalculateCustomerExpire(customer._id)));
   const customers = await Customer.find().sort({ createdAt: -1 });
   const counts = await CustomerAssignment.aggregate([
     { $match: { active: true } },
     { $group: { _id: "$customerId", count: { $sum: 1 } } }
   ]);
   const countMap = new Map(counts.map((item) => [String(item._id), item.count]));
-  return customers.map((customer) => ({
-    ...decorateCustomer(customer),
+  return Promise.all(customers.map(async (customer) => ({
+    ...(await decorateCustomer(customer)),
     assignmentCount: countMap.get(String(customer._id)) || 0
-  }));
+  })));
 }
 
 async function getCustomer(id) {
-  await recalculateCustomerExpire(id);
   const customer = await Customer.findById(id);
   if (!customer) {
     notFound("Customer not found");
@@ -649,39 +690,7 @@ async function recalculateCustomerExpire(id) {
     notFound("Customer not found");
   }
 
-  let expireAt = toDate(customer.baseAfterSalesExpireAt);
-  const initialPlan = await planSnapshot(customer.initialPurchasedPlanId || customer.purchasedPlanId, customer.initialPurchasedPlan || customer.purchasedPlan);
-  if (initialPlan.id) {
-    customer.initialPurchasedPlanId = initialPlan.id;
-    customer.initialPurchasedPlan = initialPlan.name;
-    if (customer.firstPaidAt) {
-      customer.baseAfterSalesExpireAt = addDays(customer.firstPaidAt, initialPlan.days);
-      expireAt = customer.baseAfterSalesExpireAt;
-    }
-  }
-  let currentPlan = initialPlan;
-  const records = await CustomerRenewalRecord.find({ customerId: customer._id }).sort({ renewalDate: 1, createdAt: 1 });
-  for (const record of records) {
-    const recordPlan = await planSnapshot(record.planId, record.planName);
-    if (recordPlan.id) {
-      record.planId = recordPlan.id;
-      record.planName = recordPlan.name;
-      record.planDays = recordPlan.days;
-    }
-    record.beforeExpireAt = expireAt;
-    expireAt = expireAt ? addDays(expireAt, record.planDays) : null;
-    record.afterExpireAt = expireAt;
-    currentPlan = recordPlan.id ? recordPlan : currentPlan;
-    await record.save();
-  }
-
-  if (!customer.initialPurchasedPlan) {
-    customer.initialPurchasedPlan = initialPlan.name;
-  }
-  customer.purchasedPlanId = currentPlan.id || customer.purchasedPlanId;
-  customer.purchasedPlan = currentPlan.name || customer.purchasedPlan;
-  customer.afterSalesExpireAt = expireAt;
-  await customer.save();
+  customer.afterSalesExpireAt = await computeCustomerExpireAt(customer);
   return customer;
 }
 
@@ -705,9 +714,6 @@ async function syncCustomerPlanChange(previousName, nextName, nextDays, nextId =
       customer.purchasedPlanId = nextId;
       customer.purchasedPlan = nextName;
     }
-    if (customer.firstPaidAt) {
-      customer.baseAfterSalesExpireAt = addDays(customer.firstPaidAt, nextDays);
-    }
     await customer.save();
   }
 
@@ -718,11 +724,11 @@ async function syncCustomerPlanChange(previousName, nextName, nextDays, nextId =
     ]
   });
   for (const record of renewalRecords) {
-    record.planId = nextId;
-    record.planName = nextName;
-    record.planDays = nextDays;
     customerIds.add(record.customerId.toString());
-    await record.save();
+    await CustomerRenewalRecord.collection.updateOne(
+      { _id: record._id },
+      { $set: { planId: nextId }, $unset: { planName: "", planDays: "", beforeExpireAt: "", afterExpireAt: "" } }
+    );
   }
 
   if (planChanged) {
@@ -768,10 +774,11 @@ async function listCustomerRenewals(id) {
     notFound("Customer not found");
   }
 
-  await recalculateCustomerExpire(customer._id);
-  const refreshed = await Customer.findById(customer._id);
-  const records = await CustomerRenewalRecord.find({ customerId: id }).sort({ renewalDate: -1, createdAt: -1 });
-  return withCustomerInitialRenewal(refreshed, records);
+  const timeline = await computeCustomerTimeline(customer);
+  const records = timeline.records.sort((a, b) => {
+    return new Date(b.renewalDate).getTime() - new Date(a.renewalDate).getTime();
+  });
+  return withCustomerInitialRenewal(customer, records);
 }
 
 async function createCustomerRenewal(id, data) {
@@ -781,22 +788,15 @@ async function createCustomerRenewal(id, data) {
   }
 
   const plan = await findRenewalPlan(data.planName);
-  const refreshed = await recalculateCustomerExpire(customer._id);
-  const beforeExpireAt = toDate(refreshed.afterSalesExpireAt);
   await CustomerRenewalRecord.create({
     customerId: customer._id,
     customerCode: customer.customerCode,
     customerNickname: customer.customerNickname,
     renewalDate: toDate(data.renewalDate) || new Date(),
     planId: plan._id.toString(),
-    planName: plan.name,
-    planDays: plan.days,
-    beforeExpireAt,
-    afterExpireAt: beforeExpireAt ? addDays(beforeExpireAt, plan.days) : null,
     remark: String(data.remark || "")
   });
 
-  await recalculateCustomerExpire(customer._id);
   return listCustomerRenewals(customer._id);
 }
 
@@ -805,7 +805,6 @@ async function deleteCustomerRenewal(id, renewalId) {
   if (!deleted) {
     notFound("Customer renewal record not found");
   }
-  await recalculateCustomerExpire(id);
   return listCustomerRenewals(id);
 }
 
@@ -956,7 +955,6 @@ async function deleteAssignment(id) {
 }
 
 async function getAdobeDetail(id) {
-  await recalculateAdobeExpire(id);
   const account = await AdobeAccount.findById(id);
   if (!account) {
     notFound("Adobe account not found");
@@ -964,21 +962,22 @@ async function getAdobeDetail(id) {
 
   const assignments = await CustomerAssignment.find({ adobeAccountId: account._id, active: true });
   const customerIds = assignments.map((item) => item.customerId);
-  await Promise.all(customerIds.map((customerId) => recalculateCustomerExpire(customerId)));
   const customers = await Customer.find({ _id: { $in: customerIds } });
-  const renewalRecords = await AdobeRenewalRecord.find({ adobeAccountId: account._id }).sort({ renewalDate: -1, createdAt: -1 });
+  const timeline = await computeAdobeTimeline(account);
+  const renewalRecords = timeline.records.sort((a, b) => {
+    return new Date(b.renewalDate).getTime() - new Date(a.renewalDate).getTime();
+  });
 
   return {
-    adobeAccount: decorateAdobeAccount(account),
-    remainingDays: getRemainingDays(account.accountExpireAt),
-    remainingText: getRemainingText(account.accountExpireAt),
-    customers: customers.map(decorateCustomer),
+    adobeAccount: await decorateAdobeAccount(account),
+    remainingDays: getRemainingDays(timeline.expireAt),
+    remainingText: getRemainingText(timeline.expireAt),
+    customers: await Promise.all(customers.map(decorateCustomer)),
     renewalRecords: await withAdobeInitialRenewal(account, renewalRecords)
   };
 }
 
 async function getCustomerDetail(id) {
-  await recalculateCustomerExpire(id);
   const customer = await Customer.findById(id);
   if (!customer) {
     notFound("Customer not found");
@@ -987,30 +986,31 @@ async function getCustomerDetail(id) {
   const assignments = await CustomerAssignment.find({ customerId: customer._id, active: true })
     .sort({ assignmentRole: -1, assignedAt: 1, createdAt: 1 });
   const adobeAccountIds = assignments.map((item) => item.adobeAccountId);
-  await Promise.all(adobeAccountIds.map((accountId) => recalculateAdobeExpire(accountId)));
   const adobeAccounts = await AdobeAccount.find({ _id: { $in: adobeAccountIds } });
-  const renewalRecords = await CustomerRenewalRecord.find({ customerId: customer._id }).sort({ renewalDate: -1, createdAt: -1 });
+  const timeline = await computeCustomerTimeline(customer);
+  const renewalRecords = timeline.records.sort((a, b) => {
+    return new Date(b.renewalDate).getTime() - new Date(a.renewalDate).getTime();
+  });
   const accountMap = new Map(adobeAccounts.map((account) => [String(account._id), account]));
 
   return {
-    customer: decorateCustomer(customer),
-    remainingDays: getRemainingDays(customer.afterSalesExpireAt),
-    remainingText: getRemainingText(customer.afterSalesExpireAt),
-    adobeAccounts: assignments
-      .map((assignment) => {
+    customer: await decorateCustomer(customer),
+    remainingDays: getRemainingDays(timeline.expireAt),
+    remainingText: getRemainingText(timeline.expireAt),
+    adobeAccounts: (await Promise.all(assignments
+      .map(async (assignment) => {
         const account = accountMap.get(String(assignment.adobeAccountId));
         if (!account) {
           return null;
         }
         return {
-          ...decorateAdobeAccount(account),
+          ...(await decorateAdobeAccount(account)),
           assignmentId: assignment._id.toString(),
           assignmentRole: assignment.assignmentRole || "backup",
           assignmentRoleLabel: assignmentRoleLabel(assignment.assignmentRole),
           assignedAt: assignment.assignedAt
         };
-      })
-      .filter(Boolean),
+      }))).filter(Boolean),
     renewalRecords: await withCustomerInitialRenewal(customer, renewalRecords)
   };
 }
