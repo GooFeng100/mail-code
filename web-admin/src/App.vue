@@ -7,8 +7,10 @@ import {
   SwitchButton,
   User,
 } from "@element-plus/icons-vue"
+import AdobeAccountDetailPage from "./pages/AdobeAccountDetailPage.vue"
 import AdobeAccountsPage from "./pages/AdobeAccountsPage.vue"
 import AssignmentManagementPage from "./pages/AssignmentManagementPage.vue"
+import CustomerDetailPage from "./pages/CustomerDetailPage.vue"
 import CustomerManagementPage from "./pages/CustomerManagementPage.vue"
 import LoginPage from "./pages/LoginPage.vue"
 import ParameterSettingsPage from "./pages/ParameterSettingsPage.vue"
@@ -16,6 +18,8 @@ import UserCodePage from "./pages/UserCodePage.vue"
 
 const currentView = "admin"
 const activeAdminModule = ref("adobe")
+const selectedAdobeAccount = ref(null)
+const selectedCustomer = ref(null)
 
 const menuItems = [
   { key: "adobe", label: "Adobe账户", icon: DataAnalysis },
@@ -23,6 +27,36 @@ const menuItems = [
   { key: "assignments", label: "绑定关系", icon: Connection },
   { key: "parameters", label: "参数设置", icon: Setting },
 ]
+
+function handleAdminSelect(module) {
+  activeAdminModule.value = module
+  if (module !== "adobeDetail") {
+    selectedAdobeAccount.value = null
+  }
+  if (module !== "customerDetail") {
+    selectedCustomer.value = null
+  }
+}
+
+function showAdobeDetail(account) {
+  selectedAdobeAccount.value = account
+  activeAdminModule.value = "adobeDetail"
+}
+
+function backToAdobeList() {
+  selectedAdobeAccount.value = null
+  activeAdminModule.value = "adobe"
+}
+
+function showCustomerDetail(customer) {
+  selectedCustomer.value = customer
+  activeAdminModule.value = "customerDetail"
+}
+
+function backToCustomerList() {
+  selectedCustomer.value = null
+  activeAdminModule.value = "customers"
+}
 </script>
 
 <template>
@@ -42,7 +76,7 @@ const menuItems = [
         </div>
       </div>
 
-      <el-menu :default-active="activeAdminModule" class="admin-menu" @select="activeAdminModule = $event">
+      <el-menu :default-active="activeAdminModule === 'adobeDetail' ? 'adobe' : activeAdminModule === 'customerDetail' ? 'customers' : activeAdminModule" class="admin-menu" @select="handleAdminSelect">
         <el-menu-item v-for="item in menuItems" :key="item.key" :index="item.key">
           <el-icon><component :is="item.icon" /></el-icon>
           <span>{{ item.label }}</span>
@@ -64,8 +98,18 @@ const menuItems = [
       </div>
     </el-aside>
 
-    <AdobeAccountsPage v-if="activeAdminModule === 'adobe'" />
-    <CustomerManagementPage v-else-if="activeAdminModule === 'customers'" />
+    <AdobeAccountsPage v-if="activeAdminModule === 'adobe'" @view-detail="showAdobeDetail" />
+    <AdobeAccountDetailPage
+      v-else-if="activeAdminModule === 'adobeDetail'"
+      :account="selectedAdobeAccount"
+      @back="backToAdobeList"
+    />
+    <CustomerManagementPage v-else-if="activeAdminModule === 'customers'" @view-detail="showCustomerDetail" />
+    <CustomerDetailPage
+      v-else-if="activeAdminModule === 'customerDetail'"
+      :customer="selectedCustomer"
+      @back="backToCustomerList"
+    />
     <AssignmentManagementPage v-else-if="activeAdminModule === 'assignments'" />
     <ParameterSettingsPage v-else-if="activeAdminModule === 'parameters'" />
     <AdobeAccountsPage v-else />

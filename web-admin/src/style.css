@@ -842,12 +842,29 @@ body {
 
 .table-actions {
   display: flex;
-  gap: 6px;
+  gap: 4px;
+  flex-wrap: nowrap;
 }
 
 .table-actions .el-button {
   margin-left: 0;
-  font-weight: 900;
+  padding-right: 10px;
+  padding-left: 10px;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.table-actions .el-button .el-icon {
+  font-size: 1.3em;
+}
+
+.detail-table .el-button {
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.detail-table .el-button .el-icon {
+  font-size: 1.3em;
 }
 
 .assignment-dashboard .admin-main-content {
@@ -877,6 +894,143 @@ body {
 .parameter-title-actions .el-input__wrapper {
   min-height: 52px;
   border-radius: 14px;
+}
+
+.account-detail-page {
+  gap: 14px;
+}
+
+.account-detail-page .metric-card .el-card__body {
+  justify-content: center;
+  gap: 22px;
+  padding: 18px 28px;
+}
+
+.account-detail-page .metric-icon {
+  width: 62px;
+  height: 62px;
+  border-radius: 18px;
+  font-size: 32px;
+}
+
+.account-detail-page .metric-card span,
+.account-detail-page .metric-card small {
+  font-size: 16px;
+}
+
+.account-detail-page .metric-card strong {
+  font-size: 48px;
+}
+
+.account-detail-scroll {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  gap: 14px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.detail-card {
+  border: 1px solid #dbe6f5;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.78);
+  overflow: hidden;
+}
+
+.detail-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 10px 24px;
+}
+
+.detail-card-head.compact {
+  align-items: center;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.detail-card-head.compact h2 {
+  margin: 0;
+  color: #172033;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.detail-actions .el-button,
+.detail-card-head.compact .el-button {
+  min-height: 44px;
+  margin-left: 0;
+  border-radius: 14px;
+  font-weight: 850;
+}
+
+.detail-primary-button.el-button {
+  height: 44px;
+  min-height: 44px;
+  border-radius: 14px;
+  font-weight: 850;
+}
+
+.detail-primary-button.el-button .el-icon {
+  font-size: 1.3em;
+}
+
+.account-profile-card {
+  flex: 0 0 auto;
+}
+
+.account-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  column-gap: 22px;
+  padding: 0 24px 24px;
+}
+
+.account-detail-grid div {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 58px;
+  gap: 6px;
+  border-bottom: 1px solid #e5edf7;
+}
+
+.account-detail-grid span {
+  color: #7b8799;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.account-detail-grid strong {
+  min-width: 0;
+  color: #253247;
+  font-size: 16.8px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.account-detail-grid .detail-link {
+  color: #1769e0;
+}
+
+.detail-table-card {
+  flex: 0 0 auto;
+}
+
+.detail-table {
+  --el-table-header-bg-color: #bfecd2;
 }
 
 .assignment-role {

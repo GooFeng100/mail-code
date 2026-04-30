@@ -12,6 +12,8 @@ import {
   WarningFilled,
 } from "@element-plus/icons-vue"
 
+const emit = defineEmits(["view-detail"])
+
 const searchText = ref("")
 const planFilter = ref("")
 const statusFilter = ref("")
@@ -203,34 +205,34 @@ function handleSizeChange(size) {
           stripe
           row-key="code"
         >
-          <el-table-column prop="code" label="账户编号" width="96" />
-          <el-table-column prop="email" label="账户邮箱" min-width="250" show-overflow-tooltip />
-          <el-table-column prop="plan" label="账户计划" min-width="190" />
-          <el-table-column prop="expiresAt" label="到期日" width="120" />
-          <el-table-column label="剩余天数" width="110">
+          <el-table-column prop="code" label="账户编号" width="92" />
+          <el-table-column prop="email" label="账户邮箱" min-width="220" show-overflow-tooltip />
+          <el-table-column prop="plan" label="账户计划" min-width="170" />
+          <el-table-column prop="expiresAt" label="到期日" width="108" />
+          <el-table-column label="剩余天数" width="98">
             <template #default="{ row }">
               <strong class="days-text" :class="dayClass(row.days)">
                 {{ row.days }} 天
               </strong>
             </template>
           </el-table-column>
-          <el-table-column label="状态" width="110">
+          <el-table-column label="状态" width="92">
             <template #default="{ row }">
               <el-tag :type="statusType(row.status)" effect="light" round>
                 {{ row.status }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="启用" width="100">
+          <el-table-column label="启用" width="82">
             <template #default="{ row }">
               <el-switch v-model="row.enabled" />
             </template>
           </el-table-column>
-          <el-table-column prop="bindings" label="绑定用户数" width="120" align="center" />
-          <el-table-column label="操作" fixed="right" width="260">
-            <template #default>
+          <el-table-column prop="bindings" label="绑定用户数" width="104" align="center" />
+          <el-table-column label="操作" fixed="right" width="300">
+            <template #default="{ row }">
               <div class="table-actions">
-                <el-button size="small" :icon="View" round>查看</el-button>
+                <el-button size="small" :icon="View" round @click="emit('view-detail', row)">查看</el-button>
                 <el-button size="small" :icon="EditPen" round>编辑</el-button>
                 <el-button size="small" :icon="Delete" round type="danger" plain>删除</el-button>
               </div>
