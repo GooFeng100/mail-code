@@ -1,4 +1,5 @@
 <script setup>
+import { ref } from "vue"
 import {
   Connection,
   DataAnalysis,
@@ -7,10 +8,12 @@ import {
   User,
 } from "@element-plus/icons-vue"
 import AdobeAccountsPage from "./pages/AdobeAccountsPage.vue"
+import CustomerManagementPage from "./pages/CustomerManagementPage.vue"
 import LoginPage from "./pages/LoginPage.vue"
 import UserCodePage from "./pages/UserCodePage.vue"
 
 const currentView = "admin"
+const activeAdminModule = ref("adobe")
 
 const menuItems = [
   { key: "adobe", label: "Adobe账户", icon: DataAnalysis },
@@ -37,7 +40,7 @@ const menuItems = [
         </div>
       </div>
 
-      <el-menu default-active="adobe" class="admin-menu">
+      <el-menu :default-active="activeAdminModule" class="admin-menu" @select="activeAdminModule = $event">
         <el-menu-item v-for="item in menuItems" :key="item.key" :index="item.key">
           <el-icon><component :is="item.icon" /></el-icon>
           <span>{{ item.label }}</span>
@@ -59,6 +62,8 @@ const menuItems = [
       </div>
     </el-aside>
 
-    <AdobeAccountsPage />
+    <AdobeAccountsPage v-if="activeAdminModule === 'adobe'" />
+    <CustomerManagementPage v-else-if="activeAdminModule === 'customers'" />
+    <AdobeAccountsPage v-else />
   </el-container>
 </template>

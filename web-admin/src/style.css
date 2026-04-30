@@ -741,6 +741,10 @@ body {
   gap: 10px;
 }
 
+.customer-toolbar {
+  grid-template-columns: minmax(320px, 1.5fr) minmax(220px, 0.65fr) minmax(190px, 0.55fr) auto;
+}
+
 .account-toolbar .el-input__wrapper,
 .account-toolbar .el-select__wrapper {
   min-height: 52px;
