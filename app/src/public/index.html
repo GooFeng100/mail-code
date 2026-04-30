@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Code Receiver</title>
   <link rel="icon" href="/assets/icons/verification.png" type="image/png" />
-  <link rel="stylesheet" href="/style.css?v=20260426-2" />
+  <link rel="stylesheet" href="/style.css?v=20260430-1" />
 </head>
 <body class="login-active">
   <main class="shell">
@@ -19,18 +19,18 @@
         </header>
 
         <form id="loginForm" class="login-form">
-          <label>
-            Adobe账户
+          <label class="login-field">
             <span class="field-shell">
+              <input name="username" type="text" inputmode="email" autocomplete="email" placeholder=" " required />
+              <span class="field-label">Adobe账户</span>
               <span class="field-icon" aria-hidden="true"><img src="/assets/icons/account-male.png" alt="" /></span>
-              <input name="username" type="text" inputmode="email" autocomplete="email" placeholder="请输入Adobe账户邮箱" required />
             </span>
           </label>
-          <label>
-            密码
+          <label class="login-field">
             <span class="field-shell">
+              <input name="password" type="password" autocomplete="current-password" placeholder=" " required />
+              <span class="field-label">密码</span>
               <span class="field-icon" aria-hidden="true"><img src="/assets/icons/password.png" alt="" /></span>
-              <input name="password" type="password" autocomplete="current-password" placeholder="请输入密码" required />
             </span>
           </label>
           <button type="submit" class="login-button">

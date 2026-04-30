@@ -1786,6 +1786,22 @@ function detailItem(label, value, kind = "") {
   return `<div class="admin-detail-item ${kind}"><span>${escapeHtml(label)}</span><strong>${escapeHtml(displayValue(value))}</strong></div>`;
 }
 
+function copyableDetailItem(label, value, kind = "") {
+  const text = String(value || "").trim();
+  if (!text) {
+    return detailItem(label, value, kind);
+  }
+
+  return `
+    <div class="admin-detail-item ${kind}">
+      <span>${escapeHtml(label)}</span>
+      <button type="button" class="admin-copy-text" data-copy-value="${escapeHtml(text)}" data-copy-label="${escapeHtml(label)}" title="点击复制${escapeHtml(label)}">
+        ${escapeHtml(displayValue(text))}
+      </button>
+    </div>
+  `;
+}
+
 async function copyTextToClipboard(text) {
   if (navigator.clipboard && window.isSecureContext) {
     await navigator.clipboard.writeText(text);
@@ -1822,9 +1838,9 @@ function renderAdobeDetail(data) {
   el.adobeDetailSummary.innerHTML = [
     detailItem("Adobe账户", account.adobeCode, "primary"),
     detailItem("账户计划", planLabel(account.accountPlanId || account.accountPlan)),
-    detailItem("Adobe账户邮箱", account.accountEmail),
+    copyableDetailItem("Adobe账户邮箱", account.accountEmail),
     detailItem("付费日期", formatDate(account.paidAt)),
-    detailItem("Adobe密码", account.adobePassword),
+    copyableDetailItem("Adobe密码", account.adobePassword),
     detailItem("Adobe账户到期日", formatDate(account.accountExpireAt)),
     detailItem("Adobe账户邮箱密码", account.accountEmailPassword),
     detailItem("剩余天数", adobeRemainingText(account), adobeStatusKind(account)),
@@ -2207,6 +2223,28 @@ if (el.copyAdobeDetailBtn) {
     try {
       await copyTextToClipboard(adobeDetailCopyText(account));
       setMessage("账户详情已复制", "success");
+    } catch (error) {
+      setMessage("复制失败，请稍后重试", "error");
+    }
+  });
+}
+if (el.adobeDetailSummary) {
+  el.adobeDetailSummary.addEventListener("click", async (event) => {
+    const target = event.target.closest("[data-copy-value]");
+    if (!target) {
+      return;
+    }
+
+    const value = target.dataset.copyValue || "";
+    const label = target.dataset.copyLabel || "内容";
+    if (!value) {
+      setMessage("暂无可复制内容", "error");
+      return;
+    }
+
+    try {
+      await copyTextToClipboard(value);
+      setMessage(`${label}已复制`, "success");
     } catch (error) {
       setMessage("复制失败，请稍后重试", "error");
     }
