@@ -2,8 +2,9 @@
 import { DataAnalysis, Link, Setting, User } from "@element-plus/icons-vue"
 import AdobeAccountsPage from "./pages/AdobeAccountsPage.vue"
 import LoginPage from "./pages/LoginPage.vue"
+import UserCodePage from "./pages/UserCodePage.vue"
 
-const showLogin = true
+const currentView = "user"
 
 const menuItems = [
   { key: "adobe", label: "Adobe账户", icon: DataAnalysis },
@@ -14,9 +15,11 @@ const menuItems = [
 </script>
 
 <template>
-  <LoginPage v-if="showLogin" />
+  <LoginPage v-if="currentView === 'login'" />
 
-  <el-container v-else class="admin-shell">
+  <UserCodePage v-else-if="currentView === 'user'" />
+
+  <el-container v-else-if="currentView === 'admin'" class="admin-shell">
     <el-aside class="admin-sidebar" width="248px">
       <div class="brand">
         <span class="brand-mark">A</span>
