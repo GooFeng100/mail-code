@@ -15,8 +15,9 @@ body {
   background: #f4f7fb;
   color: #172033;
   font-family:
-    Inter, Manrope, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", Arial,
+    Manrope, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", Inter, Arial,
     sans-serif;
+  font-weight: 400;
 }
 
 #app {
@@ -745,6 +746,10 @@ body {
   grid-template-columns: minmax(320px, 1.5fr) minmax(220px, 0.65fr) minmax(190px, 0.55fr) auto;
 }
 
+.assignment-toolbar {
+  grid-template-columns: minmax(360px, 1.4fr) minmax(180px, 0.45fr) minmax(180px, 0.45fr) auto;
+}
+
 .account-toolbar .el-input__wrapper,
 .account-toolbar .el-select__wrapper {
   min-height: 52px;
@@ -805,9 +810,14 @@ body {
 
 .account-table .el-table__header th {
   height: 48px;
-  background: #f4f7fc;
-  color: #64748b;
+  background: #bfecd2 !important;
+  color: #475569;
   font-weight: 950;
+}
+
+.account-table .el-table__header th.el-table__cell,
+.account-table .el-table__header th .cell {
+  background: #bfecd2 !important;
 }
 
 .account-table .el-table__row {
@@ -838,6 +848,50 @@ body {
 .table-actions .el-button {
   margin-left: 0;
   font-weight: 900;
+}
+
+.assignment-dashboard .admin-main-content {
+  margin-top: 0;
+}
+
+.assignment-title-section {
+  padding-top: 34px;
+}
+
+.parameter-title-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding-top: 34px;
+  padding-bottom: 24px;
+}
+
+.parameter-title-actions {
+  display: grid;
+  flex: 0 0 min(720px, 50%);
+  grid-template-columns: minmax(280px, 1fr) auto;
+  gap: 14px;
+}
+
+.parameter-title-actions .el-input__wrapper {
+  min-height: 52px;
+  border-radius: 14px;
+}
+
+.assignment-role {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #168847;
+}
+
+.assignment-role.is-backup {
+  color: #64748b;
+}
+
+.assignment-role strong {
+  font-weight: 950;
 }
 
 .account-table-footer {

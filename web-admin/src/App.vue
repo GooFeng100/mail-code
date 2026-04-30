@@ -8,8 +8,10 @@ import {
   User,
 } from "@element-plus/icons-vue"
 import AdobeAccountsPage from "./pages/AdobeAccountsPage.vue"
+import AssignmentManagementPage from "./pages/AssignmentManagementPage.vue"
 import CustomerManagementPage from "./pages/CustomerManagementPage.vue"
 import LoginPage from "./pages/LoginPage.vue"
+import ParameterSettingsPage from "./pages/ParameterSettingsPage.vue"
 import UserCodePage from "./pages/UserCodePage.vue"
 
 const currentView = "admin"
@@ -64,6 +66,8 @@ const menuItems = [
 
     <AdobeAccountsPage v-if="activeAdminModule === 'adobe'" />
     <CustomerManagementPage v-else-if="activeAdminModule === 'customers'" />
+    <AssignmentManagementPage v-else-if="activeAdminModule === 'assignments'" />
+    <ParameterSettingsPage v-else-if="activeAdminModule === 'parameters'" />
     <AdobeAccountsPage v-else />
   </el-container>
 </template>

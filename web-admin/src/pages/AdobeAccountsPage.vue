@@ -200,6 +200,7 @@ function handleSizeChange(size) {
           class="account-table"
           :data="pagedAccounts"
           height="100%"
+          stripe
           row-key="code"
         >
           <el-table-column prop="code" label="账户编号" width="96" />

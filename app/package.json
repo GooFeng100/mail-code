@@ -1,6 +1,6 @@
 {
   "name": "mail-code-app",
-  "version": "1.1.3",
+  "version": "1.2.4",
   "description": "Mail code receiver system",
   "main": "src/app.js",
   "scripts": {

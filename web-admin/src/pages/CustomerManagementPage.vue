@@ -52,6 +52,7 @@ const filteredCustomers = computed(() => {
       customer.code,
       customer.nickname,
       customer.contact,
+      customer.remark,
     ].join(" ").toLowerCase().includes(keyword)
     const matchesPlan = !planFilter.value || customer.plan === planFilter.value
     const matchesStatus = !statusFilter.value || customer.status === statusFilter.value
@@ -157,7 +158,7 @@ function handleSizeChange(size) {
             clearable
             class="account-search"
             :prefix-icon="Search"
-            placeholder="搜索客户编号 / 昵称 / 联系方式"
+            placeholder="搜索客户编号 / 昵称 / 联系方式 / 备注"
           />
           <el-select v-model="planFilter" clearable placeholder="全部购买计划">
             <el-option label="全家桶半年付（180天）" value="全家桶半年付（180天）" />
@@ -179,6 +180,7 @@ function handleSizeChange(size) {
           class="account-table customer-table"
           :data="pagedCustomers"
           height="100%"
+          stripe
           row-key="code"
         >
           <el-table-column prop="code" label="客户编号" width="120" />
