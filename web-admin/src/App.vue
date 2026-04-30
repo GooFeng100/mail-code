@@ -1,15 +1,21 @@
 <script setup>
-import { DataAnalysis, Link, Setting, User } from "@element-plus/icons-vue"
+import {
+  Connection,
+  DataAnalysis,
+  Setting,
+  SwitchButton,
+  User,
+} from "@element-plus/icons-vue"
 import AdobeAccountsPage from "./pages/AdobeAccountsPage.vue"
 import LoginPage from "./pages/LoginPage.vue"
 import UserCodePage from "./pages/UserCodePage.vue"
 
-const currentView = "user"
+const currentView = "admin"
 
 const menuItems = [
   { key: "adobe", label: "Adobe账户", icon: DataAnalysis },
   { key: "customers", label: "客户管理", icon: User },
-  { key: "assignments", label: "绑定关系", icon: Link },
+  { key: "assignments", label: "绑定关系", icon: Connection },
   { key: "parameters", label: "参数设置", icon: Setting },
 ]
 </script>
@@ -20,12 +26,14 @@ const menuItems = [
   <UserCodePage v-else-if="currentView === 'user'" />
 
   <el-container v-else-if="currentView === 'admin'" class="admin-shell">
-    <el-aside class="admin-sidebar" width="248px">
-      <div class="brand">
-        <span class="brand-mark">A</span>
+    <el-aside class="admin-sidebar" width="260px">
+      <div class="brand admin-brand">
+        <span class="brand-mark">
+          <el-icon><DataAnalysis /></el-icon>
+        </span>
         <div>
           <strong>Adobe 业务管理</strong>
-          <small>Vue Admin Preview</small>
+          <small>管理控制台</small>
         </div>
       </div>
 
@@ -35,10 +43,22 @@ const menuItems = [
           <span>{{ item.label }}</span>
         </el-menu-item>
       </el-menu>
+
+      <div class="admin-sidebar-footer">
+        <div class="admin-profile-card">
+          <el-avatar :size="34">
+            <el-icon><User /></el-icon>
+          </el-avatar>
+          <div>
+            <strong>Admin 管理员</strong>
+            <span>当前管理员：admin</span>
+          </div>
+        </div>
+
+        <el-button class="admin-logout-button" :icon="SwitchButton">退出登录</el-button>
+      </div>
     </el-aside>
 
-    <el-container>
-      <AdobeAccountsPage />
-    </el-container>
+    <AdobeAccountsPage />
   </el-container>
 </template>

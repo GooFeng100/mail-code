@@ -1,185 +1,256 @@
 <script setup>
-import { computed, onMounted, ref } from "vue"
-import { Plus, Refresh } from "@element-plus/icons-vue"
-import { listAdobeAccounts } from "../api/admin"
-import { accountStatus, displayValue, formatDate, remainingDays } from "../utils/format"
+import { computed, ref } from "vue"
+import {
+  Calendar,
+  CirclePlus,
+  CircleCheckFilled,
+  DataAnalysis,
+  Delete,
+  EditPen,
+  Search,
+  View,
+  WarningFilled,
+} from "@element-plus/icons-vue"
 
-const accounts = ref([])
-const loading = ref(false)
-const errorMessage = ref("")
 const searchText = ref("")
+const planFilter = ref("")
+const statusFilter = ref("")
+const enabledFilter = ref("")
+const currentPage = ref(1)
+const pageSize = ref(10)
+
+const accounts = ref([
+  ["A0014", "shanshanz1878313@proton.me", "shanshanz1878313@889100.xyz", "全家桶半年付（180天）", "2026/5/7", 7, "正常", false, 1],
+  ["A0010", "alstonlewis@proton.me", "alstonlewis@889100.xyz", "全家桶半年付（180天）", "2026/5/9", 9, "正常", true, 0],
+  ["A0009", "jeremyhosea24@proton.me", "jeremyhosea24@889100.xyz", "全家桶半年付（180天）", "2026/5/10", 10, "正常", true, 2],
+  ["A0007", "nellyhosea@proton.me", "nellyhosea@889100.xyz", "全家桶半年付（180天）", "2026/5/11", 11, "正常", true, 1],
+  ["A0006", "leeforster25@proton.me", "leeforster25@889100.xyz", "全家桶半年付（180天）", "2026/5/11", 11, "正常", true, 1],
+  ["A0005", "tracydolly551@gmail.com", "tracydolly551@889100.xyz", "全家桶半年付（180天）", "2026/5/11", 11, "正常", true, 1],
+  ["A0001", "1170175069@qq.com", "1170175069@889100.xyz", "全家桶半年付（180天）", "2026/6/1", 32, "正常", true, 1],
+  ["A0015", "784774726@qq.com", "784774726@889100.xyz", "全家桶半年付（180天）", "2026/6/15", 46, "正常", true, 1],
+  ["A0002", "tuzki98@icloud.com", "tuzki98@889100.xyz", "全家桶半年付（180天）", "2026/7/10", 71, "正常", true, 2],
+  ["A0016", "tracygunther@proton.me", "tracygunther@889100.xyz", "全家桶半年付（180天）", "2026/8/6", 98, "正常", true, 1],
+  ["A0012", "mrlee19900517@outlook.com", "mrlee19900517@889100.xyz", "全家桶半年付（180天）", "2026/9/11", 134, "正常", false, 1],
+  ["A0004", "rachelmike@proton.me", "rachelmike@889100.xyz", "全家桶半年付（180天）", "2026/10/24", 177, "正常", true, 1],
+  ["A0013", "lutherbrooke@proton.me", "lutherbrooke@889100.xyz", "全家桶半年付（180天）", "2026/3/19", 0, "已到期", true, 1],
+  ["A0011", "elmerhoyle23@outlook.com", "elmerhoyle23@889100.xyz", "全家桶月付（30天）", "2025/10/4", 0, "已到期", true, 1],
+  ["A0008", "hirambrook@proton.me", "hirambrook@889100.xyz", "全家桶半年付（180天）", "2025/12/20", 0, "已到期", true, 1],
+  ["A0017", "mollyreed@proton.me", "mollyreed@889100.xyz", "全家桶半年付（180天）", "2026/4/28", 0, "已到期", false, 1],
+].map(([code, email, verifyEmail, plan, expiresAt, days, status, enabled, bindings]) => ({
+  code,
+  email,
+  verifyEmail,
+  plan,
+  expiresAt,
+  days,
+  status,
+  enabled,
+  bindings,
+})))
 
 const filteredAccounts = computed(() => {
   const keyword = searchText.value.trim().toLowerCase()
-  if (!keyword) {
-    return accounts.value
-  }
-
   return accounts.value.filter((account) => {
-    const searchable = [
-      account.adobeCode,
-      account.accountEmail,
-      account.verificationEmail,
-      account.accountPlan,
-      account.remark,
-    ]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase()
-
-    return keyword.split(/\s+/).every((word) => searchable.includes(word))
+    const matchesKeyword = !keyword || [
+      account.code,
+      account.email,
+      account.verifyEmail,
+    ].join(" ").toLowerCase().includes(keyword)
+    const matchesPlan = !planFilter.value || account.plan === planFilter.value
+    const matchesStatus = !statusFilter.value || account.status === statusFilter.value
+    const matchesEnabled = !enabledFilter.value || String(account.enabled) === enabledFilter.value
+    return matchesKeyword && matchesPlan && matchesStatus && matchesEnabled
   })
 })
 
-const stats = computed(() => {
-  const total = accounts.value.length
-  const normal = accounts.value.filter((account) => accountStatus(account).kind === "success").length
-  const soon = accounts.value.filter((account) => accountStatus(account).kind === "warning").length
-  const disabled = accounts.value.filter((account) => !account.enabled).length
-
-  return { total, normal, soon, disabled }
+const pagedAccounts = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return filteredAccounts.value.slice(start, start + pageSize.value)
 })
 
-async function loadAccounts() {
-  loading.value = true
-  errorMessage.value = ""
-
-  try {
-    accounts.value = await listAdobeAccounts()
-  } catch (error) {
-    if (error.status === 401 || error.status === 403) {
-      errorMessage.value = "请先登录。当前 Vue 管理台会沿用浏览器里的 mailCodeToken。"
-    } else {
-      errorMessage.value = error.message || "账户列表加载失败"
-    }
-  } finally {
-    loading.value = false
+const pageRangeText = computed(() => {
+  const total = filteredAccounts.value.length
+  if (total === 0) {
+    return "本页 0 条 / 共 0 条"
   }
+
+  const start = (currentPage.value - 1) * pageSize.value + 1
+  const end = Math.min(start + pagedAccounts.value.length - 1, total)
+  return `本页 ${start}-${end} 条 / 共 ${total} 条`
+})
+
+const stats = computed(() => {
+  const expired = accounts.value.filter((item) => item.status === "已到期").length
+  const disabled = accounts.value.filter((item) => !item.enabled).length
+  const expiring = accounts.value.filter((item) => item.days > 0 && item.days <= 30).length
+  const normal = accounts.value.filter((item) => item.status === "正常").length
+  return {
+    total: accounts.value.length,
+    expired,
+    disabled,
+    expiring,
+    normal,
+  }
+})
+
+function statusType(status) {
+  return status === "已到期" ? "danger" : "warning"
 }
 
-function remainingText(account) {
-  const days = remainingDays(account.accountExpireAt)
-  if (!Number.isFinite(days)) {
-    return "-"
+function dayClass(days) {
+  if (days <= 0) {
+    return "is-expired"
   }
-  return days <= 0 ? "0 天" : `${days} 天`
+  if (days <= 30) {
+    return "is-warning"
+  }
+  return ""
 }
 
-function tagType(kind) {
-  if (kind === "success") {
-    return "success"
-  }
-  if (kind === "warning") {
-    return "warning"
-  }
-  if (kind === "danger") {
-    return "danger"
-  }
-  return "info"
+function handleSizeChange(size) {
+  pageSize.value = size
+  currentPage.value = 1
 }
-
-onMounted(loadAccounts)
 </script>
 
 <template>
-  <el-main class="main-panel">
-    <el-card class="hero-card" shadow="never">
-      <div class="hero-content">
-        <div>
-          <p class="eyebrow">Web Admin</p>
-          <h1>Adobe账户管理</h1>
-          <span>Vue 版本已接入现有 Express API，后续逐步迁移编辑、详情和续费功能。</span>
-        </div>
-        <div class="hero-actions">
-          <el-button :icon="Refresh" @click="loadAccounts">刷新</el-button>
-          <el-button type="primary" :icon="Plus" disabled>新增账户</el-button>
-        </div>
-      </div>
-    </el-card>
+  <el-main class="main-panel admin-dashboard">
+    <el-header class="admin-main-header" height="124px">
+      <el-row class="admin-stat-row">
+        <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
+          <el-card class="metric-card" shadow="never">
+            <div class="metric-icon adobe-icon"><el-icon><DataAnalysis /></el-icon></div>
+            <div>
+              <span>账户总数</span>
+              <strong>{{ stats.total }}</strong>
+              <small>{{ stats.expired }} 个已到期</small>
+            </div>
+          </el-card>
+        </el-col>
+        <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
+          <el-card class="metric-card" shadow="never">
+            <div class="metric-icon success"><el-icon><CircleCheckFilled /></el-icon></div>
+            <div>
+              <span>正常账户</span>
+              <strong class="success-text">{{ stats.normal }}</strong>
+              <small>当前可用</small>
+            </div>
+          </el-card>
+        </el-col>
+        <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
+          <el-card class="metric-card" shadow="never">
+            <div class="metric-icon warning"><el-icon><Calendar /></el-icon></div>
+            <div>
+              <span>即将到期</span>
+              <strong class="warning-text">{{ stats.expiring }}</strong>
+              <small>30天内到期</small>
+            </div>
+          </el-card>
+        </el-col>
+        <el-col :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
+          <el-card class="metric-card" shadow="never">
+            <div class="metric-icon danger"><el-icon><WarningFilled /></el-icon></div>
+            <div>
+              <span>已停用</span>
+              <strong class="danger-text">{{ stats.disabled }}</strong>
+              <small>需关注</small>
+            </div>
+          </el-card>
+        </el-col>
+      </el-row>
+    </el-header>
 
-    <el-row :gutter="16">
-      <el-col :xs="24" :sm="12" :lg="6">
-        <el-card class="stat-card" shadow="never">
-          <span>账户总数</span>
-          <strong>{{ stats.total }}</strong>
-          <small>{{ loading ? "加载中" : "实时接口" }}</small>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :sm="12" :lg="6">
-        <el-card class="stat-card" shadow="never">
-          <span>正常账户</span>
-          <strong>{{ stats.normal }}</strong>
-          <small>当前可用</small>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :sm="12" :lg="6">
-        <el-card class="stat-card" shadow="never">
-          <span>即将到期</span>
-          <strong>{{ stats.soon }}</strong>
-          <small>30天内</small>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :sm="12" :lg="6">
-        <el-card class="stat-card" shadow="never">
-          <span>已停用</span>
-          <strong>{{ stats.disabled }}</strong>
-          <small>需关注</small>
-        </el-card>
-      </el-col>
-    </el-row>
+    <section class="admin-main-content">
+      <section class="account-title-section">
+        <div class="account-table-title">
+          <h1>账户列表</h1>
+          <p>只显示必要信息，详情、编辑和续费记录在弹窗中处理。</p>
+        </div>
+      </section>
 
-    <el-card class="content-card" shadow="never">
-      <template #header>
-        <div class="card-head">
-          <div>
-            <h2>账户列表</h2>
-            <p>当前先完成只读列表迁移，避免把新增/编辑/删除一次性搬进来导致风险变大。</p>
-          </div>
+      <section class="account-filter-section">
+        <div class="account-toolbar">
           <el-input
             v-model="searchText"
             clearable
-            class="search-input"
-            placeholder="搜索账户编号 / 邮箱 / 验证码邮箱"
+            class="account-search"
+            :prefix-icon="Search"
+            placeholder="搜索账户编号 / 账户邮箱 / 验证码邮箱"
           />
+          <el-select v-model="planFilter" clearable placeholder="全部账户计划">
+            <el-option label="全家桶半年付（180天）" value="全家桶半年付（180天）" />
+            <el-option label="全家桶月付（30天）" value="全家桶月付（30天）" />
+          </el-select>
+          <el-select v-model="statusFilter" clearable placeholder="全部状态">
+            <el-option label="正常" value="正常" />
+            <el-option label="已到期" value="已到期" />
+          </el-select>
+          <el-select v-model="enabledFilter" clearable placeholder="全部启用状态">
+            <el-option label="启用" value="true" />
+            <el-option label="禁用" value="false" />
+          </el-select>
+          <el-button class="add-account-button" type="primary" :icon="CirclePlus">
+            新增Adobe账户
+          </el-button>
         </div>
-      </template>
+      </section>
 
-      <el-alert v-if="errorMessage" :title="errorMessage" type="error" show-icon :closable="false" />
+      <section class="account-list-section">
+        <el-table
+          class="account-table"
+          :data="pagedAccounts"
+          height="100%"
+          row-key="code"
+        >
+          <el-table-column prop="code" label="账户编号" width="96" />
+          <el-table-column prop="email" label="账户邮箱" min-width="250" show-overflow-tooltip />
+          <el-table-column prop="plan" label="账户计划" min-width="190" />
+          <el-table-column prop="expiresAt" label="到期日" width="120" />
+          <el-table-column label="剩余天数" width="110">
+            <template #default="{ row }">
+              <strong class="days-text" :class="dayClass(row.days)">
+                {{ row.days }} 天
+              </strong>
+            </template>
+          </el-table-column>
+          <el-table-column label="状态" width="110">
+            <template #default="{ row }">
+              <el-tag :type="statusType(row.status)" effect="light" round>
+                {{ row.status }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="启用" width="100">
+            <template #default="{ row }">
+              <el-switch v-model="row.enabled" />
+            </template>
+          </el-table-column>
+          <el-table-column prop="bindings" label="绑定用户数" width="120" align="center" />
+          <el-table-column label="操作" fixed="right" width="260">
+            <template #default>
+              <div class="table-actions">
+                <el-button size="small" :icon="View" round>查看</el-button>
+                <el-button size="small" :icon="EditPen" round>编辑</el-button>
+                <el-button size="small" :icon="Delete" round type="danger" plain>删除</el-button>
+              </div>
+            </template>
+          </el-table-column>
+        </el-table>
+      </section>
 
-      <el-table v-else v-loading="loading" :data="filteredAccounts" row-key="id" stripe>
-        <el-table-column prop="adobeCode" label="账户编号" min-width="120">
-          <template #default="{ row }">{{ displayValue(row.adobeCode) }}</template>
-        </el-table-column>
-        <el-table-column prop="accountEmail" label="账户邮箱" min-width="220" show-overflow-tooltip>
-          <template #default="{ row }">{{ displayValue(row.accountEmail) }}</template>
-        </el-table-column>
-        <el-table-column prop="verificationEmail" label="验证码邮箱" min-width="220" show-overflow-tooltip>
-          <template #default="{ row }">{{ displayValue(row.verificationEmail) }}</template>
-        </el-table-column>
-        <el-table-column prop="accountPlan" label="账户计划" min-width="140">
-          <template #default="{ row }">{{ displayValue(row.accountPlan) }}</template>
-        </el-table-column>
-        <el-table-column prop="accountExpireAt" label="到期日" min-width="130">
-          <template #default="{ row }">{{ formatDate(row.accountExpireAt) }}</template>
-        </el-table-column>
-        <el-table-column label="剩余天数" min-width="120">
-          <template #default="{ row }">{{ remainingText(row) }}</template>
-        </el-table-column>
-        <el-table-column label="状态" min-width="110">
-          <template #default="{ row }">
-            <el-tag :type="tagType(accountStatus(row).kind)" effect="light" round>
-              {{ accountStatus(row).text }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="启用" min-width="100">
-          <template #default="{ row }">
-            <el-tag :type="row.enabled ? 'success' : 'info'" effect="plain" round>
-              {{ row.enabled ? "启用" : "禁用" }}
-            </el-tag>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
+      <div class="account-table-footer">
+        <strong>{{ pageRangeText }}</strong>
+        <el-pagination
+          background
+          layout="sizes, prev, pager, next"
+          :current-page="currentPage"
+          :page-size="pageSize"
+          :page-sizes="[10, 20, 50]"
+          :total="filteredAccounts.length"
+          @current-change="currentPage = $event"
+          @size-change="handleSizeChange"
+        />
+      </div>
+    </section>
   </el-main>
 </template>
