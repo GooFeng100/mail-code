@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from "vue"
+import { computed, reactive, ref } from "vue"
 import {
   Calendar,
   CirclePlus,
@@ -20,6 +20,27 @@ const statusFilter = ref("")
 const enabledFilter = ref("")
 const currentPage = ref(1)
 const pageSize = ref(10)
+const showCreateAccountDialog = ref(false)
+const accountDialogMode = ref("create")
+
+const createAccountForm = reactive({
+  code: "",
+  email: "",
+  password: "",
+  emailPassword: "",
+  verifyEmailPrefix: "",
+  verifyEmailDomain: "889100.xyz",
+  plan: "全家桶月付（30天）",
+  paidAt: "",
+  baseExpireAt: "",
+  status: "",
+  enabled: true,
+  remark: "",
+})
+
+const accountDialogTitle = computed(() => (
+  accountDialogMode.value === "edit" ? "编辑Adobe账户" : "新增Adobe账户"
+))
 
 const accounts = ref([
   ["A0014", "shanshanz1878313@proton.me", "shanshanz1878313@889100.xyz", "全家桶半年付（180天）", "2026/5/7", 7, "正常", false, 1],
@@ -113,6 +134,49 @@ function handleSizeChange(size) {
   pageSize.value = size
   currentPage.value = 1
 }
+
+function resetAccountForm() {
+  Object.assign(createAccountForm, {
+    code: "",
+    email: "",
+    password: "",
+    emailPassword: "",
+    verifyEmailPrefix: "",
+    verifyEmailDomain: "889100.xyz",
+    plan: "全家桶月付（30天）",
+    paidAt: "",
+    baseExpireAt: "",
+    status: "",
+    enabled: true,
+    remark: "",
+  })
+}
+
+function openCreateAccountDialog() {
+  accountDialogMode.value = "create"
+  resetAccountForm()
+  showCreateAccountDialog.value = true
+}
+
+function openEditAccountDialog(account) {
+  const [verifyEmailPrefix = "", verifyEmailDomain = "889100.xyz"] = account.verifyEmail.split("@")
+  accountDialogMode.value = "edit"
+  Object.assign(createAccountForm, {
+    code: account.code,
+    email: account.email,
+    password: "",
+    emailPassword: "",
+    verifyEmailPrefix,
+    verifyEmailDomain,
+    plan: account.plan,
+    paidAt: "",
+    baseExpireAt: account.expiresAt,
+    status: account.status,
+    enabled: account.enabled,
+    remark: "",
+  })
+  showCreateAccountDialog.value = true
+}
 </script>
 
 <template>
@@ -191,7 +255,7 @@ function handleSizeChange(size) {
             <el-option label="启用" value="true" />
             <el-option label="禁用" value="false" />
           </el-select>
-          <el-button class="add-account-button" type="primary" :icon="CirclePlus">
+          <el-button class="add-account-button" type="primary" :icon="CirclePlus" @click="openCreateAccountDialog">
             新增Adobe账户
           </el-button>
         </div>
@@ -233,7 +297,7 @@ function handleSizeChange(size) {
             <template #default="{ row }">
               <div class="table-actions">
                 <el-button size="small" :icon="View" round @click="emit('view-detail', row)">查看</el-button>
-                <el-button size="small" :icon="EditPen" round>编辑</el-button>
+                <el-button size="small" :icon="EditPen" round @click="openEditAccountDialog(row)">编辑</el-button>
                 <el-button size="small" :icon="Delete" round type="danger" plain>删除</el-button>
               </div>
             </template>
@@ -255,5 +319,92 @@ function handleSizeChange(size) {
         />
       </div>
     </section>
+
+    <el-dialog
+      v-model="showCreateAccountDialog"
+      class="account-form-dialog"
+      width="800px"
+      align-center
+      append-to-body
+      :show-close="false"
+      :close-on-click-modal="false"
+    >
+      <template #header>
+        <h2 class="account-form-title">{{ accountDialogTitle }}</h2>
+      </template>
+
+      <el-form class="account-form-grid" :model="createAccountForm" label-position="top">
+        <el-form-item label="Adobe账户编号">
+          <el-input v-model="createAccountForm.code" placeholder="自动生成，例如 A0001" disabled />
+        </el-form-item>
+
+        <el-form-item label="Adobe账户邮箱" required>
+          <el-input v-model="createAccountForm.email" placeholder="adobe001@outlook.com" />
+        </el-form-item>
+
+        <el-form-item label="Adobe密码">
+          <el-input v-model="createAccountForm.password" placeholder="至少 6 位" show-password />
+        </el-form-item>
+
+        <el-form-item label="Adobe邮箱密码">
+          <el-input v-model="createAccountForm.emailPassword" placeholder="至少 6 位" show-password />
+        </el-form-item>
+
+        <el-form-item label="验证码接收邮箱" required>
+          <div class="verification-email-control">
+            <el-input v-model="createAccountForm.verifyEmailPrefix" placeholder="请输入邮箱前缀" />
+            <el-select v-model="createAccountForm.verifyEmailDomain">
+              <el-option label="889100.xyz" value="889100.xyz" />
+              <el-option label="889100.site" value="889100.site" />
+            </el-select>
+          </div>
+        </el-form-item>
+
+        <el-form-item label="账户计划">
+          <el-select v-model="createAccountForm.plan">
+            <el-option label="全家桶月付（30天）" value="全家桶月付（30天）" />
+            <el-option label="全家桶半年付（180天）" value="全家桶半年付（180天）" />
+            <el-option label="全家桶年付（365天）" value="全家桶年付（365天）" />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item label="付费日期">
+          <el-date-picker
+            v-model="createAccountForm.paidAt"
+            type="date"
+            placeholder="yyyy / mm / dd"
+            value-format="YYYY/M/D"
+          />
+        </el-form-item>
+
+        <el-form-item label="初始到期日">
+          <el-date-picker
+            v-model="createAccountForm.baseExpireAt"
+            type="date"
+            placeholder="yyyy / mm / dd"
+            value-format="YYYY/M/D"
+          />
+        </el-form-item>
+
+        <el-form-item label="状态">
+          <el-input v-model="createAccountForm.status" placeholder="根据到期日自动计算" disabled />
+        </el-form-item>
+
+        <el-form-item label="启用" class="account-form-switch">
+          <el-switch v-model="createAccountForm.enabled" />
+        </el-form-item>
+
+        <el-form-item label="备注" class="account-form-remark">
+          <el-input v-model="createAccountForm.remark" type="textarea" :rows="4" resize="vertical" />
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <div class="account-form-footer">
+          <el-button class="account-form-cancel" round @click="showCreateAccountDialog = false">取消</el-button>
+          <el-button class="account-form-submit" type="primary" round>保存 Adobe账户</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </el-main>
 </template>

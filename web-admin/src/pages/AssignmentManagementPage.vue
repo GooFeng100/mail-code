@@ -2,17 +2,21 @@
 import { computed, ref, watch } from "vue"
 import {
   CirclePlus,
-  Connection,
   Delete,
   Link,
+  RefreshRight,
   Search,
 } from "@element-plus/icons-vue"
+import BindingDialog from "../components/BindingDialog.vue"
 
 const searchText = ref("")
 const roleFilter = ref("")
 const validFilter = ref("")
 const currentPage = ref(1)
 const pageSize = ref(10)
+const showBindingDialog = ref(false)
+const bindingDialogMode = ref("bind")
+const selectedBinding = ref({})
 
 const customerContacts = {
   C0001: "微信 大米先生",
@@ -97,6 +101,24 @@ function handleSizeChange(size) {
 function roleLabel(role) {
   return role === "primary" ? "主要" : "备用"
 }
+
+function openCreateBindingDialog() {
+  bindingDialogMode.value = "bind"
+  selectedBinding.value = {}
+  showBindingDialog.value = true
+}
+
+function openUnbindDialog(row) {
+  bindingDialogMode.value = "unbind"
+  selectedBinding.value = row
+  showBindingDialog.value = true
+}
+
+function openRestoreBindingDialog(row) {
+  bindingDialogMode.value = "restore"
+  selectedBinding.value = row
+  showBindingDialog.value = true
+}
 </script>
 
 <template>
@@ -126,7 +148,7 @@ function roleLabel(role) {
             <el-option label="有效" value="true" />
             <el-option label="无效" value="false" />
           </el-select>
-          <el-button class="add-account-button" type="primary" :icon="CirclePlus">
+          <el-button class="add-account-button" type="primary" :icon="CirclePlus" @click="openCreateBindingDialog">
             新增绑定
           </el-button>
         </div>
@@ -163,7 +185,28 @@ function roleLabel(role) {
           <el-table-column label="操作" fixed="right" width="220">
             <template #default="{ row }">
               <div class="table-actions">
-                <el-button size="small" :icon="Link" round type="danger" plain>解绑</el-button>
+                <el-button
+                  v-if="row.valid"
+                  size="small"
+                  :icon="Link"
+                  round
+                  type="danger"
+                  plain
+                  @click="openUnbindDialog(row)"
+                >
+                  解绑
+                </el-button>
+                <el-button
+                  v-else
+                  size="small"
+                  :icon="RefreshRight"
+                  round
+                  type="primary"
+                  plain
+                  @click="openRestoreBindingDialog(row)"
+                >
+                  恢复
+                </el-button>
                 <el-button size="small" :icon="Delete" round :disabled="row.valid">删除</el-button>
               </div>
             </template>
@@ -185,5 +228,11 @@ function roleLabel(role) {
         />
       </div>
     </section>
+
+    <BindingDialog
+      v-model="showBindingDialog"
+      :mode="bindingDialogMode"
+      :binding="selectedBinding"
+    />
   </el-main>
 </template>

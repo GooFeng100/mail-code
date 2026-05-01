@@ -1,4 +1,5 @@
 <script setup>
+import { reactive, ref } from "vue"
 import {
   Back,
   Calendar,
@@ -8,6 +9,8 @@ import {
   ShoppingCartFull,
   View,
 } from "@element-plus/icons-vue"
+import RenewalDialog from "../components/RenewalDialog.vue"
+import BindingDialog from "../components/BindingDialog.vue"
 
 const props = defineProps({
   customer: {
@@ -17,6 +20,9 @@ const props = defineProps({
 })
 
 const emit = defineEmits(["back"])
+const showEditCustomerDialog = ref(false)
+const showRenewalDialog = ref(false)
+const showBindingDialog = ref(false)
 
 const detail = {
   code: props.customer.code || "C0009",
@@ -28,6 +34,41 @@ const detail = {
   expiresAt: props.customer.expiresAt || "2026/5/2",
   days: props.customer.days ?? 2,
   remark: props.customer.remark || "-",
+}
+
+const editCustomerForm = reactive({
+  code: "",
+  nickname: "",
+  contact: "",
+  email: "",
+  plan: "全家桶月付（30天）",
+  firstPaidAt: "",
+  baseExpireAt: "",
+  status: "",
+  remark: "",
+})
+
+function openEditCustomerDialog() {
+  Object.assign(editCustomerForm, {
+    code: detail.code,
+    nickname: detail.nickname,
+    contact: detail.contact,
+    email: detail.email === "-" ? "" : detail.email,
+    plan: detail.plan,
+    firstPaidAt: "",
+    baseExpireAt: detail.expiresAt,
+    status: detail.status,
+    remark: detail.remark === "-" ? "" : detail.remark,
+  })
+  showEditCustomerDialog.value = true
+}
+
+function openRenewalDialog() {
+  showRenewalDialog.value = true
+}
+
+function openBindingDialog() {
+  showBindingDialog.value = true
 }
 
 const activeAccounts = [
@@ -103,7 +144,7 @@ function roleLabel(role) {
             <h1>客户详情</h1>
           </div>
           <div class="detail-actions">
-            <el-button :icon="EditPen" round>编辑客户</el-button>
+            <el-button :icon="EditPen" round @click="openEditCustomerDialog">编辑客户</el-button>
             <el-button :icon="Back" round @click="emit('back')">返回客户列表</el-button>
           </div>
         </div>
@@ -126,7 +167,7 @@ function roleLabel(role) {
       <section class="detail-card detail-table-card">
         <div class="detail-card-head compact">
           <h2>使用中的 Adobe账户</h2>
-          <el-button class="detail-primary-button" type="primary" round>
+          <el-button class="detail-primary-button" type="primary" round @click="openBindingDialog">
             <el-icon><Link /></el-icon>
             <span>新增绑定</span>
           </el-button>
@@ -165,7 +206,7 @@ function roleLabel(role) {
       <section class="detail-card detail-table-card">
         <div class="detail-card-head compact">
           <h2>客户续费记录</h2>
-          <el-button class="detail-primary-button" type="primary" round>
+          <el-button class="detail-primary-button" type="primary" round @click="openRenewalDialog">
             <el-icon><ShoppingCartFull /></el-icon>
             <span>新增续费</span>
           </el-button>
@@ -181,5 +222,99 @@ function roleLabel(role) {
         </el-table>
       </section>
     </section>
+
+    <el-dialog
+      v-model="showEditCustomerDialog"
+      class="account-form-dialog"
+      width="800px"
+      align-center
+      append-to-body
+      :show-close="false"
+      :close-on-click-modal="false"
+    >
+      <template #header>
+        <h2 class="account-form-title">编辑客户</h2>
+      </template>
+
+      <el-form class="account-form-grid" :model="editCustomerForm" label-position="top">
+        <el-form-item label="客户编号（自动生成）">
+          <el-input v-model="editCustomerForm.code" placeholder="保存后自动生成" disabled />
+        </el-form-item>
+
+        <el-form-item label="客户昵称" required>
+          <el-input v-model="editCustomerForm.nickname" placeholder="请输入客户昵称" />
+        </el-form-item>
+
+        <el-form-item label="联系方式" required>
+          <el-input v-model="editCustomerForm.contact" placeholder="QQ / 微信 / 电话" />
+        </el-form-item>
+
+        <el-form-item label="联系邮箱">
+          <el-input v-model="editCustomerForm.email" placeholder="请输入联系邮箱" />
+        </el-form-item>
+
+        <el-form-item label="购买计划" required>
+          <el-select v-model="editCustomerForm.plan">
+            <el-option label="全家桶月付（30天）" value="全家桶月付（30天）" />
+            <el-option label="全家桶半年付（180天）" value="全家桶半年付（180天）" />
+            <el-option label="全家桶年付（365天）" value="全家桶年付（365天）" />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item label="首次购买日期" required>
+          <el-date-picker
+            v-model="editCustomerForm.firstPaidAt"
+            type="date"
+            placeholder="yyyy / mm / dd"
+            value-format="YYYY/M/D"
+          />
+        </el-form-item>
+
+        <el-form-item label="初始售后到期日" required>
+          <el-date-picker
+            v-model="editCustomerForm.baseExpireAt"
+            type="date"
+            placeholder="yyyy / mm / dd"
+            value-format="YYYY/M/D"
+          />
+        </el-form-item>
+
+        <el-form-item label="续费状态">
+          <el-input v-model="editCustomerForm.status" placeholder="根据到期日自动计算" disabled />
+        </el-form-item>
+
+        <el-form-item label="备注" class="account-form-remark">
+          <el-input
+            v-model="editCustomerForm.remark"
+            type="textarea"
+            maxlength="200"
+            show-word-limit
+            :rows="4"
+            placeholder="请输入备注（选填）"
+            resize="vertical"
+          />
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <div class="account-form-footer">
+          <el-button class="account-form-cancel" round @click="showEditCustomerDialog = false">取消</el-button>
+          <el-button class="account-form-submit" type="primary" round>保存</el-button>
+        </div>
+      </template>
+    </el-dialog>
+
+    <RenewalDialog
+      v-model="showRenewalDialog"
+      subject-label="客户"
+      :previous-expire-at="detail.expiresAt"
+    />
+
+    <BindingDialog
+      v-model="showBindingDialog"
+      mode="bind"
+      :locked-customer="{ code: detail.code, name: detail.nickname, contact: detail.contact }"
+      :default-account="activeAccounts[0]"
+    />
   </el-main>
 </template>

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from "vue"
+import { computed, reactive, ref } from "vue"
 import {
   Calendar,
   CircleCheckFilled,
@@ -18,6 +18,24 @@ const planFilter = ref("")
 const statusFilter = ref("")
 const currentPage = ref(1)
 const pageSize = ref(10)
+const showCustomerDialog = ref(false)
+const customerDialogMode = ref("create")
+
+const customerForm = reactive({
+  code: "",
+  nickname: "",
+  contact: "",
+  email: "",
+  plan: "全家桶月付（30天）",
+  firstPaidAt: "",
+  baseExpireAt: "",
+  status: "",
+  remark: "",
+})
+
+const customerDialogTitle = computed(() => (
+  customerDialogMode.value === "edit" ? "编辑客户" : "新增客户"
+))
 
 const customers = ref([
   ["C0009", "炸鸡求在炼丹炉背客人", "微信", "全家桶半年付（180天）", "2026/5/2", 2, "正常", 1, "-"],
@@ -106,6 +124,42 @@ function handleSizeChange(size) {
   pageSize.value = size
   currentPage.value = 1
 }
+
+function resetCustomerForm() {
+  Object.assign(customerForm, {
+    code: "",
+    nickname: "",
+    contact: "",
+    email: "",
+    plan: "全家桶月付（30天）",
+    firstPaidAt: "",
+    baseExpireAt: "",
+    status: "",
+    remark: "",
+  })
+}
+
+function openCreateCustomerDialog() {
+  customerDialogMode.value = "create"
+  resetCustomerForm()
+  showCustomerDialog.value = true
+}
+
+function openEditCustomerDialog(customer) {
+  customerDialogMode.value = "edit"
+  Object.assign(customerForm, {
+    code: customer.code,
+    nickname: customer.nickname,
+    contact: customer.contact,
+    email: "",
+    plan: customer.plan,
+    firstPaidAt: "",
+    baseExpireAt: customer.expiresAt,
+    status: customer.status,
+    remark: customer.remark === "-" ? "" : customer.remark,
+  })
+  showCustomerDialog.value = true
+}
 </script>
 
 <template>
@@ -171,7 +225,7 @@ function handleSizeChange(size) {
             <el-option label="正常" value="正常" />
             <el-option label="已到期" value="已到期" />
           </el-select>
-          <el-button class="add-account-button" type="primary" :icon="CirclePlus">
+          <el-button class="add-account-button" type="primary" :icon="CirclePlus" @click="openCreateCustomerDialog">
             新增客户
           </el-button>
         </div>
@@ -210,7 +264,7 @@ function handleSizeChange(size) {
             <template #default="{ row }">
               <div class="table-actions">
                 <el-button size="small" :icon="View" round @click="emit('view-detail', row)">查看</el-button>
-                <el-button size="small" :icon="EditPen" round>编辑</el-button>
+                <el-button size="small" :icon="EditPen" round @click="openEditCustomerDialog(row)">编辑</el-button>
                 <el-button size="small" :icon="Delete" round type="danger" plain>删除</el-button>
               </div>
             </template>
@@ -232,5 +286,86 @@ function handleSizeChange(size) {
         />
       </div>
     </section>
+
+    <el-dialog
+      v-model="showCustomerDialog"
+      class="account-form-dialog"
+      width="800px"
+      align-center
+      append-to-body
+      :show-close="false"
+      :close-on-click-modal="false"
+    >
+      <template #header>
+        <h2 class="account-form-title">{{ customerDialogTitle }}</h2>
+      </template>
+
+      <el-form class="account-form-grid" :model="customerForm" label-position="top">
+        <el-form-item label="客户编号（自动生成）">
+          <el-input v-model="customerForm.code" placeholder="保存后自动生成" disabled />
+        </el-form-item>
+
+        <el-form-item label="客户昵称" required>
+          <el-input v-model="customerForm.nickname" placeholder="请输入客户昵称" />
+        </el-form-item>
+
+        <el-form-item label="联系方式" required>
+          <el-input v-model="customerForm.contact" placeholder="QQ / 微信 / 电话" />
+        </el-form-item>
+
+        <el-form-item label="联系邮箱">
+          <el-input v-model="customerForm.email" placeholder="请输入联系邮箱" />
+        </el-form-item>
+
+        <el-form-item label="购买计划" required>
+          <el-select v-model="customerForm.plan">
+            <el-option label="全家桶月付（30天）" value="全家桶月付（30天）" />
+            <el-option label="全家桶半年付（180天）" value="全家桶半年付（180天）" />
+            <el-option label="全家桶年付（365天）" value="全家桶年付（365天）" />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item label="首次购买日期" required>
+          <el-date-picker
+            v-model="customerForm.firstPaidAt"
+            type="date"
+            placeholder="yyyy / mm / dd"
+            value-format="YYYY/M/D"
+          />
+        </el-form-item>
+
+        <el-form-item label="初始售后到期日" required>
+          <el-date-picker
+            v-model="customerForm.baseExpireAt"
+            type="date"
+            placeholder="yyyy / mm / dd"
+            value-format="YYYY/M/D"
+          />
+        </el-form-item>
+
+        <el-form-item label="续费状态">
+          <el-input v-model="customerForm.status" placeholder="根据到期日自动计算" disabled />
+        </el-form-item>
+
+        <el-form-item label="备注" class="account-form-remark">
+          <el-input
+            v-model="customerForm.remark"
+            type="textarea"
+            maxlength="200"
+            show-word-limit
+            :rows="4"
+            placeholder="请输入备注（选填）"
+            resize="vertical"
+          />
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <div class="account-form-footer">
+          <el-button class="account-form-cancel" round @click="showCustomerDialog = false">取消</el-button>
+          <el-button class="account-form-submit" type="primary" round>保存</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </el-main>
 </template>

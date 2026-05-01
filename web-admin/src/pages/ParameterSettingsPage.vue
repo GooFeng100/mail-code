@@ -1,15 +1,31 @@
 <script setup>
-import { computed, ref, watch } from "vue"
+import { computed, reactive, ref, watch } from "vue"
 import {
   CirclePlus,
   Delete,
   EditPen,
   Search,
+  Setting,
 } from "@element-plus/icons-vue"
 
 const searchText = ref("")
 const currentPage = ref(1)
 const pageSize = ref(10)
+const showParameterDialog = ref(false)
+const parameterDialogMode = ref("create")
+
+const parameterForm = reactive({
+  category: "账户计划",
+  name: "",
+  days: null,
+  sortOrder: null,
+  enabled: true,
+  remark: "",
+})
+
+const parameterDialogTitle = computed(() => (
+  parameterDialogMode.value === "edit" ? "编辑参数" : "新增参数"
+))
 
 const parameters = ref([
   ["账户计划", "全家桶月付", 30, true, 1, "-", "2026/4/30"],
@@ -65,6 +81,32 @@ function handleSizeChange(size) {
   pageSize.value = size
   currentPage.value = 1
 }
+
+function openCreateParameterDialog() {
+  parameterDialogMode.value = "create"
+  Object.assign(parameterForm, {
+    category: "账户计划",
+    name: "",
+    days: null,
+    sortOrder: null,
+    enabled: true,
+    remark: "",
+  })
+  showParameterDialog.value = true
+}
+
+function openEditParameterDialog(parameter) {
+  parameterDialogMode.value = "edit"
+  Object.assign(parameterForm, {
+    category: parameter.category,
+    name: parameter.name,
+    days: parameter.days,
+    sortOrder: parameter.sortOrder,
+    enabled: parameter.enabled,
+    remark: parameter.remark === "-" ? "" : parameter.remark,
+  })
+  showParameterDialog.value = true
+}
 </script>
 
 <template>
@@ -84,7 +126,7 @@ function handleSizeChange(size) {
             :prefix-icon="Search"
             placeholder="搜索参数类型或名称"
           />
-          <el-button class="add-account-button" type="primary" :icon="CirclePlus">
+          <el-button class="add-account-button" type="primary" :icon="CirclePlus" @click="openCreateParameterDialog">
             新增参数
           </el-button>
         </div>
@@ -112,9 +154,9 @@ function handleSizeChange(size) {
           <el-table-column prop="remark" label="备注" min-width="120" />
           <el-table-column prop="createdAt" label="创建时间" width="170" />
           <el-table-column label="操作" fixed="right" width="220">
-            <template #default>
+            <template #default="{ row }">
               <div class="table-actions">
-                <el-button size="small" :icon="EditPen" round>编辑</el-button>
+                <el-button size="small" :icon="EditPen" round @click="openEditParameterDialog(row)">编辑</el-button>
                 <el-button size="small" :icon="Delete" round type="danger" plain>删除</el-button>
               </div>
             </template>
@@ -136,5 +178,75 @@ function handleSizeChange(size) {
         />
       </div>
     </section>
+
+    <el-dialog
+      v-model="showParameterDialog"
+      class="account-form-dialog parameter-form-dialog"
+      width="800px"
+      align-center
+      append-to-body
+      :show-close="false"
+    >
+      <template #header>
+        <div class="parameter-form-head">
+          <div class="parameter-form-icon">
+            <el-icon><Setting /></el-icon>
+          </div>
+          <div>
+            <h2 class="account-form-title">{{ parameterDialogTitle }}</h2>
+            <p>维护账户计划。账户计划的有效期会用于自动计算到期日和续费天数。</p>
+          </div>
+        </div>
+      </template>
+
+      <el-form class="account-form-grid parameter-form-grid" :model="parameterForm" label-position="top">
+        <el-form-item label="名称" required>
+          <el-input v-model="parameterForm.name" placeholder="例如 全家桶年付" />
+        </el-form-item>
+
+        <el-form-item label="有效期天数">
+          <el-input-number
+            v-model="parameterForm.days"
+            :min="0"
+            :controls="true"
+            placeholder="仅账户计划需要"
+          />
+        </el-form-item>
+
+        <el-form-item label="排序">
+          <el-input-number
+            v-model="parameterForm.sortOrder"
+            :min="0"
+            :controls="true"
+            placeholder="数字越小越靠前"
+          />
+        </el-form-item>
+
+        <el-form-item label="启用" class="parameter-form-enabled">
+          <div class="parameter-enabled-control">
+            <span>启用</span>
+            <el-switch v-model="parameterForm.enabled" />
+            <strong>{{ parameterForm.enabled ? "已启用" : "已禁用" }}</strong>
+          </div>
+        </el-form-item>
+
+        <el-form-item label="备注" class="account-form-remark">
+          <el-input
+            v-model="parameterForm.remark"
+            type="textarea"
+            :rows="4"
+            placeholder="请输入备注（可选）"
+            resize="vertical"
+          />
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <div class="account-form-footer">
+          <el-button class="account-form-cancel" round @click="showParameterDialog = false">取消</el-button>
+          <el-button class="account-form-submit" type="primary" round>保存</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </el-main>
 </template>

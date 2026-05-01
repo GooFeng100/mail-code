@@ -1064,6 +1064,588 @@ body {
   background: rgba(248, 251, 255, 0.92);
 }
 
+.account-form-dialog.el-dialog {
+  --el-dialog-padding-primary: 0;
+  max-width: calc(100vw - 48px);
+  border-radius: 28px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.account-form-dialog .el-dialog__header {
+  padding: 32px 40px 4px;
+}
+
+.account-form-title {
+  margin: 0;
+  color: #172033;
+  font-size: 28px;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+.account-form-dialog .el-dialog__body {
+  padding: 0 40px;
+}
+
+.account-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 24px;
+  row-gap: 20px;
+}
+
+.account-form-grid .el-form-item {
+  margin-bottom: 0;
+}
+
+.account-form-grid .el-form-item__label {
+  margin-bottom: 10px;
+  color: #475569;
+  font-size: 15px;
+  line-height: 1.35;
+  font-weight: 850;
+}
+
+.account-form-grid .el-input__wrapper,
+.account-form-grid .el-select__wrapper,
+.account-form-grid .el-textarea__inner {
+  border-radius: 16px;
+  box-shadow: 0 0 0 1px #cfd9e8 inset;
+}
+
+.account-form-grid .el-input__wrapper,
+.account-form-grid .el-select__wrapper {
+  min-height: 52px;
+}
+
+.account-form-grid .el-input__inner,
+.account-form-grid .el-select__placeholder,
+.account-form-grid .el-select__selected-item {
+  color: #172033;
+  font-size: 16px;
+  line-height: 1.35;
+  font-weight: 750;
+}
+
+.account-form-grid .el-input__inner {
+  line-height: 1.35;
+}
+
+.account-form-grid .el-select__selected-item,
+.account-form-grid .el-select__placeholder {
+  display: flex;
+  align-items: center;
+}
+
+.account-form-grid .el-input__inner::placeholder,
+.account-form-grid .el-textarea__inner::placeholder {
+  color: #a8b0bf;
+  font-weight: 750;
+}
+
+.account-form-grid .el-date-editor.el-input {
+  width: 100%;
+}
+
+.verification-email-control {
+  display: grid;
+  width: 100%;
+  grid-template-columns: minmax(0, 1fr) 1fr;
+  gap: 14px;
+}
+
+.account-form-switch {
+  align-items: flex-start;
+}
+
+.account-form-switch .el-switch {
+  height: 52px;
+}
+
+.account-form-switch .el-switch__core {
+  min-width: 62px;
+  height: 32px;
+  border-radius: 999px;
+}
+
+.account-form-switch .el-switch__action {
+  width: 26px;
+  height: 26px;
+}
+
+.account-form-remark {
+  grid-column: 1 / -1;
+}
+
+.account-form-grid .account-form-remark .el-textarea__inner {
+  min-height: 96px !important;
+  padding: 12px 14px;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.account-form-dialog .el-dialog__footer {
+  padding: 20px 40px 28px;
+}
+
+.account-form-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  padding-top: 18px;
+  border-top: 1px solid #e5edf7;
+}
+
+.account-form-footer .el-button {
+  min-width: 104px;
+  height: 50px;
+  margin-left: 0;
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 850;
+}
+
+.account-form-submit.el-button {
+  min-width: 190px;
+}
+
+.parameter-form-dialog .el-dialog__header {
+  padding-bottom: 22px;
+}
+
+.parameter-form-head {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  align-items: center;
+  gap: 24px;
+}
+
+.parameter-form-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  color: #fff;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #3d8cff 0%, #155bdc 100%);
+  box-shadow: 0 18px 36px rgba(37, 99, 235, 0.28);
+}
+
+.parameter-form-icon .el-icon {
+  font-size: 36px;
+}
+
+.parameter-form-head p {
+  margin: 8px 0 0;
+  color: #68778d;
+  font-size: 16px;
+  line-height: 1.5;
+  font-weight: 750;
+}
+
+.parameter-form-grid .el-input-number {
+  width: 100%;
+}
+
+.parameter-form-grid .el-input-number .el-input__wrapper {
+  width: 100%;
+}
+
+.parameter-form-enabled {
+  grid-column: 1 / -1;
+}
+
+.parameter-enabled-control {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-height: 68px;
+  padding: 0 22px;
+  border: 1px solid #d6e0ef;
+  border-radius: 18px;
+  background: rgba(248, 251, 255, 0.86);
+}
+
+.parameter-enabled-control span,
+.parameter-enabled-control strong {
+  color: #172033;
+  font-size: 16px;
+  font-weight: 850;
+}
+
+.renewal-dialog.el-dialog {
+  --el-dialog-padding-primary: 0;
+  max-width: calc(100vw - 48px);
+  border-radius: 24px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.renewal-dialog .el-dialog__header {
+  padding: 24px 24px 0;
+}
+
+.renewal-dialog-head {
+  padding-bottom: 20px;
+  border-bottom: 1px solid #dbe5f1;
+}
+
+.renewal-dialog-head h2 {
+  margin: 0;
+  color: #172033;
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+.renewal-dialog-head p {
+  max-width: 430px;
+  margin: 8px 0 0;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.55;
+  font-weight: 750;
+}
+
+.renewal-dialog .el-dialog__body {
+  padding: 18px 24px 0;
+}
+
+.renewal-form .el-form-item {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 18px;
+  min-height: 48px;
+  margin-bottom: 14px;
+}
+
+.renewal-form .el-form-item__label {
+  display: flex;
+  align-items: center;
+  width: 120px !important;
+  height: 48px;
+  padding-right: 0;
+  color: #475569;
+  font-size: 14px;
+  line-height: 48px;
+  font-weight: 850;
+  text-align: left;
+}
+
+.renewal-form .el-form-item__content {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: 48px;
+}
+
+.renewal-form .el-input,
+.renewal-form .el-select,
+.renewal-form .el-date-editor.el-input {
+  width: 100%;
+  height: 48px;
+}
+
+.renewal-form .el-input__wrapper,
+.renewal-form .el-select__wrapper,
+.renewal-form .el-textarea__inner {
+  border-radius: 14px;
+  box-shadow: 0 0 0 1px #cfd9e8 inset;
+}
+
+.renewal-form .el-input__wrapper,
+.renewal-form .el-select__wrapper {
+  height: 48px;
+  min-height: 48px;
+}
+
+.renewal-form .el-input__inner,
+.renewal-form .el-select__selected-item,
+.renewal-form .el-select__placeholder {
+  color: #172033;
+  font-size: 16px;
+  font-weight: 750;
+}
+
+.renewal-form .el-input.is-disabled .el-input__wrapper {
+  background: #f3f7fc;
+}
+
+.renewal-form .el-input.is-disabled .el-input__inner {
+  color: #475569;
+  -webkit-text-fill-color: #475569;
+}
+
+.renewal-form .el-textarea__inner {
+  min-height: 96px !important;
+  padding: 12px 14px;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.renewal-dialog .el-dialog__footer {
+  padding: 18px 24px 24px;
+}
+
+.renewal-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 14px;
+  padding-top: 16px;
+  border-top: 1px solid #e5edf7;
+}
+
+.renewal-dialog-footer .el-button {
+  min-width: 84px;
+  height: 46px;
+  margin-left: 0;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 850;
+}
+
+.renewal-dialog-footer .el-button--primary {
+  min-width: 112px;
+}
+
+.binding-dialog.el-dialog {
+  --el-dialog-padding-primary: 0;
+  max-width: calc(100vw - 48px);
+  border-radius: 24px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.binding-dialog .el-dialog__header {
+  padding: 26px 28px 0;
+}
+
+.binding-dialog-head {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+}
+
+.binding-title-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  color: #fff;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #3d8cff 0%, #6b3df4 100%);
+  box-shadow: 0 18px 36px rgba(83, 89, 245, 0.28);
+}
+
+.binding-dialog.is-bind .binding-title-icon {
+  background: linear-gradient(135deg, #34d399 0%, #16a34a 100%);
+  box-shadow: 0 18px 36px rgba(22, 163, 74, 0.22);
+}
+
+.binding-dialog.is-unbind .binding-title-icon {
+  background: linear-gradient(135deg, #fb7185 0%, #ef4444 100%);
+  box-shadow: 0 18px 36px rgba(239, 68, 68, 0.2);
+}
+
+.binding-title-icon .el-icon {
+  font-size: 26px;
+}
+
+.binding-dialog-head h2 {
+  margin: 0;
+  color: #172033;
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+.binding-dialog-head p {
+  margin: 8px 0 0;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.45;
+  font-weight: 750;
+}
+
+.binding-dialog .el-dialog__body {
+  padding: 28px 28px 0;
+}
+
+.binding-form .el-form-item {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 14px;
+  min-height: 52px;
+  margin-bottom: 18px;
+}
+
+.binding-form .el-form-item__label {
+  display: flex;
+  align-items: center;
+  width: 132px !important;
+  height: 52px;
+  padding-right: 0;
+  color: #172033;
+  font-size: 14px;
+  line-height: 52px;
+  font-weight: 850;
+  text-align: left;
+}
+
+.binding-form .el-form-item__content {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: 52px;
+}
+
+.binding-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.binding-label .el-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  color: #3366ff;
+  border-radius: 12px;
+  background: #f0f4ff;
+  font-size: 20px;
+}
+
+.binding-dialog.is-bind .binding-label .el-icon {
+  color: #16a34a;
+  background: #ecfdf5;
+}
+
+.binding-dialog.is-unbind .binding-label .el-icon {
+  color: #ef4444;
+  background: #fff1f2;
+}
+
+.binding-form .el-input,
+.binding-form .el-select,
+.binding-form .el-date-editor.el-input {
+  width: 100%;
+  height: 50px;
+}
+
+.binding-form .el-input__wrapper,
+.binding-form .el-select__wrapper {
+  height: 50px;
+  min-height: 50px;
+  border-radius: 14px;
+  box-shadow: 0 0 0 1px #cfd9e8 inset;
+}
+
+.binding-form .el-input__inner,
+.binding-form .el-select__selected-item,
+.binding-form .el-select__placeholder {
+  color: #172033;
+  font-size: 15px;
+  font-weight: 750;
+}
+
+.binding-form .el-input.is-disabled .el-input__wrapper,
+.binding-form .el-select.is-disabled .el-select__wrapper {
+  background: #f3f7fc;
+}
+
+.binding-form .el-input.is-disabled .el-input__inner {
+  color: #475569;
+  -webkit-text-fill-color: #475569;
+}
+
+.binding-role-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 50px;
+}
+
+.binding-role-control strong {
+  color: #172033;
+  font-size: 15px;
+  font-weight: 850;
+}
+
+.binding-divider {
+  height: 1px;
+  margin: 2px 0 18px;
+  border-top: 1px dashed #dbe5f1;
+}
+
+.binding-tip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+  padding: 14px 18px;
+  color: #2f6dff;
+  border-radius: 14px;
+  background: #f0f4ff;
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.binding-dialog.is-bind .binding-tip {
+  color: #15803d;
+  background: #ecfdf5;
+}
+
+.binding-dialog.is-unbind .binding-tip {
+  color: #b91c1c;
+  background: #fff1f2;
+}
+
+.binding-tip .el-icon {
+  font-size: 18px;
+}
+
+.binding-dialog .el-dialog__footer {
+  padding: 24px 28px 28px;
+}
+
+.binding-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  padding-top: 22px;
+  border-top: 1px solid #e5edf7;
+}
+
+.binding-dialog-footer .el-button {
+  min-width: 118px;
+  height: 48px;
+  margin-left: 0;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 850;
+}
+
+.binding-dialog-footer .el-button--primary {
+  background: linear-gradient(135deg, #2f7df6 0%, #5a36ee 100%);
+  border: none;
+}
+
+.binding-dialog.is-bind .binding-dialog-footer .el-button--primary {
+  background: linear-gradient(135deg, #34d399 0%, #16a34a 100%);
+}
+
+.binding-dialog.is-unbind .binding-dialog-footer .el-button--primary {
+  background: linear-gradient(135deg, #fb7185 0%, #ef4444 100%);
+}
+
 @media (max-width: 980px) {
   .admin-shell {
     display: block;
