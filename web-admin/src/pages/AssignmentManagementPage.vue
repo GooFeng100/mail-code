@@ -8,6 +8,8 @@ import {
   Search,
 } from "@element-plus/icons-vue"
 import BindingDialog from "../components/BindingDialog.vue"
+import DeleteConfirmDialog from "../components/DeleteConfirmDialog.vue"
+import { submitWithFeedback } from "../utils/databaseAction"
 
 const searchText = ref("")
 const roleFilter = ref("")
@@ -17,6 +19,10 @@ const pageSize = ref(10)
 const showBindingDialog = ref(false)
 const bindingDialogMode = ref("bind")
 const selectedBinding = ref({})
+const showDeleteBindingDialog = ref(false)
+const selectedDeleteBinding = ref(null)
+const bindingSubmitting = ref(false)
+const deleteBindingSubmitting = ref(false)
 
 const customerContacts = {
   C0001: "微信 大米先生",
@@ -78,6 +84,18 @@ const pagedAssignments = computed(() => {
   return filteredAssignments.value.slice(start, start + pageSize.value)
 })
 
+const deleteBindingFields = computed(() => {
+  const binding = selectedDeleteBinding.value
+  if (!binding) return []
+  return [
+    { label: "客户", value: `${binding.customerCode} | ${binding.customerName}` },
+    { label: "Adobe账户", value: `${binding.accountCode} | ${binding.accountEmail}` },
+    { label: "主备标识", value: roleLabel(binding.role) === "主要" ? "主要账号" : "备用账号" },
+    { label: "绑定日期", value: binding.assignedAt },
+    { label: "当前状态", value: binding.valid ? "已绑定" : "已取消" },
+  ]
+})
+
 watch([searchText, roleFilter, validFilter], () => {
   currentPage.value = 1
 })
@@ -118,6 +136,39 @@ function openRestoreBindingDialog(row) {
   bindingDialogMode.value = "restore"
   selectedBinding.value = row
   showBindingDialog.value = true
+}
+
+function openDeleteBindingDialog(row) {
+  selectedDeleteBinding.value = row
+  showDeleteBindingDialog.value = true
+}
+
+function handleBindingConfirm(payload) {
+  const successMap = {
+    bind: "绑定关系新增成功。",
+    unbind: "绑定关系解绑成功。",
+    restore: "绑定关系恢复成功。",
+  }
+  const errorMap = {
+    bind: "绑定关系新增失败。",
+    unbind: "绑定关系解绑失败。",
+    restore: "绑定关系恢复失败。",
+  }
+  submitWithFeedback({
+    setLoading: (value) => { bindingSubmitting.value = value },
+    successMessage: successMap[payload.mode],
+    errorMessage: errorMap[payload.mode],
+    onSuccess: () => { showBindingDialog.value = false },
+  })
+}
+
+function handleDeleteBinding() {
+  submitWithFeedback({
+    setLoading: (value) => { deleteBindingSubmitting.value = value },
+    successMessage: "绑定关系删除成功。",
+    errorMessage: "绑定关系删除失败。",
+    onSuccess: () => { showDeleteBindingDialog.value = false },
+  })
 }
 </script>
 
@@ -207,7 +258,7 @@ function openRestoreBindingDialog(row) {
                 >
                   恢复
                 </el-button>
-                <el-button size="small" :icon="Delete" round :disabled="row.valid">删除</el-button>
+                <el-button size="small" :icon="Delete" round :disabled="row.valid" @click="openDeleteBindingDialog(row)">删除</el-button>
               </div>
             </template>
           </el-table-column>
@@ -233,6 +284,19 @@ function openRestoreBindingDialog(row) {
       v-model="showBindingDialog"
       :mode="bindingDialogMode"
       :binding="selectedBinding"
+      :submitting="bindingSubmitting"
+      @confirm="handleBindingConfirm"
+    />
+
+    <DeleteConfirmDialog
+      v-model="showDeleteBindingDialog"
+      title="确认删除绑定关系"
+      description="您即将删除以下绑定记录，此操作不可撤销。"
+      :fields="deleteBindingFields"
+      warning="删除后该绑定关系记录将从数据库移除。"
+      confirm-text="确认删除绑定关系"
+      :submitting="deleteBindingSubmitting"
+      @confirm="handleDeleteBinding"
     />
   </el-main>
 </template>

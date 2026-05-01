@@ -7,12 +7,18 @@ import {
   Search,
   Setting,
 } from "@element-plus/icons-vue"
+import DeleteConfirmDialog from "../components/DeleteConfirmDialog.vue"
+import { submitWithFeedback } from "../utils/databaseAction"
 
 const searchText = ref("")
 const currentPage = ref(1)
 const pageSize = ref(10)
 const showParameterDialog = ref(false)
 const parameterDialogMode = ref("create")
+const showDeleteParameterDialog = ref(false)
+const selectedDeleteParameter = ref(null)
+const parameterSubmitting = ref(false)
+const deleteParameterSubmitting = ref(false)
 
 const parameterForm = reactive({
   category: "账户计划",
@@ -26,6 +32,17 @@ const parameterForm = reactive({
 const parameterDialogTitle = computed(() => (
   parameterDialogMode.value === "edit" ? "编辑参数" : "新增参数"
 ))
+
+const deleteParameterFields = computed(() => {
+  const parameter = selectedDeleteParameter.value
+  if (!parameter) return []
+  return [
+    { label: "参数分类", value: parameter.category },
+    { label: "参数名称", value: parameter.name },
+    { label: "使用天数", value: parameter.days },
+    { label: "启用状态", value: parameter.enabled ? "启用" : "禁用" },
+  ]
+})
 
 const parameters = ref([
   ["账户计划", "全家桶月付", 30, true, 1, "-", "2026/4/30"],
@@ -107,6 +124,29 @@ function openEditParameterDialog(parameter) {
   })
   showParameterDialog.value = true
 }
+
+function openDeleteParameterDialog(parameter) {
+  selectedDeleteParameter.value = parameter
+  showDeleteParameterDialog.value = true
+}
+
+function handleSaveParameter() {
+  submitWithFeedback({
+    setLoading: (value) => { parameterSubmitting.value = value },
+    successMessage: parameterDialogMode.value === "edit" ? "参数编辑成功。" : "参数新增成功。",
+    errorMessage: parameterDialogMode.value === "edit" ? "参数编辑失败。" : "参数新增失败。",
+    onSuccess: () => { showParameterDialog.value = false },
+  })
+}
+
+function handleDeleteParameter() {
+  submitWithFeedback({
+    setLoading: (value) => { deleteParameterSubmitting.value = value },
+    successMessage: "参数删除成功。",
+    errorMessage: "参数删除失败。",
+    onSuccess: () => { showDeleteParameterDialog.value = false },
+  })
+}
 </script>
 
 <template>
@@ -157,7 +197,7 @@ function openEditParameterDialog(parameter) {
             <template #default="{ row }">
               <div class="table-actions">
                 <el-button size="small" :icon="EditPen" round @click="openEditParameterDialog(row)">编辑</el-button>
-                <el-button size="small" :icon="Delete" round type="danger" plain>删除</el-button>
+                <el-button size="small" :icon="Delete" round type="danger" plain @click="openDeleteParameterDialog(row)">删除</el-button>
               </div>
             </template>
           </el-table-column>
@@ -186,6 +226,7 @@ function openEditParameterDialog(parameter) {
       align-center
       append-to-body
       :show-close="false"
+      :close-on-press-escape="!parameterSubmitting"
     >
       <template #header>
         <div class="parameter-form-head">
@@ -199,7 +240,7 @@ function openEditParameterDialog(parameter) {
         </div>
       </template>
 
-      <el-form class="account-form-grid parameter-form-grid" :model="parameterForm" label-position="top">
+      <el-form class="account-form-grid parameter-form-grid" :model="parameterForm" label-position="top" :disabled="parameterSubmitting">
         <el-form-item label="名称" required>
           <el-input v-model="parameterForm.name" placeholder="例如 全家桶年付" />
         </el-form-item>
@@ -243,10 +284,23 @@ function openEditParameterDialog(parameter) {
 
       <template #footer>
         <div class="account-form-footer">
-          <el-button class="account-form-cancel" round @click="showParameterDialog = false">取消</el-button>
-          <el-button class="account-form-submit" type="primary" round>保存</el-button>
+          <el-button class="account-form-cancel" round :disabled="parameterSubmitting" @click="showParameterDialog = false">取消</el-button>
+          <el-button class="account-form-submit" type="primary" round :loading="parameterSubmitting" :disabled="parameterSubmitting" @click="handleSaveParameter">
+            {{ parameterSubmitting ? "确认中" : "保存" }}
+          </el-button>
         </div>
       </template>
     </el-dialog>
+
+    <DeleteConfirmDialog
+      v-model="showDeleteParameterDialog"
+      title="确认删除参数"
+      description="确认删除该参数？删除后相关下拉选项将不再显示，请谨慎操作。"
+      :fields="deleteParameterFields"
+      warning="该操作不可撤销。"
+      confirm-text="确认删除参数"
+      :submitting="deleteParameterSubmitting"
+      @confirm="handleDeleteParameter"
+    />
   </el-main>
 </template>

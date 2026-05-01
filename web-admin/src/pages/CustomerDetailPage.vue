@@ -11,6 +11,7 @@ import {
 } from "@element-plus/icons-vue"
 import RenewalDialog from "../components/RenewalDialog.vue"
 import BindingDialog from "../components/BindingDialog.vue"
+import { submitWithFeedback } from "../utils/databaseAction"
 
 const props = defineProps({
   customer: {
@@ -23,6 +24,9 @@ const emit = defineEmits(["back"])
 const showEditCustomerDialog = ref(false)
 const showRenewalDialog = ref(false)
 const showBindingDialog = ref(false)
+const editCustomerSubmitting = ref(false)
+const renewalSubmitting = ref(false)
+const bindingSubmitting = ref(false)
 
 const detail = {
   code: props.customer.code || "C0009",
@@ -69,6 +73,33 @@ function openRenewalDialog() {
 
 function openBindingDialog() {
   showBindingDialog.value = true
+}
+
+function handleSaveCustomer() {
+  submitWithFeedback({
+    setLoading: (value) => { editCustomerSubmitting.value = value },
+    successMessage: "客户编辑成功。",
+    errorMessage: "客户编辑失败。",
+    onSuccess: () => { showEditCustomerDialog.value = false },
+  })
+}
+
+function handleRenewalSave() {
+  submitWithFeedback({
+    setLoading: (value) => { renewalSubmitting.value = value },
+    successMessage: "客户续费成功。",
+    errorMessage: "客户续费失败。",
+    onSuccess: () => { showRenewalDialog.value = false },
+  })
+}
+
+function handleBindingConfirm() {
+  submitWithFeedback({
+    setLoading: (value) => { bindingSubmitting.value = value },
+    successMessage: "绑定关系新增成功。",
+    errorMessage: "绑定关系新增失败。",
+    onSuccess: () => { showBindingDialog.value = false },
+  })
 }
 
 const activeAccounts = [
@@ -231,12 +262,13 @@ function roleLabel(role) {
       append-to-body
       :show-close="false"
       :close-on-click-modal="false"
+      :close-on-press-escape="!editCustomerSubmitting"
     >
       <template #header>
         <h2 class="account-form-title">编辑客户</h2>
       </template>
 
-      <el-form class="account-form-grid" :model="editCustomerForm" label-position="top">
+      <el-form class="account-form-grid" :model="editCustomerForm" label-position="top" :disabled="editCustomerSubmitting">
         <el-form-item label="客户编号（自动生成）">
           <el-input v-model="editCustomerForm.code" placeholder="保存后自动生成" disabled />
         </el-form-item>
@@ -298,8 +330,10 @@ function roleLabel(role) {
 
       <template #footer>
         <div class="account-form-footer">
-          <el-button class="account-form-cancel" round @click="showEditCustomerDialog = false">取消</el-button>
-          <el-button class="account-form-submit" type="primary" round>保存</el-button>
+          <el-button class="account-form-cancel" round :disabled="editCustomerSubmitting" @click="showEditCustomerDialog = false">取消</el-button>
+          <el-button class="account-form-submit" type="primary" round :loading="editCustomerSubmitting" :disabled="editCustomerSubmitting" @click="handleSaveCustomer">
+            {{ editCustomerSubmitting ? "确认中" : "保存" }}
+          </el-button>
         </div>
       </template>
     </el-dialog>
@@ -308,6 +342,8 @@ function roleLabel(role) {
       v-model="showRenewalDialog"
       subject-label="客户"
       :previous-expire-at="detail.expiresAt"
+      :submitting="renewalSubmitting"
+      @save="handleRenewalSave"
     />
 
     <BindingDialog
@@ -315,6 +351,8 @@ function roleLabel(role) {
       mode="bind"
       :locked-customer="{ code: detail.code, name: detail.nickname, contact: detail.contact }"
       :default-account="activeAccounts[0]"
+      :submitting="bindingSubmitting"
+      @confirm="handleBindingConfirm"
     />
   </el-main>
 </template>

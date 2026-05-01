@@ -14,6 +14,10 @@ const props = defineProps({
     type: String,
     default: "2026-05-07",
   },
+  submitting: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const emit = defineEmits(["update:modelValue", "save"])
@@ -35,7 +39,11 @@ const renewalForm = reactive({
 
 const visible = computed({
   get: () => props.modelValue,
-  set: (value) => emit("update:modelValue", value),
+  set: (value) => {
+    if (!props.submitting) {
+      emit("update:modelValue", value)
+    }
+  },
 })
 
 function normalizeDate(value) {
@@ -69,12 +77,13 @@ function resetForm() {
 }
 
 function closeDialog() {
+  if (props.submitting) return
   visible.value = false
 }
 
 function saveRenewal() {
+  if (props.submitting) return
   emit("save", { ...renewalForm })
-  closeDialog()
 }
 
 watch(() => props.modelValue, (value) => {
@@ -101,6 +110,7 @@ resetForm()
     align-center
     append-to-body
     :show-close="false"
+    :close-on-press-escape="!submitting"
   >
     <template #header>
       <div class="renewal-dialog-head">
@@ -111,7 +121,7 @@ resetForm()
       </div>
     </template>
 
-    <el-form class="renewal-form" :model="renewalForm" label-position="left">
+    <el-form class="renewal-form" :model="renewalForm" label-position="left" :disabled="submitting">
       <el-form-item label="续费日期">
         <el-date-picker
           v-model="renewalForm.renewedAt"
@@ -157,8 +167,10 @@ resetForm()
 
     <template #footer>
       <div class="renewal-dialog-footer">
-        <el-button round @click="closeDialog">取消</el-button>
-        <el-button type="primary" round @click="saveRenewal">保存续费</el-button>
+        <el-button round :disabled="submitting" @click="closeDialog">取消</el-button>
+        <el-button type="primary" round :loading="submitting" :disabled="submitting" @click="saveRenewal">
+          {{ submitting ? "确认中" : "保存续费" }}
+        </el-button>
       </div>
     </template>
   </el-dialog>

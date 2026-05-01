@@ -11,6 +11,8 @@ import {
   View,
   WarningFilled,
 } from "@element-plus/icons-vue"
+import DeleteConfirmDialog from "../components/DeleteConfirmDialog.vue"
+import { submitWithFeedback } from "../utils/databaseAction"
 
 const emit = defineEmits(["view-detail"])
 
@@ -22,6 +24,10 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 const showCreateAccountDialog = ref(false)
 const accountDialogMode = ref("create")
+const showDeleteAccountDialog = ref(false)
+const selectedDeleteAccount = ref(null)
+const accountSubmitting = ref(false)
+const deleteAccountSubmitting = ref(false)
 
 const createAccountForm = reactive({
   code: "",
@@ -41,6 +47,17 @@ const createAccountForm = reactive({
 const accountDialogTitle = computed(() => (
   accountDialogMode.value === "edit" ? "编辑Adobe账户" : "新增Adobe账户"
 ))
+
+const deleteAccountFields = computed(() => {
+  const account = selectedDeleteAccount.value
+  if (!account) return []
+  return [
+    { label: "账户编号", value: account.code },
+    { label: "Adobe账户", value: account.email },
+    { label: "验证码邮箱", value: account.verifyEmail },
+    { label: "到期日", value: account.expiresAt },
+  ]
+})
 
 const accounts = ref([
   ["A0014", "shanshanz1878313@proton.me", "shanshanz1878313@889100.xyz", "全家桶半年付（180天）", "2026/5/7", 7, "正常", false, 1],
@@ -177,6 +194,29 @@ function openEditAccountDialog(account) {
   })
   showCreateAccountDialog.value = true
 }
+
+function openDeleteAccountDialog(account) {
+  selectedDeleteAccount.value = account
+  showDeleteAccountDialog.value = true
+}
+
+function handleSaveAccount() {
+  submitWithFeedback({
+    setLoading: (value) => { accountSubmitting.value = value },
+    successMessage: accountDialogMode.value === "edit" ? "Adobe账户编辑成功。" : "Adobe账户新增成功。",
+    errorMessage: accountDialogMode.value === "edit" ? "Adobe账户编辑失败。" : "Adobe账户新增失败。",
+    onSuccess: () => { showCreateAccountDialog.value = false },
+  })
+}
+
+function handleDeleteAccount() {
+  submitWithFeedback({
+    setLoading: (value) => { deleteAccountSubmitting.value = value },
+    successMessage: "Adobe账户删除成功。",
+    errorMessage: "Adobe账户删除失败。",
+    onSuccess: () => { showDeleteAccountDialog.value = false },
+  })
+}
 </script>
 
 <template>
@@ -298,7 +338,7 @@ function openEditAccountDialog(account) {
               <div class="table-actions">
                 <el-button size="small" :icon="View" round @click="emit('view-detail', row)">查看</el-button>
                 <el-button size="small" :icon="EditPen" round @click="openEditAccountDialog(row)">编辑</el-button>
-                <el-button size="small" :icon="Delete" round type="danger" plain>删除</el-button>
+                <el-button size="small" :icon="Delete" round type="danger" plain @click="openDeleteAccountDialog(row)">删除</el-button>
               </div>
             </template>
           </el-table-column>
@@ -328,12 +368,13 @@ function openEditAccountDialog(account) {
       append-to-body
       :show-close="false"
       :close-on-click-modal="false"
+      :close-on-press-escape="!accountSubmitting"
     >
       <template #header>
         <h2 class="account-form-title">{{ accountDialogTitle }}</h2>
       </template>
 
-      <el-form class="account-form-grid" :model="createAccountForm" label-position="top">
+      <el-form class="account-form-grid" :model="createAccountForm" label-position="top" :disabled="accountSubmitting">
         <el-form-item label="Adobe账户编号">
           <el-input v-model="createAccountForm.code" placeholder="自动生成，例如 A0001" disabled />
         </el-form-item>
@@ -401,10 +442,23 @@ function openEditAccountDialog(account) {
 
       <template #footer>
         <div class="account-form-footer">
-          <el-button class="account-form-cancel" round @click="showCreateAccountDialog = false">取消</el-button>
-          <el-button class="account-form-submit" type="primary" round>保存 Adobe账户</el-button>
+          <el-button class="account-form-cancel" round :disabled="accountSubmitting" @click="showCreateAccountDialog = false">取消</el-button>
+          <el-button class="account-form-submit" type="primary" round :loading="accountSubmitting" :disabled="accountSubmitting" @click="handleSaveAccount">
+            {{ accountSubmitting ? "确认中" : "保存 Adobe账户" }}
+          </el-button>
         </div>
       </template>
     </el-dialog>
+
+    <DeleteConfirmDialog
+      v-model="showDeleteAccountDialog"
+      title="确认删除 Adobe账户"
+      description="确认删除该 Adobe账户？删除后无法恢复，请谨慎操作。"
+      :fields="deleteAccountFields"
+      warning="该操作不可撤销。"
+      confirm-text="确认删除账户"
+      :submitting="deleteAccountSubmitting"
+      @confirm="handleDeleteAccount"
+    />
   </el-main>
 </template>

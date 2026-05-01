@@ -13,6 +13,7 @@ import {
 } from "@element-plus/icons-vue"
 import RenewalDialog from "../components/RenewalDialog.vue"
 import BindingDialog from "../components/BindingDialog.vue"
+import { submitWithFeedback } from "../utils/databaseAction"
 
 const props = defineProps({
   account: {
@@ -25,6 +26,9 @@ const emit = defineEmits(["back"])
 const showEditAccountDialog = ref(false)
 const showRenewalDialog = ref(false)
 const showBindingDialog = ref(false)
+const editAccountSubmitting = ref(false)
+const renewalSubmitting = ref(false)
+const bindingSubmitting = ref(false)
 
 const detail = {
   code: props.account.code || "A0014",
@@ -81,6 +85,33 @@ function openRenewalDialog() {
 
 function openBindingDialog() {
   showBindingDialog.value = true
+}
+
+function handleSaveAccount() {
+  submitWithFeedback({
+    setLoading: (value) => { editAccountSubmitting.value = value },
+    successMessage: "Adobe账户编辑成功。",
+    errorMessage: "Adobe账户编辑失败。",
+    onSuccess: () => { showEditAccountDialog.value = false },
+  })
+}
+
+function handleRenewalSave() {
+  submitWithFeedback({
+    setLoading: (value) => { renewalSubmitting.value = value },
+    successMessage: "Adobe账户续费成功。",
+    errorMessage: "Adobe账户续费失败。",
+    onSuccess: () => { showRenewalDialog.value = false },
+  })
+}
+
+function handleBindingConfirm() {
+  submitWithFeedback({
+    setLoading: (value) => { bindingSubmitting.value = value },
+    successMessage: "绑定关系新增成功。",
+    errorMessage: "绑定关系新增失败。",
+    onSuccess: () => { showBindingDialog.value = false },
+  })
 }
 
 const currentCustomers = [
@@ -237,12 +268,13 @@ const renewals = [
       append-to-body
       :show-close="false"
       :close-on-click-modal="false"
+      :close-on-press-escape="!editAccountSubmitting"
     >
       <template #header>
         <h2 class="account-form-title">编辑Adobe账户</h2>
       </template>
 
-      <el-form class="account-form-grid" :model="editAccountForm" label-position="top">
+      <el-form class="account-form-grid" :model="editAccountForm" label-position="top" :disabled="editAccountSubmitting">
         <el-form-item label="Adobe账户编号">
           <el-input v-model="editAccountForm.code" placeholder="自动生成，例如 A0001" disabled />
         </el-form-item>
@@ -310,8 +342,10 @@ const renewals = [
 
       <template #footer>
         <div class="account-form-footer">
-          <el-button class="account-form-cancel" round @click="showEditAccountDialog = false">取消</el-button>
-          <el-button class="account-form-submit" type="primary" round>保存 Adobe账户</el-button>
+          <el-button class="account-form-cancel" round :disabled="editAccountSubmitting" @click="showEditAccountDialog = false">取消</el-button>
+          <el-button class="account-form-submit" type="primary" round :loading="editAccountSubmitting" :disabled="editAccountSubmitting" @click="handleSaveAccount">
+            {{ editAccountSubmitting ? "确认中" : "保存 Adobe账户" }}
+          </el-button>
         </div>
       </template>
     </el-dialog>
@@ -320,12 +354,16 @@ const renewals = [
       v-model="showRenewalDialog"
       subject-label="Adobe账户"
       :previous-expire-at="detail.expiresAt"
+      :submitting="renewalSubmitting"
+      @save="handleRenewalSave"
     />
 
     <BindingDialog
       v-model="showBindingDialog"
       mode="bind"
       :locked-account="{ code: detail.code, email: detail.email }"
+      :submitting="bindingSubmitting"
+      @confirm="handleBindingConfirm"
     />
   </el-main>
 </template>

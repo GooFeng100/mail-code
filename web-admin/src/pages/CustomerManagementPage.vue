@@ -10,6 +10,8 @@ import {
   User,
   View,
 } from "@element-plus/icons-vue"
+import DeleteConfirmDialog from "../components/DeleteConfirmDialog.vue"
+import { submitWithFeedback } from "../utils/databaseAction"
 
 const emit = defineEmits(["view-detail"])
 
@@ -20,6 +22,10 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 const showCustomerDialog = ref(false)
 const customerDialogMode = ref("create")
+const showDeleteCustomerDialog = ref(false)
+const selectedDeleteCustomer = ref(null)
+const customerSubmitting = ref(false)
+const deleteCustomerSubmitting = ref(false)
 
 const customerForm = reactive({
   code: "",
@@ -36,6 +42,17 @@ const customerForm = reactive({
 const customerDialogTitle = computed(() => (
   customerDialogMode.value === "edit" ? "编辑客户" : "新增客户"
 ))
+
+const deleteCustomerFields = computed(() => {
+  const customer = selectedDeleteCustomer.value
+  if (!customer) return []
+  return [
+    { label: "客户编号", value: customer.code },
+    { label: "客户昵称", value: customer.nickname },
+    { label: "联系方式", value: customer.contact },
+    { label: "售后到期日", value: customer.expiresAt },
+  ]
+})
 
 const customers = ref([
   ["C0009", "炸鸡求在炼丹炉背客人", "微信", "全家桶半年付（180天）", "2026/5/2", 2, "正常", 1, "-"],
@@ -160,6 +177,29 @@ function openEditCustomerDialog(customer) {
   })
   showCustomerDialog.value = true
 }
+
+function openDeleteCustomerDialog(customer) {
+  selectedDeleteCustomer.value = customer
+  showDeleteCustomerDialog.value = true
+}
+
+function handleSaveCustomer() {
+  submitWithFeedback({
+    setLoading: (value) => { customerSubmitting.value = value },
+    successMessage: customerDialogMode.value === "edit" ? "客户编辑成功。" : "客户新增成功。",
+    errorMessage: customerDialogMode.value === "edit" ? "客户编辑失败。" : "客户新增失败。",
+    onSuccess: () => { showCustomerDialog.value = false },
+  })
+}
+
+function handleDeleteCustomer() {
+  submitWithFeedback({
+    setLoading: (value) => { deleteCustomerSubmitting.value = value },
+    successMessage: "客户删除成功。",
+    errorMessage: "客户删除失败。",
+    onSuccess: () => { showDeleteCustomerDialog.value = false },
+  })
+}
 </script>
 
 <template>
@@ -265,7 +305,7 @@ function openEditCustomerDialog(customer) {
               <div class="table-actions">
                 <el-button size="small" :icon="View" round @click="emit('view-detail', row)">查看</el-button>
                 <el-button size="small" :icon="EditPen" round @click="openEditCustomerDialog(row)">编辑</el-button>
-                <el-button size="small" :icon="Delete" round type="danger" plain>删除</el-button>
+                <el-button size="small" :icon="Delete" round type="danger" plain @click="openDeleteCustomerDialog(row)">删除</el-button>
               </div>
             </template>
           </el-table-column>
@@ -295,12 +335,13 @@ function openEditCustomerDialog(customer) {
       append-to-body
       :show-close="false"
       :close-on-click-modal="false"
+      :close-on-press-escape="!customerSubmitting"
     >
       <template #header>
         <h2 class="account-form-title">{{ customerDialogTitle }}</h2>
       </template>
 
-      <el-form class="account-form-grid" :model="customerForm" label-position="top">
+      <el-form class="account-form-grid" :model="customerForm" label-position="top" :disabled="customerSubmitting">
         <el-form-item label="客户编号（自动生成）">
           <el-input v-model="customerForm.code" placeholder="保存后自动生成" disabled />
         </el-form-item>
@@ -362,10 +403,23 @@ function openEditCustomerDialog(customer) {
 
       <template #footer>
         <div class="account-form-footer">
-          <el-button class="account-form-cancel" round @click="showCustomerDialog = false">取消</el-button>
-          <el-button class="account-form-submit" type="primary" round>保存</el-button>
+          <el-button class="account-form-cancel" round :disabled="customerSubmitting" @click="showCustomerDialog = false">取消</el-button>
+          <el-button class="account-form-submit" type="primary" round :loading="customerSubmitting" :disabled="customerSubmitting" @click="handleSaveCustomer">
+            {{ customerSubmitting ? "确认中" : "保存" }}
+          </el-button>
         </div>
       </template>
     </el-dialog>
+
+    <DeleteConfirmDialog
+      v-model="showDeleteCustomerDialog"
+      title="确认删除客户"
+      description="确认删除该客户？删除后无法恢复，请谨慎操作。"
+      :fields="deleteCustomerFields"
+      warning="该操作不可撤销。"
+      confirm-text="确认删除客户"
+      :submitting="deleteCustomerSubmitting"
+      @confirm="handleDeleteCustomer"
+    />
   </el-main>
 </template>

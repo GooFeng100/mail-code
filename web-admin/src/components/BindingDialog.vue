@@ -35,6 +35,10 @@ const props = defineProps({
     type: Object,
     default: null,
   },
+  submitting: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const emit = defineEmits(["update:modelValue", "confirm"])
@@ -67,7 +71,11 @@ const form = reactive({
 
 const visible = computed({
   get: () => props.modelValue,
-  set: (value) => emit("update:modelValue", value),
+  set: (value) => {
+    if (!props.submitting) {
+      emit("update:modelValue", value)
+    }
+  },
 })
 
 const isReadonly = computed(() => props.mode !== "bind")
@@ -144,12 +152,13 @@ function resetForm() {
 }
 
 function closeDialog() {
+  if (props.submitting) return
   visible.value = false
 }
 
 function confirmDialog() {
+  if (props.submitting) return
   emit("confirm", { ...form, mode: props.mode })
-  closeDialog()
 }
 
 watch(() => props.modelValue, (value) => {
@@ -167,6 +176,7 @@ resetForm()
     align-center
     append-to-body
     :show-close="false"
+    :close-on-press-escape="!submitting"
   >
     <template #header>
       <div class="binding-dialog-head">
@@ -180,7 +190,7 @@ resetForm()
       </div>
     </template>
 
-    <el-form class="binding-form" :model="form" label-position="left">
+    <el-form class="binding-form" :model="form" label-position="left" :disabled="submitting">
       <el-form-item label="绑定时间">
         <template #label>
           <span class="binding-label"><el-icon><Clock /></el-icon>绑定日期</span>
@@ -259,8 +269,10 @@ resetForm()
 
     <template #footer>
       <div class="binding-dialog-footer">
-        <el-button round @click="closeDialog">取消</el-button>
-        <el-button type="primary" round @click="confirmDialog">{{ confirmText }}</el-button>
+        <el-button round :disabled="submitting" @click="closeDialog">取消</el-button>
+        <el-button type="primary" round :loading="submitting" :disabled="submitting" @click="confirmDialog">
+          {{ submitting ? "确认中" : confirmText }}
+        </el-button>
       </div>
     </template>
   </el-dialog>
