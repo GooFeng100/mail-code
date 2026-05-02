@@ -3,9 +3,12 @@ import { reactive, ref } from "vue"
 import { ElNotification } from "element-plus"
 import "element-plus/theme-chalk/el-notification.css"
 import { Lock, User } from "@element-plus/icons-vue"
+import { login } from "../api/admin"
 import loginBg from "../assets/login-bg.png"
 import loginMark from "../assets/icons/loginmark.png"
-import errorSound from "../assets/sounds/error.wav"
+import { playErrorSound } from "../utils/soundFeedback"
+
+const emit = defineEmits(["login-success"])
 
 const form = reactive({
   username: "",
@@ -14,25 +17,27 @@ const form = reactive({
 
 const loginLoading = ref(false)
 
-function playErrorSound() {
-  const audio = new Audio(errorSound)
-  audio.play().catch(() => {})
-}
-
 async function handleLogin() {
   loginLoading.value = true
-  window.setTimeout(() => {
-    loginLoading.value = false
-    playErrorSound()
+
+  try {
+    const data = await login({
+      username: form.username,
+      password: form.password,
+    })
+    emit("login-success", data)
+  } catch {
     ElNotification({
       title: "登录失败",
       message: "账户/密码错误，请重新输入或联系管理员。",
       position: "top-right",
       type: "error",
     })
+    playErrorSound()
     form.username = ""
     form.password = ""
-  }, 800)
+    loginLoading.value = false
+  }
 }
 </script>
 

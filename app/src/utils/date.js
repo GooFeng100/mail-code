@@ -1,3 +1,6 @@
+const DAY_MS = 24 * 60 * 60 * 1000;
+const UTC8_OFFSET_MS = 8 * 60 * 60 * 1000;
+
 function toDate(value) {
   if (!value) {
     return null;
@@ -11,17 +14,28 @@ function toDate(value) {
   return date;
 }
 
-function startOfToday() {
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  return now;
+function utc8DayNumber(value = new Date()) {
+  const date = toDate(value) || new Date();
+  return Math.floor((date.getTime() + UTC8_OFFSET_MS) / DAY_MS);
+}
+
+function utc8DateParts(value = new Date()) {
+  const date = toDate(value) || new Date();
+  const shifted = new Date(date.getTime() + UTC8_OFFSET_MS);
+  return {
+    year: shifted.getUTCFullYear(),
+    month: shifted.getUTCMonth(),
+    day: shifted.getUTCDate()
+  };
+}
+
+function fromUtc8DateParts(year, month, day) {
+  return new Date(Date.UTC(year, month, day) - UTC8_OFFSET_MS);
 }
 
 function addDays(date, days) {
-  const base = toDate(date) || new Date();
-  const next = new Date(base.getTime());
-  next.setDate(next.getDate() + Number(days || 0));
-  return next;
+  const parts = utc8DateParts(date);
+  return fromUtc8DateParts(parts.year, parts.month, parts.day + Number(days || 0));
 }
 
 function getRemainingDays(expireAt) {
@@ -30,10 +44,7 @@ function getRemainingDays(expireAt) {
     return null;
   }
 
-  const end = new Date(expire.getTime());
-  end.setHours(0, 0, 0, 0);
-  const diff = end.getTime() - startOfToday().getTime();
-  return Math.ceil(diff / 86400000);
+  return utc8DayNumber(expire) - utc8DayNumber();
 }
 
 function getRemainingText(expireAt) {
@@ -56,7 +67,7 @@ function getDynamicStatus(expireAt) {
     return "未设置";
   }
 
-  return expire.getTime() <= startOfToday().getTime() ? "已到期" : "正常";
+  return getRemainingDays(expire) < 0 ? "已到期" : "正常";
 }
 
 function toDateOnly(value) {
@@ -65,7 +76,11 @@ function toDateOnly(value) {
     return "";
   }
 
-  return date.toISOString().slice(0, 10);
+  const parts = utc8DateParts(date);
+  const year = parts.year;
+  const month = String(parts.month + 1).padStart(2, "0");
+  const day = String(parts.day).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 module.exports = {

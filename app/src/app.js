@@ -78,7 +78,14 @@ async function start() {
     await ensureDefaultAdmin();
     initSocket(server);
     startImapListener().catch((error) => {
-      console.error("IMAP listener failed:", error.message);
+      const details = [
+        error && error.message,
+        error && error.response,
+        error && error.code,
+        error && error.responseStatus ? `status=${error.responseStatus}` : "",
+        error && error.authenticationFailed ? "authenticationFailed=true" : ""
+      ].filter(Boolean);
+      console.error("IMAP listener failed:", details.length ? details.join(" | ") : String(error));
     });
 
     server.listen(config.port, "0.0.0.0", () => {

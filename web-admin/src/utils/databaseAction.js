@@ -1,4 +1,5 @@
 import { ElNotification } from "element-plus"
+import { playErrorSound, playSuccessSound } from "./soundFeedback"
 
 function mockDatabaseRequest(successMessage) {
   return new Promise((resolve) => {
@@ -25,15 +26,17 @@ export async function submitWithFeedback({
       type: "success",
       position: "top-right",
     })
+    playSuccessSound()
     onSuccess?.(result)
     return true
   } catch (error) {
     ElNotification({
       title: "操作失败",
-      message: error?.response?.data?.message || error?.message || errorMessage,
+      message: error?.data?.error || error?.message || errorMessage,
       type: "error",
       position: "top-right",
     })
+    playErrorSound()
     return false
   } finally {
     setLoading(false)

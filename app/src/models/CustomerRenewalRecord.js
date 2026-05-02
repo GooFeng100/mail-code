@@ -7,21 +7,9 @@ const customerRenewalRecordSchema = new mongoose.Schema(
       ref: "Customer",
       required: true
     },
-    customerCode: {
-      type: String,
-      required: true
-    },
-    customerNickname: {
-      type: String,
-      required: true
-    },
     renewalDate: {
       type: Date,
       required: true
-    },
-    planName: {
-      type: String,
-      default: ""
     },
     planId: {
       type: String,

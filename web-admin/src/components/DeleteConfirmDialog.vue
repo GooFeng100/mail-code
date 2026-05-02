@@ -53,6 +53,7 @@ function confirmDelete() {
     align-center
     append-to-body
     :show-close="false"
+    :close-on-click-modal="false"
     :close-on-press-escape="!submitting"
     @update:model-value="!submitting && emit('update:modelValue', $event)"
   >

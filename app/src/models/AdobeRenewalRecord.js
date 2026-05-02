@@ -7,21 +7,9 @@ const adobeRenewalRecordSchema = new mongoose.Schema(
       ref: "AdobeAccount",
       required: true
     },
-    adobeCode: {
-      type: String,
-      required: true
-    },
-    accountEmail: {
-      type: String,
-      required: true
-    },
     renewalDate: {
       type: Date,
       required: true
-    },
-    planName: {
-      type: String,
-      default: ""
     },
     planId: {
       type: String,

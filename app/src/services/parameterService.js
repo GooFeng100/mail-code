@@ -1,5 +1,9 @@
 const ParameterOption = require("../models/ParameterOption");
 const mongoose = require("mongoose");
+const AdobeAccount = require("../models/AdobeAccount");
+const AdobeRenewalRecord = require("../models/AdobeRenewalRecord");
+const Customer = require("../models/Customer");
+const CustomerRenewalRecord = require("../models/CustomerRenewalRecord");
 
 const CATEGORIES = {
   plan: "账户计划"
@@ -22,6 +26,28 @@ function badRequest(message) {
 
 function publicOption(option) {
   return option ? option.toJSON() : null;
+}
+
+function normalizePageQuery(query = {}) {
+  const page = Math.max(1, Number.parseInt(query.page, 10) || 1);
+  const requestedPageSize = Number.parseInt(query.pageSize, 10) || 15;
+  const pageSize = [10, 15, 20, 50].includes(requestedPageSize) ? requestedPageSize : 15;
+  return {
+    page,
+    pageSize,
+    keyword: String(query.keyword || "").trim().toLowerCase()
+  };
+}
+
+function paginate(items, page, pageSize) {
+  const total = items.length;
+  const start = (page - 1) * pageSize;
+  return {
+    items: items.slice(start, start + pageSize),
+    total,
+    page,
+    pageSize
+  };
 }
 
 function normalizeCategory(category) {
@@ -91,9 +117,16 @@ async function ensureDefaultParameterOptions() {
   }
 }
 
-async function listParameterOptions() {
+async function listParameterOptions(query = {}) {
+  const optionsQuery = normalizePageQuery(query);
   const options = await ParameterOption.find({ category: { $in: Object.keys(CATEGORIES) } }).sort({ category: 1, sortOrder: 1, createdAt: 1 });
-  return options.map(publicOption);
+  const items = options.map(publicOption).filter((item) => {
+    if (!optionsQuery.keyword) {
+      return true;
+    }
+    return [item.category, item.name, item.remark].some((value) => String(value || "").toLowerCase().includes(optionsQuery.keyword));
+  });
+  return paginate(items, optionsQuery.page, optionsQuery.pageSize);
 }
 
 async function enabledOptions(category) {
@@ -205,6 +238,16 @@ async function updateParameterOption(id, data) {
 }
 
 async function deleteParameterOption(id) {
+  const usageCount = await Promise.all([
+    AdobeAccount.countDocuments({ $or: [{ accountPlanId: id }, { initialAccountPlanId: id }] }),
+    Customer.countDocuments({ $or: [{ purchasedPlanId: id }, { initialPurchasedPlanId: id }] }),
+    AdobeRenewalRecord.countDocuments({ planId: id }),
+    CustomerRenewalRecord.countDocuments({ planId: id })
+  ]);
+  if (usageCount.some((count) => count > 0)) {
+    badRequest("参数已被账户、客户或续费记录引用，请禁用而不是删除");
+  }
+
   const option = await ParameterOption.findByIdAndDelete(id);
   if (!option) {
     const error = new Error("parameter option not found");

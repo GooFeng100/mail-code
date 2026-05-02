@@ -11,6 +11,22 @@ let reconnectTimer = null;
 let scanTimer = null;
 let scanInProgress = false;
 
+function formatImapError(error) {
+  if (!error) {
+    return "unknown error";
+  }
+
+  const details = [
+    error.message,
+    error.response,
+    error.code,
+    error.responseStatus ? `status=${error.responseStatus}` : "",
+    error.authenticationFailed ? "authenticationFailed=true" : ""
+  ].filter(Boolean);
+
+  return details.length ? details.join(" | ") : String(error);
+}
+
 function isMailConfigured() {
   return Boolean(config.mail.host && config.mail.user && config.mail.pass);
 }
@@ -127,7 +143,7 @@ function scheduleReconnect() {
   reconnectTimer = setTimeout(() => {
     reconnectTimer = null;
     startImapListener().catch((error) => {
-      console.error("IMAP reconnect failed:", error.message);
+      console.error("IMAP reconnect failed:", formatImapError(error));
       scheduleReconnect();
     });
   }, 15000);
@@ -156,7 +172,7 @@ async function startImapListener() {
   });
 
   client.on("error", (error) => {
-    console.error("IMAP error:", error.message);
+    console.error("IMAP error:", formatImapError(error));
   });
 
   client.on("close", () => {

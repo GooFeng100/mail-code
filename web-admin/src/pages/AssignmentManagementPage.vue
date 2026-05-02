@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from "vue"
+import { computed, onMounted, ref, watch } from "vue"
 import {
   CirclePlus,
   Delete,
@@ -9,13 +9,30 @@ import {
 } from "@element-plus/icons-vue"
 import BindingDialog from "../components/BindingDialog.vue"
 import DeleteConfirmDialog from "../components/DeleteConfirmDialog.vue"
+import {
+  createAssignment,
+  deleteAssignment,
+  listAdobeAccounts,
+  listAssignments,
+  listCustomers,
+  updateAssignment,
+} from "../api/admin"
 import { submitWithFeedback } from "../utils/databaseAction"
+import { formatDate } from "../utils/format"
+
+const emit = defineEmits(["view-account", "view-customer"])
 
 const searchText = ref("")
 const roleFilter = ref("")
 const validFilter = ref("")
 const currentPage = ref(1)
 const pageSize = ref(10)
+const total = ref(0)
+const loading = ref(false)
+const assignments = ref([])
+const customerOptions = ref([])
+const accountOptions = ref([])
+
 const showBindingDialog = ref(false)
 const bindingDialogMode = ref("bind")
 const selectedBinding = ref({})
@@ -24,100 +41,70 @@ const selectedDeleteBinding = ref(null)
 const bindingSubmitting = ref(false)
 const deleteBindingSubmitting = ref(false)
 
-const customerContacts = {
-  C0001: "微信 大米先生",
-  C0002: "闲鱼 Vian_Singleton",
-  C0006: "QQ 68190021",
-  C0007: "微信 oldzhou",
-  C0008: "微信 陌上人如玉",
-  C0009: "微信",
-  C0010: "微信 年年",
-  C0011: "微信 鱼丸粗面",
-  C0012: "微信 CONCISE",
-  C0013: "微信 张晶晶",
-  C0014: "微信 HM_YB2023",
-  C0015: "微信 花雷",
-}
+const pageRangeText = computed(() => {
+  if (total.value === 0) {
+    return "本页 0 条 / 共 0 条"
+  }
 
-const assignments = ref([
-  ["C0015", "花雷", "A0016", "tracygunther@proton.me", "primary", "2026/4/27", true],
-  ["C0014", "袁博", "A0015", "784774726@qq.com", "primary", "2026/4/27", true],
-  ["C0013", "张晶晶", "A0014", "shanshanz1878313@proton.me", "primary", "2026/4/27", true],
-  ["C0012", "freeze Frame", "A0013", "lutherbrooke@proton.me", "primary", "2026/4/27", true],
-  ["C0011", "鱼丸粗面", "A0012", "mrlee19900517@outlook.com", "primary", "2026/4/27", true],
-  ["C0008", "陌上人如玉", "A0002", "tuzki98@icloud.com", "backup", "2026/4/27", true],
-  ["C0008", "陌上人如玉", "A0011", "elmerhoyle23@outlook.com", "primary", "2026/4/27", true],
-  ["C0010", "年年", "A0003", "hildaella@proton.me", "primary", "2026/4/27", true],
-  ["C0002", "Vian_Singleton", "A0002", "tuzki98@icloud.com", "primary", "2026/4/27", true],
-  ["C0001", "大米先生", "A0001", "1170175069@qq.com", "primary", "2026/4/27", true],
-  ["C0009", "炸鸡求在炼丹炉背客人", "A0009", "jeremyhosea24@proton.me", "primary", "2026/4/27", true],
-  ["C0006", "小风", "A0008", "hirambrook@proton.me", "backup", "2026/4/18", false],
-  ["C0007", "老周", "A0007", "nellyhosea@proton.me", "primary", "2026/4/12", false],
-].map(([customerCode, customerName, accountCode, accountEmail, role, assignedAt, valid], index) => ({
-  id: `${customerCode}-${accountCode}-${index}`,
-  customerCode,
-  customerName,
-  customerContact: customerContacts[customerCode] || "",
-  accountCode,
-  accountEmail,
-  role,
-  assignedAt,
-  valid,
-})))
-
-const filteredAssignments = computed(() => {
-  const keyword = searchText.value.trim().toLowerCase()
-  return assignments.value.filter((assignment) => {
-    const matchesKeyword = !keyword || [
-      assignment.customerName,
-      assignment.customerContact,
-      assignment.accountEmail,
-    ].join(" ").toLowerCase().includes(keyword)
-    const matchesRole = !roleFilter.value || assignment.role === roleFilter.value
-    const matchesValid = !validFilter.value || String(assignment.valid) === validFilter.value
-    return matchesKeyword && matchesRole && matchesValid
-  })
-})
-
-const pagedAssignments = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  return filteredAssignments.value.slice(start, start + pageSize.value)
+  const start = (currentPage.value - 1) * pageSize.value + 1
+  const end = Math.min(start + assignments.value.length - 1, total.value)
+  return `本页 ${start}-${end} 条 / 共 ${total.value} 条`
 })
 
 const deleteBindingFields = computed(() => {
   const binding = selectedDeleteBinding.value
   if (!binding) return []
   return [
-    { label: "客户", value: `${binding.customerCode} | ${binding.customerName}` },
-    { label: "Adobe账户", value: `${binding.accountCode} | ${binding.accountEmail}` },
-    { label: "主备标识", value: roleLabel(binding.role) === "主要" ? "主要账号" : "备用账号" },
-    { label: "绑定日期", value: binding.assignedAt },
-    { label: "当前状态", value: binding.valid ? "已绑定" : "已取消" },
+    { label: "客户", value: `${binding.customerCode} | ${binding.customerNickname}` },
+    { label: "Adobe账户", value: `${binding.adobeCode} | ${binding.accountEmail}` },
+    { label: "主备标识", value: roleLabel(binding.assignmentRole) === "主要" ? "主要账号" : "备用账号" },
+    { label: "绑定日期", value: formatDate(binding.assignedAt) },
+    { label: "当前状态", value: binding.active ? "已绑定" : "已取消" },
   ]
 })
 
-watch([searchText, roleFilter, validFilter], () => {
-  currentPage.value = 1
-})
+async function loadOptions() {
+  const [customers, accounts] = await Promise.all([
+    listCustomers({ page: 1, pageSize: 50 }),
+    listAdobeAccounts({ page: 1, pageSize: 50 }),
+  ])
+  customerOptions.value = customers.items || []
+  accountOptions.value = accounts.items || []
+}
 
-const pageRangeText = computed(() => {
-  const total = filteredAssignments.value.length
-  if (total === 0) {
-    return "本页 0 条 / 共 0 条"
+async function loadAssignments() {
+  loading.value = true
+  try {
+    const data = await listAssignments({
+      page: currentPage.value,
+      pageSize: pageSize.value,
+      keyword: searchText.value,
+      role: roleFilter.value,
+      active: validFilter.value,
+    })
+    assignments.value = data.items || []
+    total.value = data.total || 0
+  } finally {
+    loading.value = false
   }
-
-  const start = (currentPage.value - 1) * pageSize.value + 1
-  const end = Math.min(start + pagedAssignments.value.length - 1, total)
-  return `本页 ${start}-${end} 条 / 共 ${total} 条`
-})
+}
 
 function handleSizeChange(size) {
   pageSize.value = size
   currentPage.value = 1
+  loadAssignments()
 }
 
 function roleLabel(role) {
   return role === "primary" ? "主要" : "备用"
+}
+
+function viewCustomer(row) {
+  emit("view-customer", { id: row.customerId, customerCode: row.customerCode, customerNickname: row.customerNickname })
+}
+
+function viewAccount(row) {
+  emit("view-account", { id: row.adobeAccountId, adobeCode: row.adobeCode, accountEmail: row.accountEmail })
 }
 
 function openCreateBindingDialog() {
@@ -143,7 +130,27 @@ function openDeleteBindingDialog(row) {
   showDeleteBindingDialog.value = true
 }
 
+function handleRoleChange(row) {
+  submitWithFeedback({
+    setLoading: () => {},
+    action: () => updateAssignment(row.id, { assignmentRole: row.assignmentRole }),
+    successMessage: "主备关系修改成功。",
+    errorMessage: "主备关系修改失败。",
+    onSuccess: loadAssignments,
+  })
+}
+
 function handleBindingConfirm(payload) {
+  const actionMap = {
+    bind: () => createAssignment({
+      customerId: payload.customerId,
+      adobeAccountId: payload.adobeAccountId,
+      assignmentRole: payload.assignmentRole,
+      assignedAt: payload.assignedAt,
+    }),
+    unbind: () => updateAssignment(payload.id, { active: false }),
+    restore: () => updateAssignment(payload.id, { active: true }),
+  }
   const successMap = {
     bind: "绑定关系新增成功。",
     unbind: "绑定关系解绑成功。",
@@ -156,20 +163,37 @@ function handleBindingConfirm(payload) {
   }
   submitWithFeedback({
     setLoading: (value) => { bindingSubmitting.value = value },
+    action: actionMap[payload.mode],
     successMessage: successMap[payload.mode],
     errorMessage: errorMap[payload.mode],
-    onSuccess: () => { showBindingDialog.value = false },
+    onSuccess: () => {
+      showBindingDialog.value = false
+      loadAssignments()
+    },
   })
 }
 
 function handleDeleteBinding() {
   submitWithFeedback({
     setLoading: (value) => { deleteBindingSubmitting.value = value },
+    action: () => deleteAssignment(selectedDeleteBinding.value.id),
     successMessage: "绑定关系删除成功。",
     errorMessage: "绑定关系删除失败。",
-    onSuccess: () => { showDeleteBindingDialog.value = false },
+    onSuccess: () => {
+      showDeleteBindingDialog.value = false
+      loadAssignments()
+    },
   })
 }
+
+watch([searchText, roleFilter, validFilter], () => {
+  currentPage.value = 1
+  loadAssignments()
+})
+
+onMounted(async () => {
+  await Promise.all([loadOptions(), loadAssignments()])
+})
 </script>
 
 <template>
@@ -207,29 +231,46 @@ function handleDeleteBinding() {
 
       <section class="account-list-section">
         <el-table
+          v-loading="loading"
           class="account-table assignment-table"
-          :data="pagedAssignments"
+          :data="assignments"
           height="100%"
           stripe
           row-key="id"
         >
-          <el-table-column prop="customerCode" label="客户编号" width="120" />
-          <el-table-column prop="customerName" label="客户昵称" min-width="180" show-overflow-tooltip />
-          <el-table-column prop="accountCode" label="Adobe账户编号" width="160" />
+          <el-table-column label="客户编号" width="120">
+            <template #default="{ row }">
+              <button class="inline-nav-link" type="button" @click="viewCustomer(row)">{{ row.customerCode }}</button>
+            </template>
+          </el-table-column>
+          <el-table-column prop="customerNickname" label="客户昵称" min-width="180" show-overflow-tooltip />
+          <el-table-column label="Adobe账户编号" width="160">
+            <template #default="{ row }">
+              <button class="inline-nav-link" type="button" @click="viewAccount(row)">{{ row.adobeCode }}</button>
+            </template>
+          </el-table-column>
           <el-table-column prop="accountEmail" label="Adobe账户邮箱" min-width="260" show-overflow-tooltip />
           <el-table-column label="主备" width="150">
             <template #default="{ row }">
-              <span class="assignment-role" :class="{ 'is-backup': row.role === 'backup' }">
-                <el-switch v-model="row.role" active-value="primary" inactive-value="backup" />
-                <strong>{{ roleLabel(row.role) }}</strong>
+              <span class="assignment-role" :class="{ 'is-backup': row.assignmentRole === 'backup' }">
+                <el-switch
+                  v-model="row.assignmentRole"
+                  active-value="primary"
+                  inactive-value="backup"
+                  :disabled="!row.active"
+                  @change="handleRoleChange(row)"
+                />
+                <strong>{{ roleLabel(row.assignmentRole) }}</strong>
               </span>
             </template>
           </el-table-column>
-          <el-table-column prop="assignedAt" label="绑定日期" width="150" />
+          <el-table-column label="绑定日期" width="150">
+            <template #default="{ row }">{{ formatDate(row.assignedAt) }}</template>
+          </el-table-column>
           <el-table-column label="是否有效" width="130">
             <template #default="{ row }">
-              <el-tag :type="row.valid ? 'success' : 'info'" effect="light" round>
-                {{ row.valid ? "有效" : "无效" }}
+              <el-tag :type="row.active ? 'success' : 'info'" effect="light" round>
+                {{ row.active ? "有效" : "无效" }}
               </el-tag>
             </template>
           </el-table-column>
@@ -237,7 +278,7 @@ function handleDeleteBinding() {
             <template #default="{ row }">
               <div class="table-actions">
                 <el-button
-                  v-if="row.valid"
+                  v-if="row.active"
                   size="small"
                   :icon="Link"
                   round
@@ -254,11 +295,12 @@ function handleDeleteBinding() {
                   round
                   type="primary"
                   plain
+                  :disabled="!row.canRestore"
                   @click="openRestoreBindingDialog(row)"
                 >
                   恢复
                 </el-button>
-                <el-button size="small" :icon="Delete" round :disabled="row.valid" @click="openDeleteBindingDialog(row)">删除</el-button>
+                <el-button size="small" :icon="Delete" round :disabled="row.active" @click="openDeleteBindingDialog(row)">删除</el-button>
               </div>
             </template>
           </el-table-column>
@@ -273,8 +315,8 @@ function handleDeleteBinding() {
           :current-page="currentPage"
           :page-size="pageSize"
           :page-sizes="[10, 20, 50]"
-          :total="filteredAssignments.length"
-          @current-change="currentPage = $event"
+          :total="total"
+          @current-change="currentPage = $event; loadAssignments()"
           @size-change="handleSizeChange"
         />
       </div>
@@ -284,6 +326,8 @@ function handleDeleteBinding() {
       v-model="showBindingDialog"
       :mode="bindingDialogMode"
       :binding="selectedBinding"
+      :customer-options="customerOptions"
+      :account-options="accountOptions"
       :submitting="bindingSubmitting"
       @confirm="handleBindingConfirm"
     />

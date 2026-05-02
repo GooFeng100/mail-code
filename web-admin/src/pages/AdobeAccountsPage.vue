@@ -1,9 +1,9 @@
 <script setup>
-import { computed, reactive, ref } from "vue"
+import { computed, onMounted, reactive, ref, watch } from "vue"
 import {
   Calendar,
-  CirclePlus,
   CircleCheckFilled,
+  CirclePlus,
   DataAnalysis,
   Delete,
   EditPen,
@@ -12,7 +12,16 @@ import {
   WarningFilled,
 } from "@element-plus/icons-vue"
 import DeleteConfirmDialog from "../components/DeleteConfirmDialog.vue"
+import {
+  createAdobeAccount,
+  deleteAdobeAccount,
+  getAdminConfig,
+  listAdobeAccounts,
+  updateAdobeAccount,
+} from "../api/admin"
 import { submitWithFeedback } from "../utils/databaseAction"
+import { formatDate } from "../utils/format"
+import { addDaysUtc8, dateInputValueUtc8, remainingDaysFromDateUtc8, todayUtc8 } from "../utils/utc8Date"
 
 const emit = defineEmits(["view-detail"])
 
@@ -22,12 +31,22 @@ const statusFilter = ref("")
 const enabledFilter = ref("")
 const currentPage = ref(1)
 const pageSize = ref(10)
+const total = ref(0)
+const loading = ref(false)
+const accounts = ref([])
+const stats = ref({ total: 0, normal: 0, expiring: 0, expired: 0, disabled: 0 })
+const plans = ref([])
+const mailDomains = ref([])
+const mailDomainConfigs = ref([])
+
 const showCreateAccountDialog = ref(false)
 const accountDialogMode = ref("create")
+const editingAccount = ref(null)
 const showDeleteAccountDialog = ref(false)
 const selectedDeleteAccount = ref(null)
 const accountSubmitting = ref(false)
 const deleteAccountSubmitting = ref(false)
+let accountFormReady = false
 
 const createAccountForm = reactive({
   code: "",
@@ -35,8 +54,8 @@ const createAccountForm = reactive({
   password: "",
   emailPassword: "",
   verifyEmailPrefix: "",
-  verifyEmailDomain: "889100.xyz",
-  plan: "全家桶月付（30天）",
+  verifyEmailDomain: "",
+  plan: "",
   paidAt: "",
   baseExpireAt: "",
   status: "",
@@ -48,121 +67,161 @@ const accountDialogTitle = computed(() => (
   accountDialogMode.value === "edit" ? "编辑Adobe账户" : "新增Adobe账户"
 ))
 
-const deleteAccountFields = computed(() => {
-  const account = selectedDeleteAccount.value
-  if (!account) return []
-  return [
-    { label: "账户编号", value: account.code },
-    { label: "Adobe账户", value: account.email },
-    { label: "验证码邮箱", value: account.verifyEmail },
-    { label: "到期日", value: account.expiresAt },
-  ]
-})
-
-const accounts = ref([
-  ["A0014", "shanshanz1878313@proton.me", "shanshanz1878313@889100.xyz", "全家桶半年付（180天）", "2026/5/7", 7, "正常", false, 1],
-  ["A0010", "alstonlewis@proton.me", "alstonlewis@889100.xyz", "全家桶半年付（180天）", "2026/5/9", 9, "正常", true, 0],
-  ["A0009", "jeremyhosea24@proton.me", "jeremyhosea24@889100.xyz", "全家桶半年付（180天）", "2026/5/10", 10, "正常", true, 2],
-  ["A0007", "nellyhosea@proton.me", "nellyhosea@889100.xyz", "全家桶半年付（180天）", "2026/5/11", 11, "正常", true, 1],
-  ["A0006", "leeforster25@proton.me", "leeforster25@889100.xyz", "全家桶半年付（180天）", "2026/5/11", 11, "正常", true, 1],
-  ["A0005", "tracydolly551@gmail.com", "tracydolly551@889100.xyz", "全家桶半年付（180天）", "2026/5/11", 11, "正常", true, 1],
-  ["A0001", "1170175069@qq.com", "1170175069@889100.xyz", "全家桶半年付（180天）", "2026/6/1", 32, "正常", true, 1],
-  ["A0015", "784774726@qq.com", "784774726@889100.xyz", "全家桶半年付（180天）", "2026/6/15", 46, "正常", true, 1],
-  ["A0002", "tuzki98@icloud.com", "tuzki98@889100.xyz", "全家桶半年付（180天）", "2026/7/10", 71, "正常", true, 2],
-  ["A0016", "tracygunther@proton.me", "tracygunther@889100.xyz", "全家桶半年付（180天）", "2026/8/6", 98, "正常", true, 1],
-  ["A0012", "mrlee19900517@outlook.com", "mrlee19900517@889100.xyz", "全家桶半年付（180天）", "2026/9/11", 134, "正常", false, 1],
-  ["A0004", "rachelmike@proton.me", "rachelmike@889100.xyz", "全家桶半年付（180天）", "2026/10/24", 177, "正常", true, 1],
-  ["A0013", "lutherbrooke@proton.me", "lutherbrooke@889100.xyz", "全家桶半年付（180天）", "2026/3/19", 0, "已到期", true, 1],
-  ["A0011", "elmerhoyle23@outlook.com", "elmerhoyle23@889100.xyz", "全家桶月付（30天）", "2025/10/4", 0, "已到期", true, 1],
-  ["A0008", "hirambrook@proton.me", "hirambrook@889100.xyz", "全家桶半年付（180天）", "2025/12/20", 0, "已到期", true, 1],
-  ["A0017", "mollyreed@proton.me", "mollyreed@889100.xyz", "全家桶半年付（180天）", "2026/4/28", 0, "已到期", false, 1],
-].map(([code, email, verifyEmail, plan, expiresAt, days, status, enabled, bindings]) => ({
-  code,
-  email,
-  verifyEmail,
-  plan,
-  expiresAt,
-  days,
-  status,
-  enabled,
-  bindings,
-})))
-
-const filteredAccounts = computed(() => {
-  const keyword = searchText.value.trim().toLowerCase()
-  return accounts.value.filter((account) => {
-    const matchesKeyword = !keyword || [
-      account.code,
-      account.email,
-      account.verifyEmail,
-    ].join(" ").toLowerCase().includes(keyword)
-    const matchesPlan = !planFilter.value || account.plan === planFilter.value
-    const matchesStatus = !statusFilter.value || account.status === statusFilter.value
-    const matchesEnabled = !enabledFilter.value || String(account.enabled) === enabledFilter.value
-    return matchesKeyword && matchesPlan && matchesStatus && matchesEnabled
-  })
-})
-
-const pagedAccounts = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  return filteredAccounts.value.slice(start, start + pageSize.value)
-})
+const accountFormStatus = computed(() => formStatus(createAccountForm.baseExpireAt))
 
 const pageRangeText = computed(() => {
-  const total = filteredAccounts.value.length
-  if (total === 0) {
+  if (total.value === 0) {
     return "本页 0 条 / 共 0 条"
   }
 
   const start = (currentPage.value - 1) * pageSize.value + 1
-  const end = Math.min(start + pagedAccounts.value.length - 1, total)
-  return `本页 ${start}-${end} 条 / 共 ${total} 条`
+  const end = Math.min(start + accounts.value.length - 1, total.value)
+  return `本页 ${start}-${end} 条 / 共 ${total.value} 条`
 })
 
-const stats = computed(() => {
-  const expired = accounts.value.filter((item) => item.status === "已到期").length
-  const disabled = accounts.value.filter((item) => !item.enabled).length
-  const expiring = accounts.value.filter((item) => item.days > 0 && item.days <= 30).length
-  const normal = accounts.value.filter((item) => item.status === "正常").length
-  return {
-    total: accounts.value.length,
-    expired,
-    disabled,
-    expiring,
-    normal,
-  }
+const deleteAccountFields = computed(() => {
+  const account = selectedDeleteAccount.value
+  if (!account) return []
+  return [
+    { label: "账户编号", value: account.adobeCode },
+    { label: "Adobe账户", value: account.accountEmail },
+    { label: "验证码邮箱", value: account.verificationEmail },
+    { label: "到期日", value: formatDate(account.accountExpireAt) },
+  ]
 })
 
-function statusType(status) {
-  return status === "已到期" ? "danger" : "warning"
+function statusType(row) {
+  const days = Number(row.remainingDays || 0)
+  if (days < 0) return "danger"
+  if (days <= 30) return "warning"
+  return "success"
+}
+
+function statusText(row) {
+  return Number(row.remainingDays || 0) < 0 ? "已到期" : "正常"
 }
 
 function dayClass(days) {
-  if (days <= 0) {
+  if (Number(days || 0) < 0) {
     return "is-expired"
   }
-  if (days <= 30) {
+  if (Number(days || 0) <= 30) {
     return "is-warning"
   }
-  return ""
+  return "is-success"
+}
+
+function dateInputValue(value) {
+  return dateInputValueUtc8(value)
+}
+
+function today() {
+  return todayUtc8()
+}
+
+function addDays(dateText, days) {
+  return addDaysUtc8(dateText, days)
+}
+
+function planDays(planValue) {
+  const plan = plans.value.find((item) => item.id === planValue || item.name === planValue)
+  return Number(plan?.days || 0)
+}
+
+function initialExpireAt(dateText, planValue) {
+  return addDays(dateText, planDays(planValue)) || dateText || ""
+}
+
+function remainingDaysFromDate(dateText) {
+  return remainingDaysFromDateUtc8(dateText)
+}
+
+function formStatus(dateText) {
+  const days = remainingDaysFromDate(dateText)
+  if (days === null) {
+    return { text: "未设置", days: null, type: "info", className: "" }
+  }
+  if (days < 0) {
+    return { text: "已到期", days: 0, type: "danger", className: "is-expired" }
+  }
+  if (days <= 30) {
+    return { text: "正常", days, type: "warning", className: "is-warning" }
+  }
+  return { text: "正常", days, type: "success", className: "is-success" }
+}
+
+function syncAccountBaseExpireAt() {
+  createAccountForm.baseExpireAt = initialExpireAt(createAccountForm.paidAt, createAccountForm.plan)
+}
+
+function accountPayload() {
+  return {
+    adobeCode: createAccountForm.code,
+    accountEmail: createAccountForm.email,
+    adobePassword: createAccountForm.password,
+    accountEmailPassword: createAccountForm.emailPassword,
+    verificationEmail: `${createAccountForm.verifyEmailPrefix}@${createAccountForm.verifyEmailDomain}`,
+    accountPlan: createAccountForm.plan,
+    paidAt: createAccountForm.paidAt,
+    baseExpireAt: createAccountForm.baseExpireAt,
+    enabled: createAccountForm.enabled,
+    remark: createAccountForm.remark,
+  }
+}
+
+async function loadConfig() {
+  const data = await getAdminConfig()
+  plans.value = data.plans || []
+  mailDomainConfigs.value = data.mailDomainConfigs || []
+  mailDomains.value = mailDomainConfigs.value.length
+    ? mailDomainConfigs.value.map((item) => item.domain).filter(Boolean)
+    : data.mailDomains || []
+  if (!createAccountForm.verifyEmailDomain) {
+    createAccountForm.verifyEmailDomain = mailDomains.value[0] || "889100.xyz"
+  }
+  if (!createAccountForm.plan) {
+    createAccountForm.plan = plans.value[0]?.id || ""
+  }
+}
+
+async function loadAccounts() {
+  loading.value = true
+  try {
+    const data = await listAdobeAccounts({
+      page: currentPage.value,
+      pageSize: pageSize.value,
+      keyword: searchText.value,
+      planId: planFilter.value,
+      status: statusFilter.value,
+      enabled: enabledFilter.value,
+    })
+    accounts.value = data.items || []
+    total.value = data.total || 0
+    stats.value = data.stats || stats.value
+  } finally {
+    loading.value = false
+  }
 }
 
 function handleSizeChange(size) {
   pageSize.value = size
   currentPage.value = 1
+  loadAccounts()
 }
 
 function resetAccountForm() {
+  const currentDate = today()
+  const defaultPlan = plans.value[0]?.id || ""
   Object.assign(createAccountForm, {
     code: "",
     email: "",
     password: "",
     emailPassword: "",
     verifyEmailPrefix: "",
-    verifyEmailDomain: "889100.xyz",
-    plan: "全家桶月付（30天）",
-    paidAt: "",
-    baseExpireAt: "",
+    verifyEmailDomain: mailDomains.value[0] || "889100.xyz",
+    plan: defaultPlan,
+    paidAt: currentDate,
+    baseExpireAt: initialExpireAt(currentDate, defaultPlan),
     status: "",
     enabled: true,
     remark: "",
@@ -171,28 +230,34 @@ function resetAccountForm() {
 
 function openCreateAccountDialog() {
   accountDialogMode.value = "create"
+  editingAccount.value = null
+  accountFormReady = false
   resetAccountForm()
   showCreateAccountDialog.value = true
+  queueMicrotask(() => { accountFormReady = true })
 }
 
 function openEditAccountDialog(account) {
-  const [verifyEmailPrefix = "", verifyEmailDomain = "889100.xyz"] = account.verifyEmail.split("@")
+  const [verifyEmailPrefix = "", verifyEmailDomain = mailDomains.value[0] || "889100.xyz"] = String(account.verificationEmail || "").split("@")
   accountDialogMode.value = "edit"
+  editingAccount.value = account
+  accountFormReady = false
   Object.assign(createAccountForm, {
-    code: account.code,
-    email: account.email,
-    password: "",
-    emailPassword: "",
+    code: account.adobeCode,
+    email: account.accountEmail,
+    password: account.adobePassword || "",
+    emailPassword: account.accountEmailPassword || "",
     verifyEmailPrefix,
     verifyEmailDomain,
-    plan: account.plan,
-    paidAt: "",
-    baseExpireAt: account.expiresAt,
-    status: account.status,
+    plan: account.accountPlanId || account.accountPlan,
+    paidAt: dateInputValue(account.paidAt),
+    baseExpireAt: dateInputValue(account.baseExpireAt),
+    status: statusText(account),
     enabled: account.enabled,
-    remark: "",
+    remark: account.remark || "",
   })
   showCreateAccountDialog.value = true
+  queueMicrotask(() => { accountFormReady = true })
 }
 
 function openDeleteAccountDialog(account) {
@@ -201,22 +266,49 @@ function openDeleteAccountDialog(account) {
 }
 
 function handleSaveAccount() {
+  const isEdit = accountDialogMode.value === "edit"
   submitWithFeedback({
     setLoading: (value) => { accountSubmitting.value = value },
-    successMessage: accountDialogMode.value === "edit" ? "Adobe账户编辑成功。" : "Adobe账户新增成功。",
-    errorMessage: accountDialogMode.value === "edit" ? "Adobe账户编辑失败。" : "Adobe账户新增失败。",
-    onSuccess: () => { showCreateAccountDialog.value = false },
+    action: () => isEdit
+      ? updateAdobeAccount(editingAccount.value.id, accountPayload())
+      : createAdobeAccount(accountPayload()),
+    successMessage: isEdit ? "Adobe账户编辑成功。" : "Adobe账户新增成功。",
+    errorMessage: isEdit ? "Adobe账户编辑失败。" : "Adobe账户新增失败。",
+    onSuccess: () => {
+      showCreateAccountDialog.value = false
+      loadAccounts()
+    },
   })
 }
 
 function handleDeleteAccount() {
   submitWithFeedback({
     setLoading: (value) => { deleteAccountSubmitting.value = value },
+    action: () => deleteAdobeAccount(selectedDeleteAccount.value.id),
     successMessage: "Adobe账户删除成功。",
     errorMessage: "Adobe账户删除失败。",
-    onSuccess: () => { showDeleteAccountDialog.value = false },
+    onSuccess: () => {
+      showDeleteAccountDialog.value = false
+      loadAccounts()
+    },
   })
 }
+
+watch([searchText, planFilter, statusFilter, enabledFilter], () => {
+  currentPage.value = 1
+  loadAccounts()
+})
+
+watch(() => [createAccountForm.paidAt, createAccountForm.plan], () => {
+  if (showCreateAccountDialog.value && accountFormReady) {
+    syncAccountBaseExpireAt()
+  }
+})
+
+onMounted(async () => {
+  await loadConfig()
+  await loadAccounts()
+})
 </script>
 
 <template>
@@ -284,12 +376,12 @@ function handleDeleteAccount() {
             placeholder="搜索账户编号 / 账户邮箱 / 验证码邮箱"
           />
           <el-select v-model="planFilter" clearable placeholder="全部账户计划">
-            <el-option label="全家桶半年付（180天）" value="全家桶半年付（180天）" />
-            <el-option label="全家桶月付（30天）" value="全家桶月付（30天）" />
+            <el-option v-for="plan in plans" :key="plan.id" :label="plan.name" :value="plan.id" />
           </el-select>
           <el-select v-model="statusFilter" clearable placeholder="全部状态">
-            <el-option label="正常" value="正常" />
-            <el-option label="已到期" value="已到期" />
+            <el-option label="正常" value="normal" />
+            <el-option label="30天内到期" value="expiring" />
+            <el-option label="已到期" value="expired" />
           </el-select>
           <el-select v-model="enabledFilter" clearable placeholder="全部启用状态">
             <el-option label="启用" value="true" />
@@ -303,36 +395,46 @@ function handleDeleteAccount() {
 
       <section class="account-list-section">
         <el-table
+          v-loading="loading"
           class="account-table"
-          :data="pagedAccounts"
+          :data="accounts"
           height="100%"
           stripe
-          row-key="code"
+          row-key="id"
         >
-          <el-table-column prop="code" label="账户编号" width="92" />
-          <el-table-column prop="email" label="账户邮箱" min-width="220" show-overflow-tooltip />
-          <el-table-column prop="plan" label="账户计划" min-width="170" />
-          <el-table-column prop="expiresAt" label="到期日" width="108" />
+          <el-table-column label="账户编号" width="92">
+            <template #default="{ row }">
+              <button class="inline-nav-link" type="button" @click="emit('view-detail', row)">{{ row.adobeCode }}</button>
+            </template>
+          </el-table-column>
+          <el-table-column prop="accountEmail" label="账户邮箱" min-width="220" show-overflow-tooltip />
+          <el-table-column prop="accountPlan" label="账户计划" min-width="170" />
+          <el-table-column label="到期日" width="108">
+            <template #default="{ row }">{{ formatDate(row.accountExpireAt) }}</template>
+          </el-table-column>
           <el-table-column label="剩余天数" width="98">
             <template #default="{ row }">
-              <strong class="days-text" :class="dayClass(row.days)">
-                {{ row.days }} 天
+              <strong class="days-text" :class="dayClass(row.remainingDays)">
+                {{ Math.max(0, Number(row.remainingDays || 0)) }} 天
               </strong>
             </template>
           </el-table-column>
           <el-table-column label="状态" width="92">
             <template #default="{ row }">
-              <el-tag :type="statusType(row.status)" effect="light" round>
-                {{ row.status }}
+              <el-tag :type="statusType(row)" effect="light" round>
+                {{ statusText(row) }}
               </el-tag>
             </template>
           </el-table-column>
           <el-table-column label="启用" width="82">
             <template #default="{ row }">
-              <el-switch v-model="row.enabled" />
+              <el-switch
+                v-model="row.enabled"
+                @change="updateAdobeAccount(row.id, { enabled: row.enabled }).then(loadAccounts)"
+              />
             </template>
           </el-table-column>
-          <el-table-column prop="bindings" label="绑定用户数" width="104" align="center" />
+          <el-table-column prop="assignmentCount" label="绑定用户数" width="104" align="center" />
           <el-table-column label="操作" fixed="right" width="300">
             <template #default="{ row }">
               <div class="table-actions">
@@ -353,8 +455,8 @@ function handleDeleteAccount() {
           :current-page="currentPage"
           :page-size="pageSize"
           :page-sizes="[10, 20, 50]"
-          :total="filteredAccounts.length"
-          @current-change="currentPage = $event"
+          :total="total"
+          @current-change="currentPage = $event; loadAccounts()"
           @size-change="handleSizeChange"
         />
       </div>
@@ -376,7 +478,7 @@ function handleDeleteAccount() {
 
       <el-form class="account-form-grid" :model="createAccountForm" label-position="top" :disabled="accountSubmitting">
         <el-form-item label="Adobe账户编号">
-          <el-input v-model="createAccountForm.code" placeholder="自动生成，例如 A0001" disabled />
+          <el-input v-model="createAccountForm.code" placeholder="自动生成，例如 A0001" :disabled="accountDialogMode === 'create'" />
         </el-form-item>
 
         <el-form-item label="Adobe账户邮箱" required>
@@ -384,51 +486,43 @@ function handleDeleteAccount() {
         </el-form-item>
 
         <el-form-item label="Adobe密码">
-          <el-input v-model="createAccountForm.password" placeholder="至少 6 位" show-password />
+          <el-input v-model="createAccountForm.password" placeholder="至少 6 位" />
         </el-form-item>
 
         <el-form-item label="Adobe邮箱密码">
-          <el-input v-model="createAccountForm.emailPassword" placeholder="至少 6 位" show-password />
+          <el-input v-model="createAccountForm.emailPassword" placeholder="至少 6 位" />
         </el-form-item>
 
         <el-form-item label="验证码接收邮箱" required>
           <div class="verification-email-control">
             <el-input v-model="createAccountForm.verifyEmailPrefix" placeholder="请输入邮箱前缀" />
             <el-select v-model="createAccountForm.verifyEmailDomain">
-              <el-option label="889100.xyz" value="889100.xyz" />
-              <el-option label="889100.site" value="889100.site" />
+              <el-option v-for="domain in mailDomains" :key="domain" :label="domain" :value="domain" />
             </el-select>
           </div>
         </el-form-item>
 
         <el-form-item label="账户计划">
           <el-select v-model="createAccountForm.plan">
-            <el-option label="全家桶月付（30天）" value="全家桶月付（30天）" />
-            <el-option label="全家桶半年付（180天）" value="全家桶半年付（180天）" />
-            <el-option label="全家桶年付（365天）" value="全家桶年付（365天）" />
+            <el-option v-for="plan in plans" :key="plan.id" :label="plan.name" :value="plan.id" />
           </el-select>
         </el-form-item>
 
         <el-form-item label="付费日期">
-          <el-date-picker
-            v-model="createAccountForm.paidAt"
-            type="date"
-            placeholder="yyyy / mm / dd"
-            value-format="YYYY/M/D"
-          />
+          <el-date-picker v-model="createAccountForm.paidAt" type="date" placeholder="yyyy / mm / dd" value-format="YYYY-MM-DD" />
         </el-form-item>
 
         <el-form-item label="初始到期日">
-          <el-date-picker
-            v-model="createAccountForm.baseExpireAt"
-            type="date"
-            placeholder="yyyy / mm / dd"
-            value-format="YYYY/M/D"
-          />
+          <el-date-picker v-model="createAccountForm.baseExpireAt" type="date" placeholder="yyyy / mm / dd" value-format="YYYY-MM-DD" />
         </el-form-item>
 
         <el-form-item label="状态">
-          <el-input v-model="createAccountForm.status" placeholder="根据到期日自动计算" disabled />
+          <div class="account-form-status">
+            <el-tag :type="accountFormStatus.type" effect="light" round>{{ accountFormStatus.text }}</el-tag>
+            <strong v-if="accountFormStatus.days !== null" class="days-text" :class="accountFormStatus.className">
+              {{ accountFormStatus.days }} 天
+            </strong>
+          </div>
         </el-form-item>
 
         <el-form-item label="启用" class="account-form-switch">
@@ -453,7 +547,7 @@ function handleDeleteAccount() {
     <DeleteConfirmDialog
       v-model="showDeleteAccountDialog"
       title="确认删除 Adobe账户"
-      description="确认删除该 Adobe账户？删除后无法恢复，请谨慎操作。"
+      description="确认删除该 Adobe账户？删除后将同时删除该账户的续费记录和所有绑定关系，且无法恢复。"
       :fields="deleteAccountFields"
       warning="该操作不可撤销。"
       confirm-text="确认删除账户"

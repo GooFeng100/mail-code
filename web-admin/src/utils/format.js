@@ -12,7 +12,11 @@ export function formatDate(value) {
     return "-"
   }
 
-  return date.toLocaleDateString()
+  const shifted = new Date(date.getTime() + 8 * 60 * 60 * 1000)
+  const year = shifted.getUTCFullYear()
+  const month = shifted.getUTCMonth() + 1
+  const day = shifted.getUTCDate()
+  return `${year}/${month}/${day}`
 }
 
 export function remainingDays(value) {

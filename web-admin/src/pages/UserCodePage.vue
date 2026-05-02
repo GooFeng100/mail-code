@@ -1,45 +1,27 @@
 <script setup>
-import { computed, onBeforeUnmount, ref } from "vue"
+import { computed, onBeforeUnmount, onMounted, ref } from "vue"
+import { io } from "socket.io-client"
 import { DocumentCopy, Loading, SwitchButton, UserFilled } from "@element-plus/icons-vue"
 import { getToken } from "../api/client"
+import { listCodes } from "../api/codes"
 import loginBg from "../assets/login-bg.png"
+import { playNewCodeSound } from "../utils/soundFeedback"
 
-const userInfo = {
-  name: "Adobe 普通用户",
-  account: "adobe-user@example.com",
-  plan: "验证码接收权限",
-  expiresAt: "2026-12-31",
-}
+const props = defineProps({
+  user: {
+    type: Object,
+    default: () => ({}),
+  },
+})
 
-const codeMessages = [
-  {
-    id: 1,
-    code: "842931",
-    from: "Adobe Account",
-    to: "adobe-user@example.com",
-    time: "14:26:08",
-    expired: "5 分钟后",
-  },
-  {
-    id: 2,
-    code: "190624",
-    from: "Adobe Security",
-    to: "adobe-user@example.com",
-    time: "14:18:42",
-    expired: "已过期",
-  },
-  {
-    id: 3,
-    code: "537208",
-    from: "Adobe ID",
-    to: "adobe-user@example.com",
-    time: "14:02:15",
-    expired: "已过期",
-  },
-]
+const emit = defineEmits(["logout"])
 
+const codeMessages = ref([])
 const copiedCode = ref("")
 const now = ref(Date.now())
+let socket = null
+
+const userAccount = computed(() => props.user?.accountEmail || props.user?.username || "Adobe普通用户")
 
 function decodeTokenPayload(token) {
   if (!token) {
@@ -75,12 +57,74 @@ const loginRemainingText = computed(() => {
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
 })
 
+const activeCodes = computed(() => (
+  codeMessages.value
+    .filter((item) => new Date(item.expiresAt).getTime() > now.value)
+    .sort((a, b) => new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime())
+))
+
+function formatTime(value) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return "-"
+  }
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+}
+
+function expiryText(value) {
+  const expiresAt = new Date(value).getTime()
+  if (!Number.isFinite(expiresAt)) {
+    return "--"
+  }
+
+  const remainingMs = Math.max(0, expiresAt - now.value)
+  if (remainingMs <= 0) {
+    return "已过期"
+  }
+
+  const minutes = Math.floor(remainingMs / 60000)
+  const seconds = Math.floor((remainingMs % 60000) / 1000)
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
+}
+
+function upsertCode(code) {
+  playNewCodeSound()
+  codeMessages.value = [
+    code,
+    ...codeMessages.value.filter((item) => item.id !== code.id),
+  ]
+}
+
+async function loadCodes() {
+  const data = await listCodes()
+  codeMessages.value = data.codes || []
+}
+
+function connectSocket() {
+  socket = io("/", {
+    auth: {
+      token: getToken(),
+    },
+  })
+
+  socket.on("new_code", upsertCode)
+  socket.on("connect_error", () => {})
+}
+
 const timer = window.setInterval(() => {
   now.value = Date.now()
 }, 1000)
 
+onMounted(async () => {
+  await loadCodes()
+  connectSocket()
+})
+
 onBeforeUnmount(() => {
   window.clearInterval(timer)
+  if (socket) {
+    socket.disconnect()
+  }
 })
 
 async function copyCode(code) {
@@ -105,12 +149,12 @@ async function copyCode(code) {
           <el-avatar :size="42" class="user-avatar">
             <el-icon><UserFilled /></el-icon>
           </el-avatar>
-          <strong>Adobe账户：{{ userInfo.account }}</strong>
+          <strong>Adobe账户：{{ userAccount }}</strong>
         </div>
 
         <div class="user-card-right">
           <span>登录有效期：{{ loginRemainingText }}</span>
-          <button class="logout-button" type="button" aria-label="退出登录">
+          <button class="logout-button" type="button" aria-label="退出登录" @click="emit('logout')">
             <el-icon><SwitchButton /></el-icon>
           </button>
         </div>
@@ -119,14 +163,14 @@ async function copyCode(code) {
 
     <el-main class="code-main">
       <section class="code-bubbles">
-        <div v-if="!codeMessages.length" class="code-empty">
+        <div v-if="!activeCodes.length" class="code-empty">
           <el-icon><Loading /></el-icon>
-          <span>等待验证码接收</span>
+          <span>等待验证码接收。</span>
         </div>
 
         <template v-else>
           <article
-            v-for="message in codeMessages"
+            v-for="message in activeCodes"
             :key="message.id"
             class="code-bubble"
           >
@@ -143,19 +187,19 @@ async function copyCode(code) {
               <dl>
                 <div>
                   <dt>From:</dt>
-                  <dd>{{ message.from }}</dd>
+                  <dd>{{ message.from || "-" }}</dd>
                 </div>
                 <div>
                   <dt>To:</dt>
-                  <dd>{{ message.to }}</dd>
+                  <dd>{{ message.emailAddress || "-" }}</dd>
                 </div>
                 <div>
                   <dt>Time:</dt>
-                  <dd>{{ message.time }}</dd>
+                  <dd>{{ formatTime(message.receivedAt) }}</dd>
                 </div>
                 <div>
                   <dt>Expired:</dt>
-                  <dd>{{ message.expired }}</dd>
+                  <dd>{{ expiryText(message.expiresAt) }}</dd>
                 </div>
               </dl>
             </div>

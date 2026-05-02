@@ -58,7 +58,7 @@ router.get("/config", async (req, res, next) => {
 
 router.get("/parameters", async (req, res, next) => {
   try {
-    res.json({ ok: true, parameters: await listParameterOptions() });
+    res.json({ ok: true, ...(await listParameterOptions(req.query)) });
   } catch (error) {
     next(error);
   }
@@ -93,7 +93,7 @@ router.delete("/parameters/:id", async (req, res, next) => {
 
 router.get("/adobe-accounts", async (req, res, next) => {
   try {
-    res.json({ ok: true, adobeAccounts: await listAdobeAccounts() });
+    res.json({ ok: true, ...(await listAdobeAccounts(req.query)) });
   } catch (error) {
     next(error);
   }
@@ -166,7 +166,7 @@ router.delete("/adobe-accounts/:id", async (req, res, next) => {
 
 router.get("/customers", async (req, res, next) => {
   try {
-    res.json({ ok: true, customers: await listCustomers() });
+    res.json({ ok: true, ...(await listCustomers(req.query)) });
   } catch (error) {
     next(error);
   }
@@ -239,7 +239,7 @@ router.delete("/customers/:id", async (req, res, next) => {
 
 router.get("/assignments", async (req, res, next) => {
   try {
-    res.json({ ok: true, assignments: await listAssignments() });
+    res.json({ ok: true, ...(await listAssignments(req.query)) });
   } catch (error) {
     next(error);
   }
