@@ -1,0 +1,73 @@
+page {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+.safe-page {
+  min-height: 100vh;
+  background: var(--bg);
+  padding-bottom: calc(130rpx + env(safe-area-inset-bottom));
+}
+
+.detail-page {
+  min-height: 100vh;
+  background: var(--bg);
+  padding-bottom: calc(128rpx + env(safe-area-inset-bottom));
+}
+
+.content {
+  padding: 24rpx;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  margin: 28rpx 0 20rpx;
+  font-size: 34rpx;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.section-title::before {
+  content: '';
+  width: 8rpx;
+  height: 36rpx;
+  border-radius: 999rpx;
+  background: var(--primary);
+}
+
+.card {
+  background: var(--card);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.row-line {
+  border-bottom: 1rpx solid var(--line);
+}
+
+.bottom-actions {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  display: flex;
+  gap: 24rpx;
+  padding: 20rpx 24rpx calc(20rpx + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 -8rpx 24rpx rgba(30, 42, 62, 0.08);
+}
+
+.bottom-actions .action-btn {
+  flex: 1;
+}
+
+.empty-tip {
+  padding: 80rpx 0;
+  color: var(--muted);
+  text-align: center;
+  font-size: 28rpx;
+}

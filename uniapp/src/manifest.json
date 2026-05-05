@@ -1,0 +1,24 @@
+{
+  "name": "移动后台管理",
+  "appid": "__UNI__MOBILE_ADMIN",
+  "description": "账号、用户、关系移动端管理界面",
+  "versionName": "0.1.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "h5": {
+    "router": {
+      "mode": "hash"
+    },
+    "title": "移动后台管理"
+  },
+  "mp-weixin": {
+    "appid": "",
+    "setting": {
+      "urlCheck": false
+    },
+    "usingComponents": true
+  },
+  "app-plus": {
+    "usingComponents": true
+  }
+}
