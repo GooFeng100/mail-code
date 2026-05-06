@@ -13,8 +13,8 @@
       <view v-for="item in list" :key="item.id" class="relation-card card">
         <view class="relation-top">
           <view class="entity account">
-            <text class="entity-icon">■</text>
-            <text class="entity-name">{{ item.accountName }}</text>
+            <wd-icon class="entity-icon" name="books" size="18px" color="#1155d9" />
+            <text class="entity-name">{{ accountAlias(item.accountName) }}</text>
           </view>
           <view class="link-area" :class="statusType(currentStatus(item))">
             <view class="dash"></view>
@@ -22,8 +22,8 @@
             <view class="dash"></view>
           </view>
           <view class="entity user">
-            <text class="entity-icon">●</text>
-            <text class="entity-name">{{ currentStatus(item) === 'bound' ? (item.userName || '未绑定') : '未绑定' }}</text>
+            <wd-icon class="entity-icon" name="user" size="18px" color="#079455" />
+            <text class="entity-name">{{ displayUserName(item) }}</text>
           </view>
         </view>
         <view class="relation-bottom">
@@ -202,6 +202,17 @@ function currentStatus(item: RelationItem) {
   return relationState.value[item.id] || item.status
 }
 
+function accountAlias(accountName?: string) {
+  const value = String(accountName || '').trim()
+  if (!value) return '--'
+  const atIndex = value.indexOf('@')
+  return atIndex > 0 ? value.slice(0, atIndex) : value
+}
+
+function displayUserName(item: RelationItem) {
+  return String(item.userName || '').trim() || '未绑定'
+}
+
 async function togglePrimary(id: string) {
   try {
     const nextRole: 'primary' | 'backup' = currentRole(id) === 'primary' ? 'backup' : 'primary'
@@ -320,7 +331,7 @@ async function handleCreateBind(
 }
 
 .entity-icon {
-  font-size: 34rpx;
+  flex: 0 0 auto;
 }
 
 .entity-name {
