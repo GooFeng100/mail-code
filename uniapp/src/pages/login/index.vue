@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <view class="login-page">
     <view class="hero">
       <text class="hero-title">移动后台管理</text>
@@ -16,7 +16,7 @@
         <input v-model="password" placeholder="请输入密码" password class="input" />
       </view>
       <wd-button type="primary" block custom-class="login-btn" @click="submit">登录</wd-button>
-      <text class="tip">当前为 UI 演示阶段，使用 mock 登录。后续接真实接口时再替换 api/auth.ts。</text>
+      <text class="tip">仅支持管理员账号登录。</text>
     </view>
     <wd-backtop :scroll-top="scrollTop" :top="80" :bottom="24" />
 </view>
@@ -38,8 +38,12 @@ async function submit() {
     return
   }
 
-  await login(username.value, password.value)
-  uni.redirectTo({ url: '/pages/overview/index' })
+  try {
+    await login(username.value, password.value)
+    uni.redirectTo({ url: '/pages/overview/index' })
+  } catch (error: any) {
+    uni.showToast({ title: error?.message || '登录失败', icon: 'none' })
+  }
 }
 </script>
 

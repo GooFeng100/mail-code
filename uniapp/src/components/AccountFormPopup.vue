@@ -27,12 +27,12 @@
 
         <view class="form-row">
           <text class="form-label">Adobe密码</text>
-          <input v-model="form.adobePassword" class="form-input" password placeholder="至少 6 位" />
+          <input v-model="form.adobePassword" class="form-input" placeholder="至少 6 位" />
         </view>
 
         <view class="form-row">
           <text class="form-label">Adobe邮箱密码</text>
-          <input v-model="form.accountEmailPassword" class="form-input" password placeholder="至少 6 位" />
+          <input v-model="form.accountEmailPassword" class="form-input" placeholder="至少 6 位" />
         </view>
 
         <view class="form-row">
@@ -106,6 +106,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import type { AccountItem } from '@/types'
+import { fetchMailDomains } from '@/api/admin-config'
 
 interface PlanOption {
   label: string
@@ -150,7 +151,8 @@ const planOptions: PlanOption[] = [
   { label: '全家桶年付（365天）', days: 365 }
 ]
 
-const mailDomains = ['889100.xyz', 'outlook.com', 'proton.me']
+const fallbackMailDomains = ['889100.xyz', 'outlook.com', 'proton.me']
+const mailDomains = ref<string[]>([...fallbackMailDomains])
 
 const form = reactive<AccountFormValue>({
   code: '',
@@ -158,7 +160,7 @@ const form = reactive<AccountFormValue>({
   adobePassword: '',
   accountEmailPassword: '',
   verifyPrefix: '',
-  verifyDomain: mailDomains[0],
+  verifyDomain: mailDomains.value[0],
   accountPlan: planOptions[0].label,
   paidAt: dateText(new Date()),
   baseExpireAt: dateText(addDays(new Date(), planOptions[0].days)),
@@ -175,7 +177,7 @@ const visible = computed({
 const planLabels = computed(() => planOptions.map((item) => item.label))
 const planIndex = computed(() => Math.max(0, planOptions.findIndex((item) => item.label === form.accountPlan)))
 const currentPlan = computed(() => planOptions[planIndex.value] || planOptions[0])
-const domainIndex = computed(() => Math.max(0, mailDomains.indexOf(form.verifyDomain)))
+const domainIndex = computed(() => Math.max(0, mailDomains.value.indexOf(form.verifyDomain)))
 
 const statusDays = computed(() => {
   const today = new Date()
@@ -198,8 +200,9 @@ const statusClass = computed(() => {
 
 watch(
   () => [props.modelValue, props.mode, props.account] as const,
-  () => {
+  async () => {
     if (!props.modelValue) return
+    await refreshMailDomains()
     syncFormFromAccount()
   },
   { immediate: true }
@@ -218,7 +221,7 @@ function syncFormFromAccount() {
   form.adobePassword = String(item.adobePassword || '')
   form.accountEmailPassword = String(item.accountEmailPassword || '')
   form.verifyPrefix = prefixFromEmail || ''
-  form.verifyDomain = mailDomains.includes(domainFromEmail) ? domainFromEmail : mailDomains[0]
+  form.verifyDomain = mailDomains.value.includes(domainFromEmail) ? domainFromEmail : mailDomains.value[0]
   form.accountPlan = plan
   form.paidAt = paid
   form.baseExpireAt = normalizeDate(item.accountExpireAt) || normalizeDate(item.expireDate) || dateText(addDays(new Date(paid), planDays))
@@ -228,7 +231,7 @@ function syncFormFromAccount() {
 
 function onDomainChange(event: any) {
   const index = Number(event.detail.value || 0)
-  form.verifyDomain = mailDomains[index] || mailDomains[0]
+  form.verifyDomain = mailDomains.value[index] || mailDomains.value[0]
 }
 
 function onPlanChange(event: any) {
@@ -293,6 +296,14 @@ function addDays(date: Date, days: number) {
   const next = new Date(date)
   next.setDate(next.getDate() + days)
   return next
+}
+
+async function refreshMailDomains() {
+  const domains = await fetchMailDomains()
+  mailDomains.value = domains.length ? domains : [...fallbackMailDomains]
+  if (!mailDomains.value.includes(form.verifyDomain)) {
+    form.verifyDomain = mailDomains.value[0]
+  }
 }
 
 </script>

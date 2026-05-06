@@ -5,7 +5,7 @@
       v-model="keyword"
       placeholder="搜索账号 / 账号编号"
       :chips="chips"
-      @search="load"
+      @search="refreshList"
       @filter="showFilter = true"
     />
 
@@ -33,6 +33,8 @@
         </view>
       </view>
       <view v-if="!list.length" class="empty-tip">暂无账号数据</view>
+      <view v-else-if="loadingMore" class="list-tip">加载中...</view>
+      <view v-else-if="!hasMore" class="list-tip">没有更多数据了</view>
     </view>
 
     <wd-popup v-model="showFilter" position="bottom" custom-class="filter-popup" safe-area-inset-bottom>
@@ -59,8 +61,9 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { onReachBottom, onShow } from '@dcloudio/uni-app'
 import { usePageScrollTop } from '@/composables/usePageScrollTop'
-import { fetchAccounts } from '@/api/account'
+import { createAccount, fetchAccounts } from '@/api/account'
 import AccountFormPopup from '@/components/AccountFormPopup.vue'
 import AppHeader from '@/components/AppHeader.vue'
 import ListToolbar from '@/components/ListToolbar.vue'
@@ -72,6 +75,11 @@ const status = ref<'all' | AccountStatus>('all')
 const showFilter = ref(false)
 const showAccountForm = ref(false)
 const list = ref<AccountItem[]>([])
+const currentPage = ref(1)
+const pageSize = 10
+const hasMore = ref(true)
+const loading = ref(false)
+const loadingMore = ref(false)
 
 const { scrollTop } = usePageScrollTop()
 
@@ -81,10 +89,48 @@ const chips = computed(() => [
   { label: '到期：最近30天' }
 ])
 
-onMounted(load)
+onShow(refreshList)
+onMounted(refreshList)
+onReachBottom(loadMore)
 
-async function load() {
-  list.value = await fetchAccounts({ keyword: keyword.value, status: status.value })
+async function load(reset = false) {
+  if (reset) {
+    currentPage.value = 1
+    hasMore.value = true
+  }
+  if (reset && loading.value) return
+  if (!reset && (loadingMore.value || !hasMore.value)) return
+
+  reset ? (loading.value = true) : (loadingMore.value = true)
+  try {
+    const items = await fetchAccounts({
+      keyword: keyword.value,
+      status: status.value,
+      page: currentPage.value,
+      pageSize
+    })
+    list.value = reset ? items : [...list.value, ...items]
+    hasMore.value = items.length === pageSize
+    if (items.length > 0) {
+      currentPage.value += 1
+    }
+  } catch (error: any) {
+    if (reset) {
+      list.value = []
+    }
+    uni.showToast({ title: error?.message || '加载账号失败', icon: 'none' })
+  } finally {
+    loading.value = false
+    loadingMore.value = false
+  }
+}
+
+function refreshList() {
+  return load(true)
+}
+
+function loadMore() {
+  return load(false)
 }
 
 function openDetail(id: string) {
@@ -100,21 +146,8 @@ async function handleSubmitAccount(
   done: (result?: { success?: boolean; message?: string; error?: string }) => void
 ) {
   try {
-    await simulateDbDelay()
-    const id = `a_${Date.now()}`
-    list.value = [
-      {
-        id,
-        code: value.code || `A${String(Date.now()).slice(-6)}`,
-        name: value.accountEmail || '--',
-        businessName: value.accountPlan || '--',
-        status: value.enabled ? 'normal' : 'disabled',
-        expireDate: value.baseExpireAt || value.paidAt,
-        createdAt: value.paidAt || '',
-        updatedAt: value.paidAt || ''
-      },
-      ...list.value
-    ]
+    await createAccount(value)
+    await refreshList()
     showAccountForm.value = false
     done({ success: true, message: '新增成功' })
   } catch (error: any) {
@@ -131,12 +164,12 @@ function toggleStatus() {
 function reset() {
   keyword.value = ''
   status.value = 'all'
-  load()
+  refreshList()
 }
 
 function confirmFilter() {
   showFilter.value = false
-  load()
+  refreshList()
 }
 
 function remainText(expireDate: string) {
@@ -164,11 +197,6 @@ function remainBadgeType(expireDate: string) {
   return 'danger'
 }
 
-function simulateDbDelay() {
-  return new Promise<void>((resolve) => {
-    setTimeout(() => resolve(), 900)
-  })
-}
 </script>
 
 <style scoped lang="scss">
@@ -176,12 +204,19 @@ function simulateDbDelay() {
   padding: 16rpx 24rpx 24rpx;
 }
 
+.list-tip {
+  text-align: center;
+  color: #98a2b3;
+  font-size: 24rpx;
+  padding: 8rpx 0 20rpx;
+}
+
 .list-card {
   min-height: 188rpx;
   padding: 28rpx;
   margin-bottom: 22rpx;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 24rpx;
 }
 
@@ -225,6 +260,7 @@ function simulateDbDelay() {
   flex-direction: column;
   align-items: flex-end;
   gap: 24rpx;
+  padding-top: 2rpx;
 }
 
 .remain-badge {

@@ -1,4 +1,4 @@
-import { API_BASE_URL } from './config'
+﻿import { API_BASE_URL } from './config'
 
 type Method = 'GET' | 'POST' | 'PUT' | 'DELETE'
 
@@ -42,16 +42,26 @@ export function http<T>(options: HttpOptions): Promise<T> {
       },
       success: (res) => {
         const statusCode = res.statusCode || 0
+        const body = (res.data || {}) as Record<string, any>
+
+        if (statusCode === 401) {
+          clearToken()
+        }
+
         if (statusCode < 200 || statusCode >= 300) {
-          reject(new Error(`HTTP ${statusCode}`))
+          reject(new Error(String(body.error || body.message || `HTTP ${statusCode}`)))
           return
         }
 
-        const body = res.data as ApiResponse<T> | T
+        if (body.ok === false) {
+          reject(new Error(String(body.error || body.message || '接口请求失败')))
+          return
+        }
+
         if (body && typeof body === 'object' && 'data' in body) {
-          const apiBody = body as ApiResponse<T>
-          if (apiBody.code && apiBody.code !== 200 && apiBody.code !== 0) {
-            reject(new Error(apiBody.message || '接口请求失败'))
+          const apiBody = body as ApiResponse<T> & { ok?: boolean; error?: string }
+          if ((apiBody.code && apiBody.code !== 200 && apiBody.code !== 0) || apiBody.ok === false) {
+            reject(new Error(String(apiBody.error || apiBody.message || '接口请求失败')))
             return
           }
           resolve(apiBody.data)

@@ -47,12 +47,6 @@
       "style": {
         "navigationStyle": "custom"
       }
-    },
-    {
-      "path": "pages/expire/index",
-      "style": {
-        "navigationStyle": "custom"
-      }
     }
   ],
   "globalStyle": {

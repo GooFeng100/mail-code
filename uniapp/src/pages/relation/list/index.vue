@@ -5,7 +5,7 @@
       v-model="keyword"
       placeholder="搜索账号 / 用户"
       :chips="chips"
-      @search="load"
+      @search="refreshList"
       @filter="showFilter = true"
     />
 
@@ -45,6 +45,8 @@
         </view>
       </view>
       <view v-if="!list.length" class="empty-tip">暂无关系数据</view>
+      <view v-else-if="loadingMore" class="list-tip">加载中...</view>
+      <view v-else-if="!hasMore" class="list-tip">没有更多数据了</view>
     </view>
 
     <wd-popup v-model="showFilter" position="bottom" safe-area-inset-bottom>
@@ -72,7 +74,8 @@
 <script setup lang="ts">
 import { usePageScrollTop } from '@/composables/usePageScrollTop'
 import { computed, onMounted, ref } from 'vue'
-import { fetchRelations } from '@/api/relation'
+import { onReachBottom, onShow } from '@dcloudio/uni-app'
+import { createRelation, deleteRelation, fetchRelations, updateRelationActive, updateRelationRole } from '@/api/relation'
 import AppHeader from '@/components/AppHeader.vue'
 import GlobalConfirmDialog from '@/components/GlobalConfirmDialog.vue'
 import ListToolbar from '@/components/ListToolbar.vue'
@@ -89,24 +92,80 @@ const showBindForm = ref(false)
 const list = ref<RelationItem[]>([])
 const roleState = ref<Record<string, 'primary' | 'backup'>>({})
 const relationState = ref<Record<string, RelationStatus>>({})
+const currentPage = ref(1)
+const pageSize = 10
+const hasMore = ref(true)
+const loading = ref(false)
+const loadingMore = ref(false)
 
 const { scrollTop } = usePageScrollTop()
 
 const statusLabel = computed(() => (status.value === 'all' ? '全部' : relationStatusText(status.value)))
 const chips = computed(() => [{ label: '关系：全部' }, { label: `状态：${statusLabel.value}` }])
 
-onMounted(load)
+onShow(refreshList)
+onMounted(refreshList)
+onReachBottom(loadMore)
 
-async function load() {
-  list.value = await fetchRelations({ keyword: keyword.value, status: status.value })
-  const roleNext: Record<string, 'primary' | 'backup'> = {}
-  const stateNext: Record<string, RelationStatus> = {}
-  list.value.forEach((item, index) => {
-    roleNext[item.id] = roleState.value[item.id] || (index === 0 ? 'primary' : 'backup')
-    stateNext[item.id] = relationState.value[item.id] || item.status
+async function load(reset = false) {
+  if (reset) {
+    currentPage.value = 1
+    hasMore.value = true
+  }
+  if (reset && loading.value) return
+  if (!reset && (loadingMore.value || !hasMore.value)) return
+
+  reset ? (loading.value = true) : (loadingMore.value = true)
+  try {
+    const items = await fetchRelations({
+      keyword: keyword.value,
+      status: status.value,
+      page: currentPage.value,
+      pageSize
+    })
+
+    list.value = reset ? items : [...list.value, ...items]
+    hasMore.value = items.length === pageSize
+    if (items.length > 0) {
+      currentPage.value += 1
+    }
+    syncRelationState(items, reset)
+  } catch (error: any) {
+    if (reset) {
+      list.value = []
+      roleState.value = {}
+      relationState.value = {}
+    }
+    uni.showToast({ title: error?.message || '加载关系失败', icon: 'none' })
+  } finally {
+    loading.value = false
+    loadingMore.value = false
+  }
+}
+
+function syncRelationState(items: RelationItem[], reset: boolean) {
+  const roleNext: Record<string, 'primary' | 'backup'> = reset ? {} : { ...roleState.value }
+  const stateNext: Record<string, RelationStatus> = reset ? {} : { ...relationState.value }
+
+  items.forEach((item) => {
+    if (reset || !roleNext[item.id]) {
+      roleNext[item.id] = item.assignmentRole || 'backup'
+    }
+    if (reset || !stateNext[item.id]) {
+      stateNext[item.id] = item.status
+    }
   })
+
   roleState.value = roleNext
   relationState.value = stateNext
+}
+
+function refreshList() {
+  return load(true)
+}
+
+function loadMore() {
+  return load(false)
 }
 
 function addRelation() {
@@ -122,12 +181,12 @@ function toggleStatus() {
 function reset() {
   keyword.value = ''
   status.value = 'all'
-  load()
+  refreshList()
 }
 
 function confirmFilter() {
   showFilter.value = false
-  load()
+  refreshList()
 }
 
 function relationTagType(status: RelationStatus): 'success' | 'danger' {
@@ -143,18 +202,47 @@ function currentStatus(item: RelationItem) {
   return relationState.value[item.id] || item.status
 }
 
-function togglePrimary(id: string) {
-  roleState.value[id] = currentRole(id) === 'primary' ? 'backup' : 'primary'
+async function togglePrimary(id: string) {
+  try {
+    const nextRole: 'primary' | 'backup' = currentRole(id) === 'primary' ? 'backup' : 'primary'
+    await updateRelationRole(id, nextRole)
+    roleState.value[id] = nextRole
+    const target = list.value.find((item) => item.id === id)
+    if (target) {
+      target.assignmentRole = nextRole
+    }
+    uni.showToast({ title: '切换成功', icon: 'none' })
+  } catch (error: any) {
+    uni.showToast({ title: error?.message || '切换失败', icon: 'none' })
+  }
 }
 
-function toggleRelation(id: string) {
-  const next: RelationStatus = (relationState.value[id] || 'bound') === 'bound' ? 'unbound' : 'bound'
-  relationState.value[id] = next
+async function toggleRelation(id: string) {
+  try {
+    const target = list.value.find((item) => item.id === id)
+    if (!target) return
+
+    const current = currentStatus(target)
+    const nextActive = current !== 'bound'
+    if (nextActive && target.canRestore === false) {
+      uni.showToast({ title: '该关系不可恢复', icon: 'none' })
+      return
+    }
+
+    await updateRelationActive(id, nextActive)
+    const next: RelationStatus = nextActive ? 'bound' : 'unbound'
+    relationState.value[id] = next
+    target.status = next
+    target.active = nextActive
+    uni.showToast({ title: nextActive ? '恢复成功' : '解绑成功', icon: 'none' })
+  } catch (error: any) {
+    uni.showToast({ title: error?.message || '操作失败', icon: 'none' })
+  }
 }
 
 function removeRelation(id: string) {
   confirmDanger('确认删除这条绑定关系吗？', '危险操作', async () => {
-    await simulateDbDelay()
+    await deleteRelation(id)
     list.value = list.value.filter((item) => item.id !== id)
     delete roleState.value[id]
     delete relationState.value[id]
@@ -176,37 +264,26 @@ async function handleCreateBind(
   done: (result?: { success?: boolean; message?: string; error?: string }) => void
 ) {
   try {
-    await simulateDbDelay()
-    const id = `r_${Date.now()}`
-    const nextItem: RelationItem = {
-      id,
-      accountId: value.accountId,
-      accountName: value.accountName || value.accountCode,
-      userId: value.userId,
-      userName: `${value.userCode} ${value.userName}`,
-      status: 'bound',
-      updatedAt: value.bindDate
-    }
-    list.value = [nextItem, ...list.value]
-    roleState.value[id] = value.role
-    relationState.value[id] = 'bound'
+    await createRelation(value)
+    await refreshList()
     showBindForm.value = false
     done({ success: true, message: '新增绑定成功' })
   } catch (error: any) {
     done({ success: false, error: error?.message || '新增绑定失败，请重试' })
   }
 }
-
-function simulateDbDelay() {
-  return new Promise<void>((resolve) => {
-    setTimeout(() => resolve(), 900)
-  })
-}
 </script>
 
 <style scoped lang="scss">
 .list-wrap {
   padding: 16rpx 24rpx 24rpx;
+}
+
+.list-tip {
+  text-align: center;
+  color: #98a2b3;
+  font-size: 24rpx;
+  padding: 8rpx 0 20rpx;
 }
 
 .relation-card {

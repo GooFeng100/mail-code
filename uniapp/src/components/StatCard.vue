@@ -5,7 +5,8 @@
       <text class="value" :class="type">{{ value }}</text>
     </view>
     <view class="icon-wrap" :class="type">
-      <text class="icon">{{ icon }}</text>
+      <wd-icon v-if="iconName" :name="iconName" size="24px" />
+      <text v-else class="icon">{{ icon }}</text>
     </view>
   </view>
 </template>
@@ -15,6 +16,7 @@ defineProps<{
   label: string
   value: number | string
   icon: string
+  iconName?: string
   type: 'primary' | 'success' | 'warning' | 'danger'
 }>()
 </script>

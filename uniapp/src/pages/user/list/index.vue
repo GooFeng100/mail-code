@@ -5,7 +5,7 @@
       v-model="keyword"
       placeholder="搜索用户 / 联系方式"
       :chips="chips"
-      @search="load"
+      @search="refreshList"
       @filter="showFilter = true"
     />
 
@@ -33,6 +33,8 @@
         </view>
       </view>
       <view v-if="!list.length" class="empty-tip">暂无用户数据</view>
+      <view v-else-if="loadingMore" class="list-tip">加载中...</view>
+      <view v-else-if="!hasMore" class="list-tip">没有更多数据了</view>
     </view>
 
     <wd-popup v-model="showFilter" position="bottom" safe-area-inset-bottom>
@@ -60,7 +62,8 @@
 <script setup lang="ts">
 import { usePageScrollTop } from '@/composables/usePageScrollTop'
 import { computed, onMounted, ref } from 'vue'
-import { fetchUsers } from '@/api/user'
+import { onReachBottom, onShow } from '@dcloudio/uni-app'
+import { createUser, fetchUsers } from '@/api/user'
 import AppHeader from '@/components/AppHeader.vue'
 import ListToolbar from '@/components/ListToolbar.vue'
 import UserFormPopup from '@/components/UserFormPopup.vue'
@@ -72,16 +75,59 @@ const status = ref<'all' | UserStatus>('all')
 const showFilter = ref(false)
 const showUserForm = ref(false)
 const list = ref<UserItem[]>([])
+const currentPage = ref(1)
+const pageSize = 10
+const hasMore = ref(true)
+const loading = ref(false)
+const loadingMore = ref(false)
 
 const { scrollTop } = usePageScrollTop()
 
 const statusLabel = computed(() => (status.value === 'all' ? '全部' : userStatusText(status.value)))
 const chips = computed(() => [{ label: `状态：${statusLabel.value}` }, { label: '到期：最近30天' }])
 
-onMounted(load)
+onShow(refreshList)
+onMounted(refreshList)
+onReachBottom(loadMore)
 
-async function load() {
-  list.value = await fetchUsers({ keyword: keyword.value, status: status.value })
+async function load(reset = false) {
+  if (reset) {
+    currentPage.value = 1
+    hasMore.value = true
+  }
+  if (reset && loading.value) return
+  if (!reset && (loadingMore.value || !hasMore.value)) return
+
+  reset ? (loading.value = true) : (loadingMore.value = true)
+  try {
+    const items = await fetchUsers({
+      keyword: keyword.value,
+      status: status.value,
+      page: currentPage.value,
+      pageSize
+    })
+    list.value = reset ? items : [...list.value, ...items]
+    hasMore.value = items.length === pageSize
+    if (items.length > 0) {
+      currentPage.value += 1
+    }
+  } catch (error: any) {
+    if (reset) {
+      list.value = []
+    }
+    uni.showToast({ title: error?.message || '加载用户失败', icon: 'none' })
+  } finally {
+    loading.value = false
+    loadingMore.value = false
+  }
+}
+
+function refreshList() {
+  return load(true)
+}
+
+function loadMore() {
+  return load(false)
 }
 
 function openDetail(id: string) {
@@ -97,22 +143,8 @@ async function handleSubmitUser(
   done: (result?: { success?: boolean; message?: string; error?: string }) => void
 ) {
   try {
-    await simulateDbDelay()
-    const id = `u_${Date.now()}`
-    list.value = [
-      {
-        id,
-        code: value.code || `U${String(Date.now()).slice(-6)}`,
-        name: value.name || '--',
-        phone: value.phone || '--',
-        region: '',
-        status: value.renewalStatus === '停用' ? 'frozen' : value.renewalStatus === '即将到期' ? 'expiring' : 'normal',
-        expireDate: value.afterSalesExpireAt || '',
-        createdAt: value.paidAt || '',
-        availableAccounts: []
-      },
-      ...list.value
-    ]
+    await createUser(value)
+    await refreshList()
     showUserForm.value = false
     done({ success: true, message: '新增成功' })
   } catch (error: any) {
@@ -129,12 +161,12 @@ function toggleStatus() {
 function reset() {
   keyword.value = ''
   status.value = 'all'
-  load()
+  refreshList()
 }
 
 function confirmFilter() {
   showFilter.value = false
-  load()
+  refreshList()
 }
 
 function remainText(expireDate: string) {
@@ -164,16 +196,18 @@ function remainBadgeType(expireDate: string) {
   return 'danger'
 }
 
-function simulateDbDelay() {
-  return new Promise<void>((resolve) => {
-    setTimeout(() => resolve(), 900)
-  })
-}
 </script>
 
 <style scoped lang="scss">
 .list-wrap {
   padding: 16rpx 24rpx 24rpx;
+}
+
+.list-tip {
+  text-align: center;
+  color: #98a2b3;
+  font-size: 24rpx;
+  padding: 8rpx 0 20rpx;
 }
 
 .list-card {

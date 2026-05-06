@@ -11,7 +11,7 @@
           </view>
         </template>
         <template #status>
-          <StatusTag :text="accountStatusText(account.status)" :type="statusType(account.status)" />
+          <StatusTag :text="accountStatusTextByDays(account.remainingDays)" :type="accountStatusTypeByDays(account.remainingDays)" />
         </template>
         <template #remainDays>
           <text class="remain-days" :class="remainDaysClass(account.remainingDays)">{{ displayRemainingDays(account.remainingDays) }}</text>
@@ -135,30 +135,39 @@
       lock-account
       @submit="handleBindSubmit"
     />
+    <RenewalFormPopup
+      v-model="showRenewalForm"
+      subject-label="账号"
+      :previous-expire-at="account.accountExpireAt || account.expireDate"
+      @submit="handleRenewSubmit"
+    />
     <GlobalConfirmDialog />
   </view>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { fetchAccountDetail } from '@/api/account'
+import { createAccountRenewal, deleteAccount, deleteAccountRenewal, fetchAccountDetail, updateAccount } from '@/api/account'
+import { createRelation } from '@/api/relation'
 import { usePageScrollTop } from '@/composables/usePageScrollTop'
 import AccountFormPopup from '@/components/AccountFormPopup.vue'
 import AppHeader from '@/components/AppHeader.vue'
 import GlobalConfirmDialog from '@/components/GlobalConfirmDialog.vue'
 import InfoCard from '@/components/InfoCard.vue'
 import RelationBindPopup from '@/components/RelationBindPopup.vue'
+import RenewalFormPopup from '@/components/RenewalFormPopup.vue'
 import StatusTag from '@/components/StatusTag.vue'
 import type { AccountItem } from '@/types'
 import { back } from '@/utils/nav'
 import { confirmDanger } from '@/utils/confirm'
-import { accountStatusText, statusType } from '@/utils/status'
 
 const { scrollTop } = usePageScrollTop()
 const bindingExpanded = ref<Record<string, boolean>>({})
 const renewalExpanded = ref<Record<string, boolean>>({})
 const showEditForm = ref(false)
 const showBindForm = ref(false)
+const showRenewalForm = ref(false)
+const accountId = ref('')
 
 const account = ref<AccountItem>({
   id: '',
@@ -173,9 +182,18 @@ const account = ref<AccountItem>({
 
 onMounted(async () => {
   const pages = getCurrentPages() as Array<{ options?: { id?: string } }>
-  const id = String(pages[pages.length - 1]?.options?.id || 'a001')
-  account.value = await fetchAccountDetail(id)
+  accountId.value = String(pages[pages.length - 1]?.options?.id || '')
+  if (!accountId.value) {
+    uni.showToast({ title: '缺少账号ID', icon: 'none' })
+    return
+  }
+  await loadDetail()
 })
+
+async function loadDetail() {
+  if (!accountId.value) return
+  account.value = await fetchAccountDetail(accountId.value)
+}
 
 const baseRows = computed(() => [
   { label: 'Adobe账户：', value: account.value.accountEmail || account.value.name || '--' },
@@ -282,7 +300,7 @@ function copyDetail() {
     `账户计划：${account.value.accountPlan || account.value.businessName || '--'}`,
     `账户到期日：${account.value.accountExpireAt || account.value.expireDate || '--'}`,
     `剩余天数：${displayRemainingDays(account.value.remainingDays)}`,
-    `账号状态：${accountStatusText(account.value.status)}`,
+    `账号状态：${accountStatusTextByDays(account.value.remainingDays)}`,
     `验证码启用状态：${account.value.verificationEnabled ? '启用' : '停用'}`,
     `备注：${account.value.remark || '--'}`
   ]
@@ -307,6 +325,19 @@ function remainDaysClass(days?: number) {
   return 'normal'
 }
 
+function accountStatusTextByDays(days?: number) {
+  const value = Number(days ?? 0)
+  if (value < 0) return '已过期'
+  return '正常'
+}
+
+function accountStatusTypeByDays(days?: number): 'success' | 'warning' | 'danger' {
+  const value = Number(days ?? 0)
+  if (value > 30) return 'success'
+  if (value >= 0) return 'warning'
+  return 'danger'
+}
+
 function renewalStatusType(status: string): 'success' | 'warning' | 'danger' | 'default' {
   if (status === '正常') return 'success'
   if (status === '即将到期') return 'warning'
@@ -314,16 +345,22 @@ function renewalStatusType(status: string): 'success' | 'warning' | 'danger' | '
   return 'default'
 }
 
-function renewAction(item: { actionText: string; renewalDate: string }, idx: number) {
+function renewAction(item: { id?: string; initial?: boolean; actionText: string; renewalDate: string }) {
   if (item.actionText !== '删除') {
-    uni.showToast({ title: `UI 阶段暂不接${item.actionText}接口`, icon: 'none' })
+    uni.showToast({ title: item.actionText || '不可操作', icon: 'none' })
+    return
+  }
+  if (!item.id) {
+    uni.showToast({ title: '暂无可删除记录', icon: 'none' })
+    return
+  }
+  if (item.initial) {
+    uni.showToast({ title: '基准记录不支持删除', icon: 'none' })
     return
   }
   confirmDanger('确认删除这条续费记录吗？', '危险操作', async () => {
-    await simulateDbDelay()
-    if (account.value.renewals?.length) {
-      account.value.renewals = account.value.renewals.filter((_, rowIdx) => rowIdx !== idx)
-    }
+    await deleteAccountRenewal(account.value.id, item.id as string)
+    await loadDetail()
     return { success: true, message: '删除成功' }
   })
 }
@@ -337,22 +374,8 @@ async function handleEditSubmit(
   done: (result?: { success?: boolean; message?: string; error?: string }) => void
 ) {
   try {
-    await simulateDbDelay()
-    account.value = {
-      ...account.value,
-      accountEmail: value.accountEmail,
-      name: value.accountEmail,
-      adobePassword: value.adobePassword,
-      accountEmailPassword: value.accountEmailPassword,
-      verificationEmail: value.verifyPrefix && value.verifyDomain ? `${value.verifyPrefix}@${value.verifyDomain}` : '',
-      paidAt: value.paidAt,
-      accountPlan: value.accountPlan,
-      accountExpireAt: value.baseExpireAt,
-      remainingDays: daysFromToday(value.baseExpireAt),
-      status: value.enabled ? 'normal' : 'disabled',
-      verificationEnabled: value.enabled,
-      remark: value.remark
-    }
+    await updateAccount(account.value.id, value)
+    await loadDetail()
     showEditForm.value = false
     showBindForm.value = false
     done({ success: true, message: '保存成功' })
@@ -379,19 +402,17 @@ async function handleBindSubmit(
   done: (result?: { success?: boolean; message?: string; error?: string }) => void
 ) {
   try {
-    await simulateDbDelay()
-    const current = account.value.bindings || []
-    account.value.bindings = [
-      {
-        userCode: value.userCode || '--',
-        userName: value.userName || '--',
-        plan: account.value.accountPlan || '--',
-        afterSalesExpireAt: account.value.accountExpireAt || account.value.expireDate || '--',
-        remainingDays: Number(account.value.remainingDays ?? 0),
-        renewalStatus: value.role === 'primary' ? '主绑定' : '备绑定'
-      },
-      ...current
-    ]
+    await createRelation({
+      accountId: account.value.id || value.accountId,
+      accountCode: account.value.code || value.accountCode,
+      accountName: account.value.name || value.accountName,
+      userId: value.userId,
+      userCode: value.userCode,
+      userName: value.userName,
+      bindDate: value.bindDate,
+      role: value.role
+    })
+    await loadDetail()
     showBindForm.value = false
     showEditForm.value = false
     done({ success: true, message: '新增绑定成功' })
@@ -401,29 +422,31 @@ async function handleBindSubmit(
 }
 
 function renew() {
-  uni.showToast({ title: 'UI 阶段暂不接续费接口', icon: 'none' })
+  showRenewalForm.value = true
+}
+
+async function handleRenewSubmit(
+  value: { planId: string; renewalDate: string; remark: string },
+  done: (result?: { success?: boolean; message?: string; error?: string }) => void
+) {
+  try {
+    await createAccountRenewal(account.value.id, value)
+    await loadDetail()
+    showRenewalForm.value = false
+    done({ success: true, message: '续费成功' })
+  } catch (error: any) {
+    done({ success: false, error: error?.message || '续费失败，请稍后重试' })
+  }
 }
 
 function removeAccount() {
   confirmDanger('确认删除当前账号吗？', '危险操作', async () => {
-    await simulateDbDelay()
+    await deleteAccount(account.value.id)
+    setTimeout(() => {
+      back()
+    }, 150)
     return { success: true, message: '删除成功' }
   })
-}
-
-function simulateDbDelay() {
-  return new Promise<void>((resolve) => {
-    setTimeout(() => resolve(), 900)
-  })
-}
-
-function daysFromToday(dateText: string) {
-  if (!dateText) return 0
-  const today = new Date()
-  const end = new Date(`${dateText}T00:00:00`)
-  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-  const diff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
-  return diff > 0 ? diff : 0
 }
 </script>
 

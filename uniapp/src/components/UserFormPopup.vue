@@ -55,7 +55,7 @@
           <text class="form-label">状态</text>
           <view class="status-row">
             <text class="status-pill" :class="statusClass">{{ statusText }}</text>
-            <text class="status-days">{{ form.remainingDays }}天</text>
+            <text class="status-days" :class="statusClass">{{ Math.max(statusDays, 0) }}天</text>
           </view>
         </view>
 
@@ -147,11 +147,12 @@ const visible = computed({
 const planLabels = computed(() => planOptions.map((item) => item.label))
 const planIndex = computed(() => Math.max(0, planOptions.findIndex((item) => item.label === form.purchasePlan)))
 const currentPlan = computed(() => planOptions[planIndex.value] || planOptions[0])
-const statusText = computed(() => form.renewalStatus)
+const statusDays = computed(() => daysBetweenToday(form.afterSalesExpireAt))
+const statusText = computed(() => (statusDays.value < 0 ? '已过期' : '正常'))
 const statusClass = computed(() => {
-  if (form.renewalStatus === '停用') return 'danger'
-  if (form.renewalStatus === '即将到期') return 'warning'
-  return 'success'
+  if (statusDays.value > 30) return 'success'
+  if (statusDays.value >= 0) return 'warning'
+  return 'danger'
 })
 
 watch(
@@ -230,17 +231,9 @@ function close() {
 }
 
 function updateDerivedStatus() {
-  const days = daysBetweenToday(form.afterSalesExpireAt)
+  const days = statusDays.value
   form.remainingDays = days
-  if (days <= 0) {
-    form.renewalStatus = '停用'
-    return
-  }
-  if (days <= 30) {
-    form.renewalStatus = '即将到期'
-    return
-  }
-  form.renewalStatus = '正常'
+  form.renewalStatus = days < 0 ? '已过期' : '正常'
 }
 
 function daysBetweenToday(targetDate: string) {
@@ -249,7 +242,7 @@ function daysBetweenToday(targetDate: string) {
   const end = new Date(`${targetDate}T00:00:00`)
   const start = new Date(today.getFullYear(), today.getMonth(), today.getDate())
   const diff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
-  return diff > 0 ? diff : 0
+  return diff
 }
 
 function normalizeDate(value?: string) {
@@ -410,8 +403,19 @@ function addDays(date: Date, days: number) {
 
 .status-days {
   font-size: 30rpx;
-  color: #f97316;
   font-weight: 800;
+}
+
+.status-days.success {
+  color: #10a55a;
+}
+
+.status-days.warning {
+  color: #f97316;
+}
+
+.status-days.danger {
+  color: #ef4444;
 }
 
 .remark-input {

@@ -24,6 +24,8 @@ export interface AccountItem {
   remainingDays?: number
   verificationEnabled?: boolean
   bindings?: Array<{
+    assignmentId?: string
+    role?: 'primary' | 'backup'
     userCode: string
     userName: string
     plan: string
@@ -32,6 +34,8 @@ export interface AccountItem {
     renewalStatus: string
   }>
   renewals?: Array<{
+    id?: string
+    initial?: boolean
     renewalDate: string
     planName: string
     increaseDays: number
@@ -59,14 +63,20 @@ export interface UserItem {
   remainingDays?: number
   renewalStatus?: string
   bindings?: Array<{
+    assignmentId?: string
+    role?: 'primary' | 'backup'
+    accountId?: string
     accountCode: string
     accountName: string
     purchasePlan: string
     afterSalesExpireAt: string
     remainingDays: number
     renewalStatus: string
+    status?: string
   }>
   renewals?: Array<{
+    id?: string
+    initial?: boolean
     renewalDate: string
     packageName: string
     increaseDays: number
@@ -80,10 +90,16 @@ export interface UserItem {
 export interface RelationItem {
   id: string
   accountId: string
+  accountCode?: string
   accountName: string
   userId?: string
+  userCode?: string
   userName?: string
   status: RelationStatus
+  assignmentRole?: 'primary' | 'backup'
+  canRestore?: boolean
+  active?: boolean
+  assignedAt?: string
   expireDate?: string
   updatedAt: string
 }
@@ -92,6 +108,7 @@ export interface OverviewActivity {
   id: string
   type: 'account' | 'user' | 'relation'
   text: string
+  expireDate?: string
   tag: string
   tagType: 'primary' | 'success' | 'warning' | 'danger'
 }

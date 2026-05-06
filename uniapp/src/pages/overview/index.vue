@@ -4,53 +4,63 @@
     <view class="content">
       <view class="section-title">数据概览</view>
       <view class="stats-grid">
-        <StatCard label="账号总数" :value="overview.accountTotal" icon="▣" type="primary" />
+        <StatCard label="账号总数" :value="overview.accountTotal" icon="" :icon-name="navIcon('account')" type="primary" />
         <StatCard label="即将到期账号" :value="overview.accountExpiring" icon="!" type="warning" />
-        <StatCard label="用户总数" :value="overview.userTotal" icon="◉" type="success" />
+        <StatCard label="用户总数" :value="overview.userTotal" icon="" :icon-name="navIcon('user')" type="success" />
         <StatCard label="即将到期用户" :value="overview.userExpiring" icon="!" type="danger" />
       </view>
 
-      <view class="section-title">快捷入口</view>
-      <view class="quick-card card">
-        <view class="quick-item" @click="jump('/pages/account/list/index')">
-          <view class="quick-icon primary">▣</view>
-          <text>账号</text>
+      <view class="section-title">最近动态</view>
+
+      <view class="sub-title">即将到期账号</view>
+      <view class="activity-group">
+        <view v-for="item in accountActivities" :key="item.id" class="activity-row card">
+          <view class="activity-main">
+            <view class="activity-icon account">
+              <wd-icon :name="navIcon('account')" size="18px" color="#ffffff" />
+            </view>
+            <view class="activity-body">
+              <text class="activity-text">{{ item.text }}</text>
+              <text class="activity-sub">到期时间：{{ item.expireDate || '--' }}</text>
+            </view>
+          </view>
+          <StatusTag class="activity-pill" :text="item.tag" type="warning" />
         </view>
-        <view class="quick-item" @click="jump('/pages/user/list/index')">
-          <view class="quick-icon success">◉</view>
-          <text>用户</text>
-        </view>
-        <view class="quick-item" @click="jump('/pages/relation/list/index')">
-          <view class="quick-icon purple">⌘</view>
-          <text>关系</text>
-        </view>
-        <view class="quick-item" @click="jump('/pages/expire/index')">
-          <view class="quick-icon warning">⌛</view>
-          <text>到期提醒</text>
-        </view>
+        <view v-if="!accountActivities.length" class="empty-tip">暂无即将到期账号</view>
       </view>
 
-      <view class="section-title">最近动态</view>
-      <view class="activity-card card">
-        <view v-for="item in overview.recentActivities" :key="item.id" class="activity-row row-line">
-          <view class="activity-icon" :class="item.tagType">{{ activityIcon(item.type) }}</view>
-          <text class="activity-text">{{ item.text }}</text>
-          <StatusTag :text="item.tag" :type="item.tagType" />
+      <view class="sub-title">即将到期用户</view>
+      <view class="activity-group">
+        <view v-for="item in userActivities" :key="item.id" class="activity-row card">
+          <view class="activity-main">
+            <view class="activity-icon user">
+              <wd-icon :name="navIcon('user')" size="18px" color="#ffffff" />
+            </view>
+            <view class="activity-body">
+              <text class="activity-text">{{ item.text }}</text>
+              <text class="activity-sub">到期时间：{{ item.expireDate || '--' }}</text>
+            </view>
+          </view>
+          <StatusTag class="activity-pill" :text="item.tag" type="warning" />
         </view>
+        <view v-if="!userActivities.length" class="empty-tip">暂无即将到期用户</view>
       </view>
     </view>
     <wd-backtop :scroll-top="scrollTop" :top="80" :bottom="96" />
-</view>
+  </view>
 </template>
 
 <script setup lang="ts">
+import { computed, onMounted, ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { usePageScrollTop } from '@/composables/usePageScrollTop'
-import { onMounted, ref } from 'vue'
+import { GLOBAL_NAV_ITEMS, type GlobalNavKey } from '@/constants/global-nav'
 import { fetchOverview } from '@/api/overview'
 import AppHeader from '@/components/AppHeader.vue'
 import StatCard from '@/components/StatCard.vue'
 import StatusTag from '@/components/StatusTag.vue'
 import type { OverviewData } from '@/types'
+
 const { scrollTop } = usePageScrollTop()
 
 const overview = ref<OverviewData>({
@@ -61,18 +71,27 @@ const overview = ref<OverviewData>({
   recentActivities: []
 })
 
-onMounted(async () => {
-  overview.value = await fetchOverview()
-})
+const accountActivities = computed(() =>
+  overview.value.recentActivities.filter((item) => item.type === 'account')
+)
 
-function jump(url: string) {
-  uni.redirectTo({ url })
+const userActivities = computed(() =>
+  overview.value.recentActivities.filter((item) => item.type === 'user')
+)
+
+onMounted(loadOverview)
+onShow(loadOverview)
+
+async function loadOverview() {
+  try {
+    overview.value = await fetchOverview()
+  } catch (error: any) {
+    uni.showToast({ title: error?.message || '加载总览失败', icon: 'none' })
+  }
 }
 
-function activityIcon(type: string) {
-  if (type === 'account') return '▣'
-  if (type === 'user') return '✓'
-  return '🔗'
+function navIcon(key: GlobalNavKey) {
+  return GLOBAL_NAV_ITEMS.find((item) => item.key === key)?.icon || 'home'
 }
 </script>
 
@@ -83,101 +102,82 @@ function activityIcon(type: string) {
   gap: 22rpx;
 }
 
-.quick-card {
-  height: 150rpx;
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-  padding: 20rpx 10rpx;
+.sub-title {
+  margin: 14rpx 0 12rpx;
+  padding-left: 10rpx;
+  border-left: 8rpx solid var(--primary);
+  color: #102b56;
+  font-size: 30rpx;
+  font-weight: 700;
 }
 
-.quick-item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12rpx;
-  color: var(--text);
-  font-size: 26rpx;
-  border-right: 1rpx solid var(--line);
-}
-
-.quick-item:last-child {
-  border-right: 0;
-}
-
-.quick-icon {
-  width: 72rpx;
-  height: 72rpx;
-  border-radius: 20rpx;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 34rpx;
-  font-weight: 800;
-}
-
-.primary {
-  background: var(--primary);
-}
-
-.success {
-  background: var(--success);
-}
-
-.warning {
-  background: var(--warning);
-}
-
-.purple {
-  background: #2563eb;
-}
-
-.activity-card {
-  padding: 0 28rpx;
+.activity-group {
+  margin-bottom: 20rpx;
 }
 
 .activity-row {
-  min-height: 96rpx;
+  min-height: 112rpx;
+  padding: 18rpx 24rpx;
+  margin-bottom: 14rpx;
   display: flex;
   align-items: center;
-  gap: 20rpx;
+  justify-content: space-between;
+  gap: 18rpx;
 }
 
-.activity-row:last-child {
-  border-bottom: 0;
+.activity-main {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
 }
 
 .activity-icon {
   width: 54rpx;
   height: 54rpx;
   border-radius: 999rpx;
-  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28rpx;
 }
 
-.activity-icon.primary {
-  background: var(--primary);
+.activity-icon.account {
+  background: #1677ff;
 }
 
-.activity-icon.success {
-  background: var(--success);
+.activity-icon.user {
+  background: #10a55a;
 }
 
-.activity-icon.warning {
-  background: var(--warning);
-}
-
-.activity-icon.danger {
-  background: var(--danger);
+.activity-body {
+  min-width: 0;
+  flex: 1;
 }
 
 .activity-text {
-  flex: 1;
+  display: block;
+  color: #0f2750;
   font-size: 28rpx;
+  font-weight: 600;
+  line-height: 1.35;
+  word-break: break-all;
+}
+
+.activity-sub {
+  display: block;
+  margin-top: 6rpx;
+  color: #667085;
+  font-size: 26rpx;
+  line-height: 1.3;
+}
+
+:deep(.activity-pill.status-tag) {
+  color: #ffffff !important;
+  background: #f97316 !important;
+  min-width: 128rpx;
+  height: 48rpx;
+  font-size: 24rpx;
+  font-weight: 700;
 }
 </style>

@@ -1,84 +1,176 @@
-﻿import { mockAccounts } from '@/mock/data'
-import type { AccountItem, PageQuery } from '@/types'
-import { API_PATHS, USE_MOCK } from './config'
+﻿import type { AccountItem, PageQuery } from '@/types'
+import { API_PATHS } from './config'
+import { mapAccountDetail, mapAccountListItem, toIsoDate } from './mappers'
 import { http } from './request'
 
-export async function fetchAccounts(query: PageQuery = {}): Promise<AccountItem[]> {
-  if (USE_MOCK) {
-    const keyword = query.keyword?.trim()
-    const status = query.status
-    return mockAccounts.filter((item) => {
-      const matchKeyword = !keyword || item.name.includes(keyword) || item.code.includes(keyword)
-      const matchStatus = !status || status === 'all' || item.status === status
-      return matchKeyword && matchStatus
-    })
+type RawAccountListResponse = {
+  items?: Record<string, any>[]
+  total?: number
+  stats?: {
+    total?: number
+    normal?: number
+    expiring?: number
+    expired?: number
+    disabled?: number
   }
+}
 
-  return http<AccountItem[]>({
+type RawAccountDetailResponse = {
+  adobeAccount?: Record<string, any>
+  customers?: Record<string, any>[]
+  renewalRecords?: Record<string, any>[]
+}
+
+export interface AccountListResult {
+  items: AccountItem[]
+  total: number
+  stats: {
+    total: number
+    normal: number
+    expiring: number
+    expired: number
+    disabled: number
+  }
+}
+
+export interface AccountFormValue {
+  code?: string
+  accountEmail: string
+  adobePassword?: string
+  accountEmailPassword?: string
+  verifyPrefix?: string
+  verifyDomain?: string
+  accountPlan?: string
+  paidAt?: string
+  baseExpireAt?: string
+  enabled?: boolean
+  remark?: string
+}
+
+function mapAccountStatusToQuery(status?: string) {
+  if (!status || status === 'all') {
+    return { status: '', enabled: '' }
+  }
+  if (status === 'disabled') {
+    return { status: '', enabled: 'false' }
+  }
+  if (status === 'normal' || status === 'expiring') {
+    return { status, enabled: 'true' }
+  }
+  return { status: '', enabled: '' }
+}
+
+function serializeAccountPayload(form: AccountFormValue) {
+  const verifyPrefix = String(form.verifyPrefix || '').trim()
+  const verifyDomain = String(form.verifyDomain || '').trim()
+  const verificationEmail = verifyPrefix && verifyDomain ? `${verifyPrefix}@${verifyDomain}` : ''
+
+  return {
+    adobeCode: String(form.code || '').trim(),
+    accountEmail: String(form.accountEmail || '').trim(),
+    adobePassword: String(form.adobePassword || ''),
+    accountEmailPassword: String(form.accountEmailPassword || ''),
+    verificationEmail,
+    accountPlan: String(form.accountPlan || '').trim(),
+    paidAt: toIsoDate(form.paidAt),
+    baseExpireAt: toIsoDate(form.baseExpireAt),
+    enabled: form.enabled !== false,
+    remark: String(form.remark || '')
+  }
+}
+
+export async function fetchAccounts(query: PageQuery = {}): Promise<AccountItem[]> {
+  const mapped = mapAccountStatusToQuery(query.status)
+  const result = await http<RawAccountListResponse>({
     url: API_PATHS.accounts,
-    data: query
+    data: {
+      page: query.page || 1,
+      pageSize: query.pageSize || 50,
+      keyword: query.keyword || '',
+      planId: '',
+      status: mapped.status,
+      enabled: mapped.enabled
+    }
   })
+
+  return Array.isArray(result.items) ? result.items.map(mapAccountListItem) : []
+}
+
+export async function fetchAccountListResult(query: PageQuery = {}): Promise<AccountListResult> {
+  const mapped = mapAccountStatusToQuery(query.status)
+  const result = await http<RawAccountListResponse>({
+    url: API_PATHS.accounts,
+    data: {
+      page: query.page || 1,
+      pageSize: query.pageSize || 50,
+      keyword: query.keyword || '',
+      planId: '',
+      status: mapped.status,
+      enabled: mapped.enabled
+    }
+  })
+
+  return {
+    items: Array.isArray(result.items) ? result.items.map(mapAccountListItem) : [],
+    total: Number(result.total || 0),
+    stats: {
+      total: Number(result.stats?.total || 0),
+      normal: Number(result.stats?.normal || 0),
+      expiring: Number(result.stats?.expiring || 0),
+      expired: Number(result.stats?.expired || 0),
+      disabled: Number(result.stats?.disabled || 0)
+    }
+  }
 }
 
 export async function fetchAccountDetail(id: string): Promise<AccountItem> {
-  if (USE_MOCK) {
-    const base = mockAccounts.find((item) => item.id === id) || mockAccounts[0]
-    const today = new Date()
-    const expire = new Date(`${base.expireDate}T00:00:00`)
-    const current = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-    const remain = Math.max(0, Math.ceil((expire.getTime() - current.getTime()) / (1000 * 60 * 60 * 24)))
+  const result = await http<RawAccountDetailResponse>({ url: API_PATHS.accountDetail(id) })
+  return mapAccountDetail(result)
+}
 
-    return {
-      ...base,
-      accountEmail: base.name,
-      adobePassword: '000000',
-      accountEmailPassword: '-',
-      verificationEmail: 'shanshanz1878313@889100.xyz',
-      paidAt: '2025/11/8',
-      accountPlan: '全家桶半年付（180天）',
-      accountExpireAt: '2026/5/7',
-      remainingDays: remain,
-      verificationEnabled: true,
-      remark: base.remark || '-',
-      bindings: [
-        {
-          userCode: base.boundUserId || 'U089',
-          userName: base.boundUserName || '用户 U089',
-          plan: '全家桶半年付（180天）',
-          afterSalesExpireAt: base.expireDate,
-          remainingDays: remain,
-          renewalStatus: base.status === 'disabled' ? '停用' : remain <= 30 ? '即将到期' : '正常'
-        },
-        {
-          userCode: 'U128',
-          userName: '用户 U128',
-          plan: '标准版季度付（90天）',
-          afterSalesExpireAt: '2026-06-30',
-          remainingDays: 56,
-          renewalStatus: '正常'
-        }
-      ],
-      renewals: [
-        {
-          renewalDate: '2026-04-01',
-          planName: '全家桶半年付（180天）',
-          increaseDays: 180,
-          beforeExpireAt: '2026-01-15',
-          afterExpireAt: '2026-07-13',
-          remark: '首条续费记录',
-          actionText: '删除'
-        },
-        {
-          renewalDate: '2026-01-10',
-          planName: '标准版季度付（90天）',
-          increaseDays: 90,
-          beforeExpireAt: '2025-10-17',
-          afterExpireAt: '2026-01-15',
-          remark: '补充续费',
-          actionText: '删除'
-        }
-      ]
+export async function createAccount(form: AccountFormValue) {
+  const payload = serializeAccountPayload(form)
+  return http<{ adobeAccount?: Record<string, any> }>({
+    url: API_PATHS.accounts,
+    method: 'POST',
+    data: payload
+  })
+}
+
+export async function updateAccount(id: string, form: AccountFormValue) {
+  const payload = serializeAccountPayload(form)
+  return http<{ adobeAccount?: Record<string, any> }>({
+    url: API_PATHS.accountById(id),
+    method: 'PUT',
+    data: payload
+  })
+}
+
+export async function deleteAccount(id: string) {
+  return http<{ ok?: boolean }>({
+    url: API_PATHS.accountById(id),
+    method: 'DELETE'
+  })
+}
+
+export async function deleteAccountRenewal(accountId: string, renewalId: string) {
+  return http<{ renewalRecords?: Record<string, any>[] }>({
+    url: API_PATHS.accountRenewalDelete(accountId, renewalId),
+    method: 'DELETE'
+  })
+}
+
+export async function createAccountRenewal(
+  accountId: string,
+  payload: { planId: string; renewalDate: string; remark?: string }
+) {
+  return http<{ renewalRecords?: Record<string, any>[] }>({
+    url: API_PATHS.accountRenewals(accountId),
+    method: 'POST',
+    data: {
+      planId: String(payload.planId || '').trim(),
+      renewalDate: toIsoDate(payload.renewalDate),
+      remark: String(payload.remark || '')
     }
-  }
-  return http<AccountItem>({ url: API_PATHS.accountDetail(id) })
+  })
 }

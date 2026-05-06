@@ -138,6 +138,12 @@
       lock-user
       @submit="handleBindSubmit"
     />
+    <RenewalFormPopup
+      v-model="showRenewalForm"
+      subject-label="用户"
+      :previous-expire-at="user.afterSalesExpireAt || user.expireDate"
+      @submit="handleRenewSubmit"
+    />
     <GlobalConfirmDialog />
   </view>
 </template>
@@ -145,11 +151,13 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { usePageScrollTop } from '@/composables/usePageScrollTop'
-import { fetchUserDetail } from '@/api/user'
+import { createUserRenewal, deleteUser, deleteUserRenewal, fetchUserDetail, updateUser } from '@/api/user'
+import { createRelation, updateRelationRole } from '@/api/relation'
 import AppHeader from '@/components/AppHeader.vue'
 import GlobalConfirmDialog from '@/components/GlobalConfirmDialog.vue'
 import InfoCard from '@/components/InfoCard.vue'
 import RelationBindPopup from '@/components/RelationBindPopup.vue'
+import RenewalFormPopup from '@/components/RenewalFormPopup.vue'
 import StatusTag from '@/components/StatusTag.vue'
 import UserFormPopup from '@/components/UserFormPopup.vue'
 import type { UserItem } from '@/types'
@@ -161,6 +169,8 @@ const bindingExpanded = ref<Record<string, boolean>>({})
 const renewalExpanded = ref<Record<string, boolean>>({})
 const showUserForm = ref(false)
 const showBindForm = ref(false)
+const showRenewalForm = ref(false)
+const userId = ref('')
 
 const user = ref<UserItem>({
   id: '',
@@ -176,9 +186,18 @@ const user = ref<UserItem>({
 
 onMounted(async () => {
   const pages = getCurrentPages() as Array<{ options?: { id?: string } }>
-  const id = String(pages[pages.length - 1]?.options?.id || 'u089')
-  user.value = await fetchUserDetail(id)
+  userId.value = String(pages[pages.length - 1]?.options?.id || '')
+  if (!userId.value) {
+    uni.showToast({ title: '缺少用户ID', icon: 'none' })
+    return
+  }
+  await loadDetail()
 })
+
+async function loadDetail() {
+  if (!userId.value) return
+  user.value = await fetchUserDetail(userId.value)
+}
 
 const baseRows = computed(() => [
   { label: '用户编号：', value: user.value.code || '--' },
@@ -196,26 +215,15 @@ const bindingList = computed(() => user.value.bindings || [])
 const bindingDisplayList = computed(() => {
   if (bindingList.value.length) return bindingList.value
 
-  const days = Number(user.value.remainingDays ?? remainDaysFromDate(user.value.afterSalesExpireAt || user.value.expireDate))
   return [
     {
-      accountCode: 'ACC20260503001',
-      accountName: 'Adobe账户 A001',
+      accountCode: '--',
+      accountName: '未绑定账号',
       purchasePlan: user.value.purchasePlan || '--',
       afterSalesExpireAt: user.value.afterSalesExpireAt || user.value.expireDate || '--',
-      remainingDays: days,
-      renewalStatus: user.value.renewalStatus || '正常',
-      status: user.value.renewalStatus || '正常',
-      role: 'primary'
-    },
-    {
-      accountCode: 'ACC20260503002',
-      accountName: 'Adobe账户 A002',
-      purchasePlan: user.value.purchasePlan || '--',
-      afterSalesExpireAt: user.value.afterSalesExpireAt || user.value.expireDate || '--',
-      remainingDays: Math.max(0, days - 12),
-      renewalStatus: '即将到期',
-      status: '即将到期',
+      remainingDays: Number(user.value.remainingDays ?? remainDaysFromDate(user.value.afterSalesExpireAt || user.value.expireDate)),
+      renewalStatus: '未绑定',
+      status: '未绑定',
       role: 'backup'
     }
   ]
@@ -225,24 +233,14 @@ const renewals = computed(() => user.value.renewals || [])
 const renewalDisplayList = computed(() => {
   if (renewals.value.length) return renewals.value
 
-  const afterDate = user.value.afterSalesExpireAt || user.value.expireDate || '--'
   return [
     {
-      renewalDate: '2026-04-01',
-      packageName: '标准版季度付（90天）',
-      increaseDays: 90,
-      beforeExpireAt: '2026-03-31',
-      afterExpireAt: afterDate,
-      remark: '系统自动续费',
-      actionText: '删除'
-    },
-    {
-      renewalDate: '2026-01-01',
-      packageName: '全家桶半年付（180天）',
-      increaseDays: 180,
-      beforeExpireAt: '2025-12-31',
-      afterExpireAt: '2026-03-31',
-      remark: '人工补单',
+      renewalDate: '--',
+      packageName: '--',
+      increaseDays: 0,
+      beforeExpireAt: '--',
+      afterExpireAt: '--',
+      remark: '暂无续费记录',
       actionText: '删除'
     }
   ]
@@ -298,16 +296,22 @@ function toggleRenewal(key: string) {
   renewalExpanded.value[key] = !isRenewalExpanded(key)
 }
 
-function renewAction(item: { actionText: string; renewalDate: string }, idx: number) {
+function renewAction(item: { id?: string; initial?: boolean; actionText: string; renewalDate: string }) {
   if (item.actionText !== '删除') {
-    uni.showToast({ title: `UI 阶段暂不接${item.actionText}接口`, icon: 'none' })
+    uni.showToast({ title: item.actionText || '不可操作', icon: 'none' })
+    return
+  }
+  if (!item.id) {
+    uni.showToast({ title: '暂无可删除记录', icon: 'none' })
+    return
+  }
+  if (item.initial) {
+    uni.showToast({ title: '基准记录不支持删除', icon: 'none' })
     return
   }
   confirmDanger('确认删除这条续费记录吗？', '危险操作', async () => {
-    await simulateDbDelay()
-    if (user.value.renewals?.length) {
-      user.value.renewals = user.value.renewals.filter((_, rowIdx) => rowIdx !== idx)
-    }
+    await deleteUserRenewal(user.value.id, item.id as string)
+    await loadDetail()
     return { success: true, message: '删除成功' }
   })
 }
@@ -318,7 +322,10 @@ function editUser() {
 
 function removeUser() {
   confirmDanger('确认删除当前用户吗？', '危险操作', async () => {
-    await simulateDbDelay()
+    await deleteUser(user.value.id)
+    setTimeout(() => {
+      back()
+    }, 150)
     return { success: true, message: '删除成功' }
   })
 }
@@ -328,7 +335,21 @@ function addBinding() {
 }
 
 function renew() {
-  uni.showToast({ title: 'UI 阶段暂不接续费接口', icon: 'none' })
+  showRenewalForm.value = true
+}
+
+async function handleRenewSubmit(
+  value: { planId: string; renewalDate: string; remark: string },
+  done: (result?: { success?: boolean; message?: string; error?: string }) => void
+) {
+  try {
+    await createUserRenewal(user.value.id, value)
+    await loadDetail()
+    showRenewalForm.value = false
+    done({ success: true, message: '续费成功' })
+  } catch (error: any) {
+    done({ success: false, error: error?.message || '续费失败，请稍后重试' })
+  }
 }
 
 async function handleSubmitUser(
@@ -336,19 +357,8 @@ async function handleSubmitUser(
   done: (result?: { success?: boolean; message?: string; error?: string }) => void
 ) {
   try {
-    await simulateDbDelay()
-    user.value = {
-      ...user.value,
-      code: value.code || user.value.code,
-      name: value.name,
-      phone: value.phone,
-      paidAt: value.paidAt,
-      purchasePlan: value.purchasePlan,
-      afterSalesExpireAt: value.afterSalesExpireAt,
-      remainingDays: Number(value.remainingDays ?? remainDaysFromDate(value.afterSalesExpireAt)),
-      renewalStatus: value.renewalStatus || displayRenewalStatus(user.value.renewalStatus),
-      remark: value.remark
-    }
+    await updateUser(user.value.id, value)
+    await loadDetail()
     showUserForm.value = false
     showBindForm.value = false
     done({ success: true, message: '保存成功' })
@@ -371,20 +381,17 @@ async function handleBindSubmit(
   done: (result?: { success?: boolean; message?: string; error?: string }) => void
 ) {
   try {
-    await simulateDbDelay()
-    const current = user.value.bindings || []
-    const remain = Number(user.value.remainingDays ?? remainDaysFromDate(user.value.afterSalesExpireAt || user.value.expireDate))
-    user.value.bindings = [
-      {
-        accountCode: value.accountCode || '--',
-        accountName: value.accountName || '--',
-        purchasePlan: user.value.purchasePlan || '--',
-        afterSalesExpireAt: user.value.afterSalesExpireAt || user.value.expireDate || '--',
-        remainingDays: remain,
-        renewalStatus: value.role === 'primary' ? '主绑定' : '备绑定'
-      },
-      ...current
-    ]
+    await createRelation({
+      accountId: value.accountId,
+      accountCode: value.accountCode,
+      accountName: value.accountName,
+      userId: user.value.id || value.userId,
+      userCode: user.value.code || value.userCode,
+      userName: user.value.name || value.userName,
+      bindDate: value.bindDate,
+      role: value.role
+    })
+    await loadDetail()
     showBindForm.value = false
     showUserForm.value = false
     done({ success: true, message: '新增绑定成功' })
@@ -393,8 +400,19 @@ async function handleBindSubmit(
   }
 }
 
-function togglePrimary(item: { role?: string }) {
-  item.role = item.role === 'primary' ? 'backup' : 'primary'
+async function togglePrimary(item: { role?: string; assignmentId?: string }) {
+  if (!item.assignmentId) {
+    uni.showToast({ title: '该绑定不支持切换主备', icon: 'none' })
+    return
+  }
+  try {
+    const nextRole: 'primary' | 'backup' = item.role === 'primary' ? 'backup' : 'primary'
+    await updateRelationRole(item.assignmentId, nextRole)
+    item.role = nextRole
+    uni.showToast({ title: '切换成功', icon: 'none' })
+  } catch (error: any) {
+    uni.showToast({ title: error?.message || '切换失败', icon: 'none' })
+  }
 }
 
 function displayRemainingDays(days?: number) {
@@ -434,11 +452,6 @@ function renewalStatusType(status?: string): 'success' | 'warning' | 'danger' | 
   return 'default'
 }
 
-function simulateDbDelay() {
-  return new Promise<void>((resolve) => {
-    setTimeout(() => resolve(), 900)
-  })
-}
 </script>
 
 <style scoped lang="scss">
