@@ -148,6 +148,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { createAccountRenewal, deleteAccount, deleteAccountRenewal, fetchAccountDetail, updateAccount } from '@/api/account'
+import { fetchMailDomainConfigs } from '@/api/admin-config'
 import { createRelation } from '@/api/relation'
 import { usePageScrollTop } from '@/composables/usePageScrollTop'
 import AccountFormPopup from '@/components/AccountFormPopup.vue'
@@ -168,6 +169,7 @@ const showEditForm = ref(false)
 const showBindForm = ref(false)
 const showRenewalForm = ref(false)
 const accountId = ref('')
+const mailDomainConfigs = ref<Array<{ domain: string; verificationCodeUrl: string }>>([])
 
 const account = ref<AccountItem>({
   id: '',
@@ -187,12 +189,16 @@ onMounted(async () => {
     uni.showToast({ title: '缺少账号ID', icon: 'none' })
     return
   }
-  await loadDetail()
+  await Promise.all([loadDetail(), loadMailDomainConfigs()])
 })
 
 async function loadDetail() {
   if (!accountId.value) return
   account.value = await fetchAccountDetail(accountId.value)
+}
+
+async function loadMailDomainConfigs() {
+  mailDomainConfigs.value = await fetchMailDomainConfigs()
 }
 
 const baseRows = computed(() => [
@@ -292,17 +298,9 @@ function toggleRenewal(key: string) {
 
 function copyDetail() {
   const lines = [
-    `Adobe账户：${account.value.accountEmail || account.value.name || '--'}`,
-    `Adobe密码：${account.value.adobePassword || '--'}`,
-    `邮箱密码：${account.value.accountEmailPassword || '--'}`,
-    `验证码邮箱：${account.value.verificationEmail || '--'}`,
-    `首付日期：${account.value.paidAt || '--'}`,
-    `账户计划：${account.value.accountPlan || account.value.businessName || '--'}`,
-    `账户到期日：${account.value.accountExpireAt || account.value.expireDate || '--'}`,
-    `剩余天数：${displayRemainingDays(account.value.remainingDays)}`,
-    `账号状态：${accountStatusTextByDays(account.value.remainingDays)}`,
-    `验证码启用状态：${account.value.verificationEnabled ? '启用' : '停用'}`,
-    `备注：${account.value.remark || '--'}`
+    `Adobe账户邮箱：${account.value.accountEmail || account.value.name || ''}`,
+    `Adobe密码：${account.value.adobePassword || ''}`,
+    `验证码接收网址：${verificationCodeUrl()}`
   ]
 
   uni.setClipboardData({
@@ -311,6 +309,12 @@ function copyDetail() {
       uni.showToast({ title: '详情已复制', icon: 'none' })
     }
   })
+}
+
+function verificationCodeUrl() {
+  const domain = String(account.value.verificationEmail || '').split('@')[1] || ''
+  const config = mailDomainConfigs.value.find((item) => item.domain === domain)
+  return config?.verificationCodeUrl || 'mail.889100.xyz'
 }
 
 function displayRemainingDays(days?: number) {

@@ -3,7 +3,7 @@ import { http } from './request'
 
 type RawAdminConfigResponse = {
   plans?: Array<{ id?: string; name?: string; days?: number }>
-  mailDomainConfigs?: Array<{ domain?: string }>
+  mailDomainConfigs?: Array<{ domain?: string; verificationCodeUrl?: string }>
   mailDomains?: string[]
 }
 
@@ -19,6 +19,11 @@ export interface RenewalPlanOption {
   id: string
   name: string
   days: number
+}
+
+export interface MailDomainConfigOption {
+  domain: string
+  verificationCodeUrl: string
 }
 
 async function fetchAdminConfig() {
@@ -57,5 +62,22 @@ export async function fetchRenewalPlans(): Promise<RenewalPlanOption[]> {
     return plans.length ? plans : FALLBACK_RENEWAL_PLANS
   } catch {
     return FALLBACK_RENEWAL_PLANS
+  }
+}
+
+export async function fetchMailDomainConfigs(): Promise<MailDomainConfigOption[]> {
+  try {
+    const data = await fetchAdminConfig()
+    const configs = Array.isArray(data.mailDomainConfigs)
+      ? data.mailDomainConfigs
+        .map((item) => ({
+          domain: String(item?.domain || '').trim(),
+          verificationCodeUrl: String(item?.verificationCodeUrl || '').trim()
+        }))
+        .filter((item) => item.domain)
+      : []
+    return configs
+  } catch {
+    return []
   }
 }
