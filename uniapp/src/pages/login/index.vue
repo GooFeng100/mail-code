@@ -27,8 +27,8 @@ import { usePageScrollTop } from '@/composables/usePageScrollTop'
 import { ref } from 'vue'
 import { login } from '@/api/auth'
 
-const username = ref('admin')
-const password = ref('123456')
+const username = ref('')
+const password = ref('')
 
 const { scrollTop } = usePageScrollTop()
 
