@@ -1,5 +1,10 @@
 <script setup lang="ts">
-// Keep global app logic minimal. Page-level behavior lives in pages and components.
+import { onLaunch } from '@dcloudio/uni-app'
+import { checkAppUpdate } from '@/common/checkUpdate'
+
+onLaunch(() => {
+  checkAppUpdate()
+})
 </script>
 
 <style lang="scss">
