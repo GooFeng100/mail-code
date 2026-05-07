@@ -2,7 +2,7 @@
     "name" : "Adobe业务管理",
     "appid" : "__UNI__A2B057E",
     "description" : "账号/用户移动端管理",
-    "versionName" : "1.0.0",
+    "versionName" : "1.0.1",
     "versionCode" : "100",
     "transformPx" : false,
     "h5" : {
