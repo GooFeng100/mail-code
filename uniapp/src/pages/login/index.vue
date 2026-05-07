@@ -15,22 +15,81 @@
         <text class="label">密码</text>
         <input v-model="password" placeholder="请输入密码" password class="input" />
       </view>
+      <view class="remember-row" @click="toggleRemember">
+        <view class="remember-box" :class="{ checked: rememberMe }">
+          <text v-if="rememberMe" class="remember-tick">✓</text>
+        </view>
+        <text class="remember-text">记住用户名密码</text>
+      </view>
       <wd-button type="primary" block custom-class="login-btn" @click="submit">登录</wd-button>
       <text class="tip">仅支持管理员账号登录。</text>
     </view>
     <wd-backtop :scroll-top="scrollTop" :top="80" :bottom="24" />
-</view>
+    <text class="version-text">版本 {{ appVersion }}</text>
+  </view>
 </template>
 
 <script setup lang="ts">
 import { usePageScrollTop } from '@/composables/usePageScrollTop'
-import { ref } from 'vue'
+import manifest from '@/manifest.json'
+import { onMounted, ref } from 'vue'
 import { login } from '@/api/auth'
+
+const REMEMBER_KEY = 'login:remember'
+const CREDENTIALS_KEY = 'login:credentials'
 
 const username = ref('')
 const password = ref('')
+const rememberMe = ref(false)
+const appVersion = ref(`v${String((manifest as any)?.versionName || '1.0.0')}`)
 
 const { scrollTop } = usePageScrollTop()
+
+onMounted(() => {
+  restoreRememberedCredentials()
+  loadRuntimeVersion()
+})
+
+function toggleRemember() {
+  rememberMe.value = !rememberMe.value
+}
+
+function restoreRememberedCredentials() {
+  const remembered = !!uni.getStorageSync(REMEMBER_KEY)
+  rememberMe.value = remembered
+  if (!remembered) return
+
+  const credentials = uni.getStorageSync(CREDENTIALS_KEY) as { username?: string; password?: string }
+  username.value = String(credentials?.username || '')
+  password.value = String(credentials?.password || '')
+}
+
+function persistRememberedCredentials() {
+  if (rememberMe.value) {
+    uni.setStorageSync(REMEMBER_KEY, true)
+    uni.setStorageSync(CREDENTIALS_KEY, {
+      username: username.value,
+      password: password.value
+    })
+    return
+  }
+
+  uni.removeStorageSync(REMEMBER_KEY)
+  uni.removeStorageSync(CREDENTIALS_KEY)
+}
+
+function loadRuntimeVersion() {
+  // #ifdef APP-PLUS
+  const plusApi = (globalThis as any).plus
+  if (!plusApi?.runtime) return
+  plusApi.runtime.getProperty(plusApi.runtime.appid, (widgetInfo: any) => {
+    const runtimeVersion = String(widgetInfo?.version || '').trim()
+    if (runtimeVersion) {
+      appVersion.value = `v${runtimeVersion}`
+    }
+  })
+  // #endif
+}
 
 async function submit() {
   if (!username.value || !password.value) {
@@ -40,6 +99,7 @@ async function submit() {
 
   try {
     await login(username.value, password.value)
+    persistRememberedCredentials()
     uni.redirectTo({ url: '/pages/overview/index' })
   } catch (error: any) {
     uni.showToast({ title: error?.message || '登录失败', icon: 'none' })
@@ -87,6 +147,41 @@ async function submit() {
   margin-bottom: 26rpx;
 }
 
+.remember-row {
+  margin: -4rpx 0 14rpx;
+  display: inline-flex;
+  align-items: center;
+  gap: 14rpx;
+}
+
+.remember-box {
+  width: 32rpx;
+  height: 32rpx;
+  border-radius: 8rpx;
+  border: 2rpx solid #bfd0ef;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.remember-box.checked {
+  border-color: var(--primary);
+  background: var(--primary);
+}
+
+.remember-tick {
+  color: #ffffff;
+  font-size: 22rpx;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.remember-text {
+  font-size: 24rpx;
+  color: #667085;
+}
+
 .label {
   display: block;
   font-size: 26rpx;
@@ -114,5 +209,14 @@ async function submit() {
   font-size: 24rpx;
   color: #8a93a3;
   line-height: 1.6;
+}
+
+.version-text {
+  position: fixed;
+  left: 26rpx;
+  bottom: calc(20rpx + env(safe-area-inset-bottom));
+  z-index: 9;
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.88);
 }
 </style>

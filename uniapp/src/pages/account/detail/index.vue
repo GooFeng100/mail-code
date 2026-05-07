@@ -146,7 +146,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
 import { createAccountRenewal, deleteAccount, deleteAccountRenewal, fetchAccountDetail, updateAccount } from '@/api/account'
 import { fetchMailDomainConfigs } from '@/api/admin-config'
 import { createRelation } from '@/api/relation'
@@ -182,9 +183,17 @@ const account = ref<AccountItem>({
   updatedAt: ''
 })
 
-onMounted(async () => {
-  const pages = getCurrentPages() as Array<{ options?: { id?: string } }>
-  accountId.value = String(pages[pages.length - 1]?.options?.id || '')
+function readAccountIdFromCurrentPages() {
+  const pages = getCurrentPages() as Array<{ options?: { id?: string; accountId?: string } }>
+  const current = pages[pages.length - 1]?.options || {}
+  return String(current.id || current.accountId || '')
+}
+
+onLoad(async (options) => {
+  accountId.value = String((options?.id || options?.accountId || '') as string)
+  if (!accountId.value) {
+    accountId.value = readAccountIdFromCurrentPages()
+  }
   if (!accountId.value) {
     uni.showToast({ title: '缺少账号ID', icon: 'none' })
     return

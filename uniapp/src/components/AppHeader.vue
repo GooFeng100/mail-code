@@ -40,6 +40,11 @@ function handleRight() {
 
 <style scoped lang="scss">
 .app-header {
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 120;
   color: #fff;
   background: linear-gradient(135deg, #0a7bff 0%, #0064e8 100%);
   box-shadow: 0 8rpx 24rpx rgba(22, 119, 255, 0.18);

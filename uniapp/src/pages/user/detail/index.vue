@@ -149,7 +149,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
 import { usePageScrollTop } from '@/composables/usePageScrollTop'
 import { createUserRenewal, deleteUser, deleteUserRenewal, fetchUserDetail, updateUser } from '@/api/user'
 import { createRelation, updateRelationRole } from '@/api/relation'
@@ -184,9 +185,17 @@ const user = ref<UserItem>({
   availableAccounts: []
 })
 
-onMounted(async () => {
-  const pages = getCurrentPages() as Array<{ options?: { id?: string } }>
-  userId.value = String(pages[pages.length - 1]?.options?.id || '')
+function readUserIdFromCurrentPages() {
+  const pages = getCurrentPages() as Array<{ options?: { id?: string; userId?: string } }>
+  const current = pages[pages.length - 1]?.options || {}
+  return String(current.id || current.userId || '')
+}
+
+onLoad(async (options) => {
+  userId.value = String((options?.id || options?.userId || '') as string)
+  if (!userId.value) {
+    userId.value = readUserIdFromCurrentPages()
+  }
   if (!userId.value) {
     uni.showToast({ title: '缺少用户ID', icon: 'none' })
     return
