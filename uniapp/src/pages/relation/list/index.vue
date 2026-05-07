@@ -1,12 +1,13 @@
-﻿<template>
+<template>
   <view class="safe-page">
     <AppHeader title="关系列表" right-icon="+" show-tabbar @right="addRelation" />
     <ListToolbar
       v-model="keyword"
       placeholder="搜索账号 / 用户"
-      :chips="chips"
+      :chips="[]"
+      :show-filter-button="false"
+      :show-chips="false"
       @search="refreshList"
-      @filter="showFilter = true"
     />
 
     <view class="list-wrap">
@@ -49,18 +50,6 @@
       <view v-else-if="!hasMore" class="list-tip">没有更多数据了</view>
     </view>
 
-    <wd-popup v-model="showFilter" position="bottom" safe-area-inset-bottom>
-      <view class="filter-panel">
-        <view class="filter-title">筛选关系</view>
-        <wd-cell title="关系" value="全部" is-link />
-        <wd-cell title="状态" :value="statusLabel" is-link @click="toggleStatus" />
-        <view class="filter-actions">
-          <wd-button custom-class="filter-action" plain @click="reset">重置</wd-button>
-          <wd-button custom-class="filter-action" type="primary" @click="confirmFilter">确认</wd-button>
-        </view>
-      </view>
-    </wd-popup>
-
     <RelationBindPopup
       v-model="showBindForm"
       @submit="handleCreateBind"
@@ -73,7 +62,7 @@
 
 <script setup lang="ts">
 import { usePageScrollTop } from '@/composables/usePageScrollTop'
-import { computed, onMounted, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { onReachBottom, onShow } from '@dcloudio/uni-app'
 import { createRelation, deleteRelation, fetchRelations, updateRelationActive, updateRelationRole } from '@/api/relation'
 import AppHeader from '@/components/AppHeader.vue'
@@ -86,8 +75,6 @@ import { relationStatusText, statusType } from '@/utils/status'
 import { confirmDanger } from '@/utils/confirm'
 
 const keyword = ref('')
-const status = ref<'all' | RelationStatus>('all')
-const showFilter = ref(false)
 const showBindForm = ref(false)
 const list = ref<RelationItem[]>([])
 const roleState = ref<Record<string, 'primary' | 'backup'>>({})
@@ -99,9 +86,6 @@ const loading = ref(false)
 const loadingMore = ref(false)
 
 const { scrollTop } = usePageScrollTop()
-
-const statusLabel = computed(() => (status.value === 'all' ? '全部' : relationStatusText(status.value)))
-const chips = computed(() => [{ label: '关系：全部' }, { label: `状态：${statusLabel.value}` }])
 
 onShow(refreshList)
 onMounted(refreshList)
@@ -119,7 +103,7 @@ async function load(reset = false) {
   try {
     const items = await fetchRelations({
       keyword: keyword.value,
-      status: status.value,
+      status: 'all',
       page: currentPage.value,
       pageSize
     })
@@ -170,23 +154,6 @@ function loadMore() {
 
 function addRelation() {
   showBindForm.value = true
-}
-
-function toggleStatus() {
-  const order: Array<'all' | RelationStatus> = ['all', 'bound', 'unbound']
-  const current = order.indexOf(status.value)
-  status.value = order[(current + 1) % order.length]
-}
-
-function reset() {
-  keyword.value = ''
-  status.value = 'all'
-  refreshList()
-}
-
-function confirmFilter() {
-  showFilter.value = false
-  refreshList()
 }
 
 function relationTagType(status: RelationStatus): 'success' | 'danger' {
@@ -287,7 +254,7 @@ async function handleCreateBind(
 
 <style scoped lang="scss">
 .list-wrap {
-  padding: 16rpx 24rpx 24rpx;
+  padding: 0 24rpx 24rpx;
 }
 
 .list-tip {
@@ -457,26 +424,5 @@ async function handleCreateBind(
   color: #ffffff;
 }
 
-.filter-panel {
-  padding: 28rpx 28rpx 36rpx;
-}
-
-.filter-title {
-  font-size: 34rpx;
-  font-weight: 800;
-  margin-bottom: 18rpx;
-}
-
-.filter-actions {
-  display: flex;
-  gap: 20rpx;
-  margin-top: 28rpx;
-}
-
-.filter-action {
-  flex: 1;
-  height: 80rpx !important;
-  border-radius: 18rpx !important;
-}
 </style>
 

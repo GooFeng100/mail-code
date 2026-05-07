@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <view class="safe-page">
     <AppHeader title="用户列表" right-icon="+" show-tabbar @right="addUser" />
     <ListToolbar
@@ -26,8 +26,8 @@
           </view>
         </view>
         <view class="card-right">
-          <view class="remain-badge" :class="remainBadgeType(item.afterSalesExpireAt || item.expireDate)">
-            <text class="remain-text">{{ remainText(item.afterSalesExpireAt || item.expireDate) }}</text>
+          <view class="remain-badge" :class="remainBadgeType(item)">
+            <text class="remain-text">{{ remainText(item) }}</text>
           </view>
           <text class="detail-link">详情 ></text>
         </view>
@@ -40,8 +40,7 @@
     <wd-popup v-model="showFilter" position="bottom" safe-area-inset-bottom>
       <view class="filter-panel">
         <view class="filter-title">筛选用户</view>
-        <wd-cell title="状态" :value="statusLabel" is-link @click="toggleStatus" />
-        <wd-cell title="到期范围" value="最近30天" is-link />
+        <wd-cell title="筛选条件" :value="filterLabel" is-link @click="toggleFilterType" />
         <view class="filter-actions">
           <wd-button custom-class="filter-action" plain @click="reset">重置</wd-button>
           <wd-button custom-class="filter-action" type="primary" @click="confirmFilter">确认</wd-button>
@@ -67,24 +66,41 @@ import { createUser, fetchUsers } from '@/api/user'
 import AppHeader from '@/components/AppHeader.vue'
 import ListToolbar from '@/components/ListToolbar.vue'
 import UserFormPopup from '@/components/UserFormPopup.vue'
-import type { UserItem, UserStatus } from '@/types'
-import { userStatusText } from '@/utils/status'
+import type { UserItem } from '@/types'
 
 const keyword = ref('')
-const status = ref<'all' | UserStatus>('all')
+type UserFilterType = 'recent30' | 'normal' | 'expired'
+type UserFilterState = 'all' | UserFilterType
+const filterType = ref<UserFilterState>('all')
 const showFilter = ref(false)
 const showUserForm = ref(false)
 const list = ref<UserItem[]>([])
 const currentPage = ref(1)
 const pageSize = 10
 const hasMore = ref(true)
+const serverHasMore = ref(true)
+const pendingItems = ref<UserItem[]>([])
 const loading = ref(false)
 const loadingMore = ref(false)
 
 const { scrollTop } = usePageScrollTop()
 
-const statusLabel = computed(() => (status.value === 'all' ? '全部' : userStatusText(status.value)))
-const chips = computed(() => [{ label: `状态：${statusLabel.value}` }, { label: '到期：最近30天' }])
+const filterLabel = computed(() => {
+  if (filterType.value === 'all') return '全部'
+  if (filterType.value === 'recent30') return '最近30天到期'
+  if (filterType.value === 'normal') return '正常'
+  return '过期'
+})
+const chips = computed(() => {
+  if (filterType.value === 'all') return []
+  return [
+    {
+      label: `筛选：${filterLabel.value}`,
+      removable: true,
+      onRemove: clearFilter
+    }
+  ]
+})
 
 onShow(refreshList)
 onMounted(refreshList)
@@ -94,23 +110,43 @@ async function load(reset = false) {
   if (reset) {
     currentPage.value = 1
     hasMore.value = true
+    serverHasMore.value = true
+    pendingItems.value = []
   }
   if (reset && loading.value) return
   if (!reset && (loadingMore.value || !hasMore.value)) return
 
   reset ? (loading.value = true) : (loadingMore.value = true)
   try {
-    const items = await fetchUsers({
-      keyword: keyword.value,
-      status: status.value,
-      page: currentPage.value,
-      pageSize
-    })
-    list.value = reset ? items : [...list.value, ...items]
-    hasMore.value = items.length === pageSize
-    if (items.length > 0) {
-      currentPage.value += 1
+    const pageItems: UserItem[] = []
+
+    while (pageItems.length < pageSize && pendingItems.value.length > 0) {
+      pageItems.push(pendingItems.value.shift() as UserItem)
     }
+
+    while (pageItems.length < pageSize && serverHasMore.value) {
+      const remoteItems = await fetchUsers({
+        keyword: keyword.value,
+        status: 'all',
+        page: currentPage.value,
+        pageSize
+      })
+      currentPage.value += 1
+      if (remoteItems.length < pageSize) {
+        serverHasMore.value = false
+      }
+
+      const filtered = remoteItems.filter(matchFilter)
+      while (pageItems.length < pageSize && filtered.length > 0) {
+        pageItems.push(filtered.shift() as UserItem)
+      }
+      if (filtered.length > 0) {
+        pendingItems.value.push(...filtered)
+      }
+    }
+
+    list.value = reset ? pageItems : [...list.value, ...pageItems]
+    hasMore.value = pendingItems.value.length > 0 || serverHasMore.value
   } catch (error: any) {
     if (reset) {
       list.value = []
@@ -152,15 +188,24 @@ async function handleSubmitUser(
   }
 }
 
-function toggleStatus() {
-  const order: Array<'all' | UserStatus> = ['all', 'normal', 'expiring', 'frozen']
-  const current = order.indexOf(status.value)
-  status.value = order[(current + 1) % order.length]
+function toggleFilterType() {
+  const order: UserFilterType[] = ['recent30', 'normal', 'expired']
+  if (filterType.value === 'all') {
+    filterType.value = order[0]
+    return
+  }
+  const current = order.indexOf(filterType.value as UserFilterType)
+  filterType.value = order[(current + 1) % order.length]
 }
 
 function reset() {
   keyword.value = ''
-  status.value = 'all'
+  filterType.value = 'all'
+  refreshList()
+}
+
+function clearFilter() {
+  filterType.value = 'all'
   refreshList()
 }
 
@@ -169,28 +214,35 @@ function confirmFilter() {
   refreshList()
 }
 
-function remainText(expireDate: string) {
-  const days = remainDays(expireDate)
+function remainText(item: UserItem) {
+  const days = Math.max(0, getRemainingDays(item))
   return `剩余${days}天`
 }
 
-function remainDays(expireDate: string) {
+function calcDaysByDate(expireDate: string) {
   if (!expireDate) return 0
   const today = new Date()
   const expire = new Date(`${expireDate}T00:00:00`)
   const current = new Date(today.getFullYear(), today.getMonth(), today.getDate())
   const diffDays = Math.ceil((expire.getTime() - current.getTime()) / (1000 * 60 * 60 * 24))
-
-  return diffDays < 0 ? 0 : diffDays
+  return Number.isFinite(diffDays) ? diffDays : 0
 }
 
-function remainBadgeType(expireDate: string) {
-  if (!expireDate) return 'default'
-  const today = new Date()
-  const expire = new Date(`${expireDate}T00:00:00`)
-  const current = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-  const diffDays = Math.ceil((expire.getTime() - current.getTime()) / (1000 * 60 * 60 * 24))
+function getRemainingDays(item: UserItem) {
+  if (Number.isFinite(Number(item.remainingDays))) return Number(item.remainingDays)
+  return calcDaysByDate(item.afterSalesExpireAt || item.expireDate)
+}
 
+function matchFilter(item: UserItem) {
+  if (filterType.value === 'all') return true
+  const days = getRemainingDays(item)
+  if (filterType.value === 'recent30') return days >= 0 && days <= 30
+  if (filterType.value === 'normal') return days >= 0
+  return days < 0
+}
+
+function remainBadgeType(item: UserItem) {
+  const diffDays = getRemainingDays(item)
   if (diffDays > 30) return 'success'
   if (diffDays >= 0) return 'warning'
   return 'danger'
@@ -200,7 +252,7 @@ function remainBadgeType(expireDate: string) {
 
 <style scoped lang="scss">
 .list-wrap {
-  padding: 16rpx 24rpx 24rpx;
+  padding: 0 24rpx 24rpx;
 }
 
 .list-tip {
@@ -306,7 +358,7 @@ function remainBadgeType(expireDate: string) {
 }
 
 .filter-panel {
-  padding: 28rpx 28rpx 36rpx;
+  padding: 28rpx 28rpx calc(220rpx + env(safe-area-inset-bottom));
 }
 
 .filter-title {

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <view class="login-page">
     <view class="hero">
       <text class="hero-title">移动后台管理</text>
@@ -41,13 +41,12 @@ const CREDENTIALS_KEY = 'login:credentials'
 const username = ref('')
 const password = ref('')
 const rememberMe = ref(false)
-const appVersion = ref(`v${String((manifest as any)?.versionName || '1.0.0')}`)
+const appVersion = ref(String((manifest as any)?.versionName || '1.0.0'))
 
 const { scrollTop } = usePageScrollTop()
 
 onMounted(() => {
   restoreRememberedCredentials()
-  loadRuntimeVersion()
 })
 
 function toggleRemember() {
@@ -76,19 +75,6 @@ function persistRememberedCredentials() {
 
   uni.removeStorageSync(REMEMBER_KEY)
   uni.removeStorageSync(CREDENTIALS_KEY)
-}
-
-function loadRuntimeVersion() {
-  // #ifdef APP-PLUS
-  const plusApi = (globalThis as any).plus
-  if (!plusApi?.runtime) return
-  plusApi.runtime.getProperty(plusApi.runtime.appid, (widgetInfo: any) => {
-    const runtimeVersion = String(widgetInfo?.version || '').trim()
-    if (runtimeVersion) {
-      appVersion.value = `v${runtimeVersion}`
-    }
-  })
-  // #endif
 }
 
 async function submit() {
@@ -217,6 +203,6 @@ async function submit() {
   bottom: calc(20rpx + env(safe-area-inset-bottom));
   z-index: 9;
   font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.88);
+  color: #101828;
 }
 </style>

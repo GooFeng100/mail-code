@@ -55,7 +55,7 @@ function handleRight() {
 }
 
 .nav-row {
-  height: 118rpx;
+  height: 100rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;

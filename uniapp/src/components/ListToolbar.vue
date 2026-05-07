@@ -10,25 +10,31 @@
         @search="emitSearch"
         @clear="emitSearch"
       />
-      <wd-button custom-class="filter-btn" plain @click="emit('filter')">筛选</wd-button>
+      <wd-button v-if="showFilterButton" custom-class="filter-btn" plain @click="emit('filter')">筛选</wd-button>
     </view>
-    <view class="chips">
+    <view v-if="showChips" class="chips">
       <view v-for="chip in chips" :key="chip.label" class="chip" @click="chip.onClick?.()">
         <text>{{ chip.label }}</text>
-        <text class="arrow">⌄</text>
+        <text v-if="chip.removable" class="chip-remove" @click.stop="chip.onRemove?.()">×</text>
+        <text v-else class="arrow">⌄</text>
       </view>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch, withDefaults } from 'vue'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   modelValue: string
   placeholder: string
-  chips: Array<{ label: string; onClick?: () => void }>
-}>()
+  chips: Array<{ label: string; onClick?: () => void; removable?: boolean; onRemove?: () => void }>
+  showFilterButton?: boolean
+  showChips?: boolean
+}>(), {
+  showFilterButton: true,
+  showChips: true
+})
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
@@ -37,6 +43,8 @@ const emit = defineEmits<{
 }>()
 
 const innerKeyword = ref(props.modelValue)
+const showFilterButton = computed(() => props.showFilterButton)
+const showChips = computed(() => props.showChips)
 
 watch(
   () => props.modelValue,
@@ -56,7 +64,7 @@ function emitSearch() {
 
 <style scoped lang="scss">
 .toolbar {
-  padding: 24rpx 24rpx 8rpx;
+  padding: 22rpx 24rpx 22rpx;
 }
 
 .search-row {
@@ -67,6 +75,21 @@ function emitSearch() {
 
 .toolbar-search {
   flex: 1;
+}
+
+:deep(.toolbar-search .wd-search) {
+  background: transparent !important;
+}
+
+:deep(.toolbar-search) {
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+:deep(.toolbar-search .wd-search__input) {
+  background: #f5f7fb !important;
+  border: 1rpx solid #d0d5dd !important;
+  border-radius: 999rpx !important;
 }
 
 .filter-btn {
@@ -98,5 +121,17 @@ function emitSearch() {
 
 .arrow {
   font-size: 24rpx;
+}
+
+.chip-remove {
+  width: 28rpx;
+  height: 28rpx;
+  border-radius: 999rpx;
+  background: rgba(17, 85, 217, 0.14);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22rpx;
+  line-height: 1;
 }
 </style>
