@@ -10,10 +10,15 @@
           </view>
         </template>
         <template #remainDays>
-          <text class="remain-days" :class="remainDaysClass(user.remainingDays)">{{ displayRemainingDays(user.remainingDays) }}</text>
+          <text class="remain-days" :class="remainDaysClass(user.remainingDays, user.afterSalesExpireAt || user.expireDate)">
+            {{ displayRemainingDays(user.remainingDays, user.afterSalesExpireAt || user.expireDate) }}
+          </text>
         </template>
         <template #renewalStatus>
-          <StatusTag :text="displayRenewalStatus(user.renewalStatus)" :type="renewalStatusType(user.renewalStatus)" />
+          <StatusTag
+            :text="displayRenewalStatusByDays(user.remainingDays, user.afterSalesExpireAt || user.expireDate)"
+            :type="renewalStatusTypeByDays(user.remainingDays, user.afterSalesExpireAt || user.expireDate)"
+          />
         </template>
       </InfoCard>
 
@@ -59,11 +64,16 @@
               </view>
               <view class="binding-row row-line">
                 <text class="binding-label">剩余天数</text>
-                <text class="binding-value days" :class="remainDaysClass(item.remainingDays)">{{ displayRemainingDays(item.remainingDays) }}</text>
+                <text class="binding-value days" :class="remainDaysClass(item.remainingDays, item.afterSalesExpireAt)">
+                  {{ displayRemainingDays(item.remainingDays, item.afterSalesExpireAt) }}
+                </text>
               </view>
               <view class="binding-row">
                 <text class="binding-label">状态</text>
-                <StatusTag :text="displayRenewalStatus(item.status || item.renewalStatus)" :type="renewalStatusType(item.status || item.renewalStatus)" />
+                <StatusTag
+                  :text="displayRenewalStatusByDays(item.remainingDays, item.afterSalesExpireAt)"
+                  :type="renewalStatusTypeByDays(item.remainingDays, item.afterSalesExpireAt)"
+                />
               </view>
             </view>
           </view>
@@ -424,21 +434,16 @@ async function togglePrimary(item: { role?: string; assignmentId?: string }) {
   }
 }
 
-function displayRemainingDays(days?: number) {
-  const value = Number.isFinite(Number(days))
-    ? Math.max(0, Number(days))
-    : remainDaysFromDate(user.value.afterSalesExpireAt || user.value.expireDate)
+function displayRemainingDays(days?: number, fallbackDate = '') {
+  const value = normalizeRemainingDays(days, fallbackDate)
   return `${value}天`
 }
 
-function remainDaysClass(days?: number) {
-  const value = Number.isFinite(Number(days))
-    ? Number(days)
-    : remainDaysFromDate(user.value.afterSalesExpireAt || user.value.expireDate)
-
-  if (value <= 7) return 'warning'
-  if (value <= 30) return 'success'
-  return 'normal'
+function remainDaysClass(days?: number, fallbackDate = '') {
+  const raw = rawRemainingDays(days, fallbackDate)
+  if (raw < 0) return 'danger'
+  if (raw > 30) return 'success'
+  return 'warning'
 }
 
 function remainDaysFromDate(dateText: string) {
@@ -447,18 +452,29 @@ function remainDaysFromDate(dateText: string) {
   const end = new Date(`${dateText}T00:00:00`)
   const start = new Date(today.getFullYear(), today.getMonth(), today.getDate())
   const diff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
-  return diff > 0 ? diff : 0
+  return Number.isFinite(diff) ? diff : 0
 }
 
-function displayRenewalStatus(status?: string) {
-  return status || '正常'
+function rawRemainingDays(days?: number, fallbackDate = '') {
+  if (Number.isFinite(Number(days))) return Number(days)
+  return remainDaysFromDate(fallbackDate)
 }
 
-function renewalStatusType(status?: string): 'success' | 'warning' | 'danger' | 'default' {
-  if (status === '正常') return 'success'
-  if (status === '即将到期') return 'warning'
-  if (status === '停用') return 'danger'
-  return 'default'
+function normalizeRemainingDays(days?: number, fallbackDate = '') {
+  const raw = rawRemainingDays(days, fallbackDate)
+  return raw < 0 ? 0 : raw
+}
+
+function displayRenewalStatusByDays(days?: number, fallbackDate = '') {
+  const raw = rawRemainingDays(days, fallbackDate)
+  return raw < 0 ? '已过期' : '正常'
+}
+
+function renewalStatusTypeByDays(days?: number, fallbackDate = ''): 'success' | 'warning' | 'danger' {
+  const raw = rawRemainingDays(days, fallbackDate)
+  if (raw < 0) return 'danger'
+  if (raw > 30) return 'success'
+  return 'warning'
 }
 
 </script>
@@ -511,6 +527,10 @@ function renewalStatusType(status?: string): 'success' | 'warning' | 'danger' | 
 
 .remain-days.normal {
   color: var(--text);
+}
+
+.remain-days.danger {
+  color: #ef4444;
 }
 
 .binding-list {
@@ -587,6 +607,11 @@ function renewalStatusType(status?: string): 'success' | 'warning' | 'danger' | 
 
 .binding-value.days.normal {
   color: var(--text);
+  font-weight: 800;
+}
+
+.binding-value.days.danger {
+  color: #ef4444;
   font-weight: 800;
 }
 
