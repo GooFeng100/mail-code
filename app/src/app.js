@@ -14,6 +14,8 @@ const meRoutes = require("./routes/me");
 const codesRoutes = require("./routes/codes");
 const adminRoutes = require("./routes/admin");
 const adobeStatusRoutes = require("./routes/adobeStatus");
+const { requireAuth } = require("./middleware/auth");
+const { handleAdobeUserStatus } = require("./services/adobeStatusService");
 
 const app = express();
 const server = http.createServer(app);
@@ -48,6 +50,7 @@ app.get("/api/env-check", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/me", meRoutes);
+app.post("/api/codes/adobe-status", requireAuth, handleAdobeUserStatus);
 app.use("/api/codes", codesRoutes);
 app.use("/api/adobe-status", adobeStatusRoutes);
 app.use("/api/admin", adminRoutes);

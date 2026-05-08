@@ -1,9 +1,9 @@
 const express = require("express");
 const { requireAuth } = require("../middleware/auth");
-const { proxyAdobeUserStatus } = require("./codes");
+const { handleAdobeUserStatus } = require("../services/adobeStatusService");
 
 const router = express.Router();
 
-router.post("/user-status", requireAuth, proxyAdobeUserStatus);
+router.post("/user-status", requireAuth, handleAdobeUserStatus);
 
 module.exports = router;
