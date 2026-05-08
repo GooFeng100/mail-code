@@ -1,20 +1,8 @@
+import { apiRequest } from "./client"
+
 export async function getAdobeUserStatus(email) {
-  const response = await fetch("/adobe-api/user-status", {
+  return apiRequest("/api/adobe-status/user-status", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ email }),
+    body: { email },
   })
-
-  const data = await response.json().catch(() => ({}))
-
-  if (!response.ok || data.found === false) {
-    const error = new Error(data.error || data.message || "Adobe status lookup failed")
-    error.status = response.status
-    error.data = data
-    throw error
-  }
-
-  return data
 }
