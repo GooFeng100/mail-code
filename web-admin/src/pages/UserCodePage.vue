@@ -1,9 +1,11 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from "vue"
 import { io } from "socket.io-client"
-import { DocumentCopy, Loading, SwitchButton, UserFilled } from "@element-plus/icons-vue"
+import { DocumentCopy, Loading, SwitchButton } from "@element-plus/icons-vue"
+import { getAdobeUserStatus } from "../api/adobeStatus"
 import { getToken } from "../api/client"
 import { listCodes } from "../api/codes"
+import adobeAvatar from "../assets/icons/icons8-adobe.png"
 import loginBg from "../assets/login-bg.png"
 import { playNewCodeSound } from "../utils/soundFeedback"
 
@@ -19,9 +21,43 @@ const emit = defineEmits(["logout"])
 const codeMessages = ref([])
 const copiedCode = ref("")
 const now = ref(Date.now())
+const teamInfo = ref(null)
+const teamStatusLoading = ref(false)
+const teamStatusUnavailable = ref(false)
 let socket = null
 
 const userAccount = computed(() => props.user?.accountEmail || props.user?.username || "Adobe普通用户")
+const teamName = computed(() => teamInfo.value?.organization?.name || "")
+const teamStatus = computed(() => teamInfo.value?.status || "")
+const teamStatusText = computed(() => {
+  if (teamStatusLoading.value) {
+    return "团队查询中"
+  }
+  if (teamStatusUnavailable.value) {
+    return "目前团队不可用，请及时联系管理员。"
+  }
+  return teamName.value ? `团队：${teamName.value}｜状态：${teamStatus.value || "-"}` : ""
+})
+
+async function loadTeamStatus() {
+  const email = userAccount.value
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    teamStatusUnavailable.value = true
+    return
+  }
+
+  teamStatusLoading.value = true
+  teamStatusUnavailable.value = false
+
+  try {
+    teamInfo.value = await getAdobeUserStatus(email)
+  } catch {
+    teamInfo.value = null
+    teamStatusUnavailable.value = true
+  } finally {
+    teamStatusLoading.value = false
+  }
+}
 
 function decodeTokenPayload(token) {
   if (!token) {
@@ -116,6 +152,7 @@ const timer = window.setInterval(() => {
 }, 1000)
 
 onMounted(async () => {
+  loadTeamStatus()
   await loadCodes()
   connectSocket()
 })
@@ -147,9 +184,23 @@ async function copyCode(code) {
       <div class="user-card">
         <div class="user-card-left">
           <el-avatar :size="42" class="user-avatar">
-            <el-icon><UserFilled /></el-icon>
+            <img :src="adobeAvatar" alt="Adobe" />
           </el-avatar>
-          <strong>Adobe账户：{{ userAccount }}</strong>
+          <div class="user-identity">
+            <strong>Adobe账户：{{ userAccount }}</strong>
+            <span
+              v-if="teamStatusText"
+              :class="[
+                'user-team-status',
+                {
+                  'is-active': teamStatus === 'active',
+                  'is-unavailable': teamStatusUnavailable,
+                },
+              ]"
+            >
+              {{ teamStatusText }}
+            </span>
+          </div>
         </div>
 
         <div class="user-card-right">

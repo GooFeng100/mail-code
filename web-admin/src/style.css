@@ -254,8 +254,29 @@ body {
 
 .user-card-left strong {
   color: #fff;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 850;
+}
+
+.user-identity {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+}
+
+.user-team-status {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.user-team-status.is-active {
+  color: #83f2b7;
+}
+
+.user-team-status.is-unavailable {
+  color: #ff6b6b;
 }
 
 .user-card-right {
@@ -264,8 +285,8 @@ body {
 
 .user-card-right span {
   color: rgba(255, 255, 255, 0.76);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 800;
 }
 
 .logout-button {
