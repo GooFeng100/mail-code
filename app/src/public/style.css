@@ -288,10 +288,27 @@ body.receiver-active .shell {
   box-shadow: 0 14px 28px rgba(70, 72, 212, 0.32);
 }
 
+.login-button:disabled,
+.login-button.is-loading {
+  cursor: wait;
+  opacity: 0.82;
+  pointer-events: none;
+}
+
 .login-button img {
   width: 20px;
   height: 20px;
   object-fit: contain;
+}
+
+.login-button.is-loading img {
+  animation: login-button-spin 1s linear infinite;
+}
+
+@keyframes login-button-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (max-width: 520px) {

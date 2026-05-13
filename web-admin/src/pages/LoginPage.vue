@@ -18,6 +18,10 @@ const form = reactive({
 const loginLoading = ref(false)
 
 async function handleLogin() {
+  if (loginLoading.value) {
+    return
+  }
+
   loginLoading.value = true
 
   try {
@@ -79,8 +83,9 @@ async function handleLogin() {
         class="login-submit"
         native-type="submit"
         :loading="loginLoading"
+        :disabled="loginLoading"
       >
-        登录
+        {{ loginLoading ? "登录中" : "登录" }}
       </el-button>
     </el-form>
   </main>

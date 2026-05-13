@@ -21,7 +21,9 @@
         </view>
         <text class="remember-text">记住用户名密码</text>
       </view>
-      <wd-button type="primary" block custom-class="login-btn" @click="submit">登录</wd-button>
+      <wd-button type="primary" block custom-class="login-btn" :loading="submitting" :disabled="submitting" @click="submit">
+        {{ submitting ? '登录中' : '登录' }}
+      </wd-button>
       <text class="tip">仅支持管理员账号登录。</text>
     </view>
     <wd-backtop :scroll-top="scrollTop" :top="80" :bottom="24" />
@@ -41,6 +43,7 @@ const CREDENTIALS_KEY = 'login:credentials'
 const username = ref('')
 const password = ref('')
 const rememberMe = ref(false)
+const submitting = ref(false)
 const appVersion = ref(String((manifest as any)?.versionName || '1.0.0'))
 
 const { scrollTop } = usePageScrollTop()
@@ -78,10 +81,14 @@ function persistRememberedCredentials() {
 }
 
 async function submit() {
+  if (submitting.value) return
+
   if (!username.value || !password.value) {
     uni.showToast({ title: '请输入账号和密码', icon: 'none' })
     return
   }
+
+  submitting.value = true
 
   try {
     await login(username.value, password.value)
@@ -89,6 +96,8 @@ async function submit() {
     uni.redirectTo({ url: '/pages/overview/index' })
   } catch (error: any) {
     uni.showToast({ title: error?.message || '登录失败', icon: 'none' })
+  } finally {
+    submitting.value = false
   }
 }
 </script>

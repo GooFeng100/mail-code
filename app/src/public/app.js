@@ -3,6 +3,7 @@ const tokenKey = "mailCodeToken";
 const loginPanel = document.getElementById("loginPanel");
 const userPanel = document.getElementById("userPanel");
 const loginForm = document.getElementById("loginForm");
+const loginButton = loginForm ? loginForm.querySelector(".login-button") : null;
 const loginMessage = document.getElementById("loginMessage");
 const userInfo = document.getElementById("userInfo");
 const accountAvatar = document.getElementById("accountAvatar");
@@ -15,6 +16,27 @@ let currentUser = null;
 let socket = null;
 let codes = [];
 let sessionExpiresAt = null;
+
+function setLoginSubmitting(submitting) {
+  if (!loginButton) {
+    return;
+  }
+
+  const icon = loginButton.querySelector(".login-button-icon");
+  const text = loginButton.querySelector(".login-button-text");
+
+  loginButton.disabled = submitting;
+  loginButton.classList.toggle("is-loading", submitting);
+  loginButton.setAttribute("aria-busy", submitting ? "true" : "false");
+
+  if (icon) {
+    icon.src = submitting ? "/assets/icons/loading.png" : "/assets/icons/login.png";
+  }
+
+  if (text) {
+    text.textContent = submitting ? "登录中" : "登 录";
+  }
+}
 
 function getToken() {
   return localStorage.getItem(tokenKey);
@@ -317,7 +339,9 @@ function connectSocket() {
 
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  setMessage(loginMessage, "正在登录...");
+  if (loginButton && loginButton.disabled) {
+    return;
+  }
 
   const formData = new FormData(loginForm);
   const username = cleanLoginAccount(formData.get("username"));
@@ -327,6 +351,9 @@ loginForm.addEventListener("submit", async (event) => {
     setMessage(loginMessage, "请输入正确的英文邮箱格式。", "error");
     return;
   }
+
+  setLoginSubmitting(true);
+  setMessage(loginMessage, "正在登录...");
 
   try {
     const data = await api("/api/auth/login", {
@@ -348,6 +375,8 @@ loginForm.addEventListener("submit", async (event) => {
     setMessage(loginMessage, "");
   } catch (error) {
     setMessage(loginMessage, friendlyErrorMessage(error.message), "error");
+  } finally {
+    setLoginSubmitting(false);
   }
 });
 
