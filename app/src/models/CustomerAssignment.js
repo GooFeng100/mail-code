@@ -64,6 +64,7 @@ customerAssignmentSchema.index(
 customerAssignmentSchema.set("toJSON", {
   transform(doc, ret) {
     ret.id = ret._id.toString();
+    ret.version = ret.__v;
     delete ret._id;
     delete ret.__v;
     return ret;

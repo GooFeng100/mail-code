@@ -255,7 +255,6 @@ async function copyAccountField(value) {
 
 function accountPayload() {
   return {
-    adobeCode: editAccountForm.code,
     accountEmail: editAccountForm.email,
     adobePassword: editAccountForm.password,
     accountEmailPassword: editAccountForm.emailPassword,
@@ -265,6 +264,7 @@ function accountPayload() {
     baseExpireAt: editAccountForm.baseExpireAt,
     enabled: editAccountForm.enabled,
     remark: editAccountForm.remark,
+    version: account.value.version,
   }
 }
 
@@ -501,7 +501,7 @@ onBeforeUnmount(() => {
     <el-dialog v-model="showEditAccountDialog" class="account-form-dialog" width="800px" align-center append-to-body :show-close="false" :close-on-click-modal="false" :close-on-press-escape="!editAccountSubmitting">
       <template #header><h2 class="account-form-title">编辑Adobe账户</h2></template>
       <el-form class="account-form-grid" :model="editAccountForm" label-position="top" :disabled="editAccountSubmitting">
-        <el-form-item label="Adobe账户编号"><el-input v-model="editAccountForm.code" /></el-form-item>
+        <el-form-item label="Adobe账户编号"><el-input v-model="editAccountForm.code" disabled /></el-form-item>
         <el-form-item label="Adobe账户邮箱" required><el-input v-model="editAccountForm.email" /></el-form-item>
         <el-form-item label="Adobe密码"><el-input v-model="editAccountForm.password" /></el-form-item>
         <el-form-item label="Adobe邮箱密码"><el-input v-model="editAccountForm.emailPassword" /></el-form-item>

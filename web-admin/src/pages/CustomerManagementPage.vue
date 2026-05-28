@@ -148,8 +148,7 @@ function syncCustomerBaseExpireAt() {
 }
 
 function customerPayload() {
-  return {
-    customerCode: customerForm.code,
+  const payload = {
     customerNickname: customerForm.nickname,
     customerContact: customerForm.contact,
     customerContactEmail: customerForm.email,
@@ -158,6 +157,13 @@ function customerPayload() {
     baseAfterSalesExpireAt: customerForm.baseExpireAt,
     remark: customerForm.remark,
   }
+  if (customerDialogMode.value === "create") {
+    payload.customerCode = customerForm.code
+  }
+  if (customerDialogMode.value === "edit" && editingCustomer.value?.version !== undefined) {
+    payload.version = editingCustomer.value.version
+  }
+  return payload
 }
 
 async function loadConfig() {
@@ -434,7 +440,7 @@ onMounted(async () => {
 
       <el-form class="account-form-grid" :model="customerForm" label-position="top" :disabled="customerSubmitting">
         <el-form-item label="客户编号（自动生成）">
-          <el-input v-model="customerForm.code" placeholder="保存后自动生成" :disabled="customerDialogMode === 'create'" />
+          <el-input v-model="customerForm.code" placeholder="保存后自动生成" disabled />
         </el-form-item>
 
         <el-form-item label="客户昵称" required>

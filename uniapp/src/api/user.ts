@@ -32,6 +32,7 @@ export interface UserListResult {
 }
 
 export interface UserFormValue {
+  version?: number
   code?: string
   name: string
   phone: string
@@ -57,7 +58,8 @@ function serializeUserPayload(form: UserFormValue) {
     purchasedPlan: String(form.purchasePlan || '').trim(),
     firstPaidAt: toIsoDate(form.paidAt),
     baseAfterSalesExpireAt: toIsoDate(form.afterSalesExpireAt),
-    remark: String(form.remark || '')
+    remark: String(form.remark || ''),
+    ...(form.version !== undefined ? { version: form.version } : {})
   }
 }
 

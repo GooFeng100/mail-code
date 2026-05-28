@@ -4,6 +4,7 @@ export type RelationStatus = 'bound' | 'unbound'
 
 export interface AccountItem {
   id: string
+  version?: number
   name: string
   code: string
   businessName: string
@@ -25,6 +26,7 @@ export interface AccountItem {
   verificationEnabled?: boolean
   bindings?: Array<{
     assignmentId?: string
+    assignmentVersion?: number
     role?: 'primary' | 'backup'
     userCode: string
     userName: string
@@ -48,6 +50,7 @@ export interface AccountItem {
 
 export interface UserItem {
   id: string
+  version?: number
   code: string
   name: string
   phone: string
@@ -64,6 +67,7 @@ export interface UserItem {
   renewalStatus?: string
   bindings?: Array<{
     assignmentId?: string
+    assignmentVersion?: number
     role?: 'primary' | 'backup'
     accountId?: string
     accountCode: string
@@ -89,6 +93,7 @@ export interface UserItem {
 
 export interface RelationItem {
   id: string
+  version?: number
   accountId: string
   accountCode?: string
   accountName: string

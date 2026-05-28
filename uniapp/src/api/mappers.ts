@@ -39,6 +39,7 @@ export function mapAccountListItem(raw: RawRecord): AccountItem {
   const remainingDays = Number(raw.remainingDays || 0)
   return {
     id: ensureStringId(raw.id || raw._id),
+    version: raw.version,
     name: String(raw.accountEmail || ''),
     code: String(raw.adobeCode || ''),
     businessName: String(raw.accountPlan || ''),
@@ -75,6 +76,7 @@ export function mapAccountDetail(raw: RawRecord): AccountItem {
         remainingDays,
         renewalStatus: renewalStatusText(remainingDays),
         assignmentId: ensureStringId(item.assignmentId || ''),
+        assignmentVersion: item.assignmentVersion,
         role: item.assignmentRole === 'primary' ? 'primary' : 'backup'
       }
     })
@@ -104,6 +106,7 @@ export function mapUserListItem(raw: RawRecord): UserItem {
   const remainingDays = Number(raw.remainingDays || 0)
   return {
     id: ensureStringId(raw.id || raw._id),
+    version: raw.version,
     code: String(raw.customerCode || ''),
     name: String(raw.customerNickname || ''),
     phone: String(raw.customerContact || ''),
@@ -137,6 +140,7 @@ export function mapUserDetail(raw: RawRecord): UserItem {
         renewalStatus: renewalStatusText(remainingDays),
         status: renewalStatusText(remainingDays),
         assignmentId: ensureStringId(item.assignmentId),
+        assignmentVersion: item.assignmentVersion,
         role: item.assignmentRole === 'primary' ? 'primary' : 'backup'
       }
     })
@@ -165,6 +169,7 @@ export function mapUserDetail(raw: RawRecord): UserItem {
 export function mapRelationItem(raw: RawRecord): RelationItem {
   return {
     id: ensureStringId(raw.id || raw._id),
+    version: raw.version,
     accountId: ensureStringId(raw.adobeAccountId || raw.accountId),
     accountCode: String(raw.adobeCode || ''),
     accountName: String(raw.accountEmail || raw.accountName || ''),

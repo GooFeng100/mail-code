@@ -90,6 +90,7 @@ adobeAccountSchema.index({ verificationEmailLocal: 1, verificationEmailDomain: 1
 adobeAccountSchema.set("toJSON", {
   transform(doc, ret) {
     ret.id = ret._id.toString();
+    ret.version = ret.__v;
     delete ret._id;
     delete ret.__v;
     delete ret.passwordHash;

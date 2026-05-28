@@ -5,6 +5,8 @@ const Customer = require("../models/Customer");
 const CustomerRenewalRecord = require("../models/CustomerRenewalRecord");
 const CustomerAssignment = require("../models/CustomerAssignment");
 const ParameterOption = require("../models/ParameterOption");
+const SoftwareCategory = require("../models/SoftwareCategory");
+const { Software } = require("../models/Software");
 const config = require("../config");
 const { ensureDefaultParameterOptions } = require("./parameterService");
 
@@ -51,6 +53,8 @@ async function ensureUserIndexes() {
   await CustomerRenewalRecord.syncIndexes();
   await CustomerAssignment.syncIndexes();
   await ParameterOption.syncIndexes();
+  await SoftwareCategory.syncIndexes();
+  await Software.syncIndexes();
   await ensureDefaultParameterOptions();
   console.log("Indexes synced");
 }

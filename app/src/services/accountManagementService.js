@@ -17,6 +17,11 @@ const {
 const {
   assertEnabledOption
 } = require("./parameterService");
+const {
+  addVersionGuard,
+  assertOptimisticMatch,
+  withOptionalTransaction
+} = require("../utils/concurrency");
 
 let computedFieldCleanupPromise = null;
 
@@ -45,6 +50,10 @@ function notFound(message) {
   const error = new Error(message);
   error.status = 404;
   throw error;
+}
+
+function isDuplicateKey(error, field) {
+  return error && error.code === 11000 && error.keyPattern && error.keyPattern[field];
 }
 
 function publicDoc(doc) {
@@ -234,8 +243,11 @@ function normalizeVerificationEmail(value) {
   };
 }
 
-async function nextCode(Model, field, prefix) {
-  const docs = await Model.find({ [field]: new RegExp(`^${prefix}\\d+$`) }).select(field);
+async function nextCode(Model, field, prefix, { session = null, occupiedQuery = {} } = {}) {
+  const docs = await queryWithSession(Model.find({
+    ...occupiedQuery,
+    [field]: new RegExp(`^${prefix}\\d+$`)
+  }).select(field), session);
   const used = new Set(docs.map((doc) => {
     const match = String(doc[field] || "").match(/\d+$/);
     return match ? Number(match[0]) : 0;
@@ -245,6 +257,10 @@ async function nextCode(Model, field, prefix) {
     next += 1;
   }
   return `${prefix}${String(next).padStart(4, "0")}`;
+}
+
+function queryWithSession(query, session) {
+  return session ? query.session(session) : query;
 }
 
 function normalizeCode(value, prefix) {
@@ -477,28 +493,61 @@ async function withCustomerInitialRenewal(customer, records) {
 }
 
 async function createAdobeAccount(data) {
-  const adobeCode = normalizeCode(data.adobeCode, "A") || await nextCode(AdobeAccount, "adobeCode", "A");
+  const explicitCode = normalizeCode(data.adobeCode, "A");
+  for (let attempts = 0; attempts < 3; attempts += 1) {
+    try {
+      return await createAdobeAccountOnce(data, explicitCode);
+    } catch (error) {
+      if (explicitCode || !isDuplicateKey(error, "adobeCode")) {
+        throw error;
+      }
+    }
+  }
+  return createAdobeAccountOnce(data, explicitCode);
+}
+
+async function createAdobeAccountOnce(data, explicitCode) {
   const verification = normalizeVerificationEmail(data.verificationEmail);
   const adobePassword = String(data.adobePassword || "");
   const plan = await assertEnabledOption("plan", data.accountPlan, "accountPlan");
   const paidAt = toDate(data.paidAt);
   const baseExpireAt = toDate(data.baseExpireAt) || (paidAt && plan.days ? addDays(paidAt, plan.days) : null);
 
-  const account = await AdobeAccount.create({
-    adobeCode,
-    accountEmail: normalizeAccountEmail(data.accountEmail),
-    accountEmailPassword: String(data.accountEmailPassword || ""),
-    adobePassword,
-    passwordHash: await hashPassword(adobePassword),
-    ...verification,
-    accountPlanId: plan._id.toString(),
-    accountPlan: plan.name,
-    initialAccountPlanId: plan._id.toString(),
-    initialAccountPlan: plan.name,
-    paidAt,
-    baseExpireAt,
-    enabled: data.enabled !== false,
-    remark: String(data.remark || "")
+  const account = await withOptionalTransaction(async (session) => {
+    const adobeCode = explicitCode || await nextCode(AdobeAccount, "adobeCode", "A", {
+      session,
+      occupiedQuery: { enabled: true }
+    });
+    const accountData = {
+      accountEmail: normalizeAccountEmail(data.accountEmail),
+      accountEmailPassword: String(data.accountEmailPassword || ""),
+      adobePassword,
+      passwordHash: await hashPassword(adobePassword),
+      ...verification,
+      accountPlanId: plan._id.toString(),
+      accountPlan: plan.name,
+      initialAccountPlanId: plan._id.toString(),
+      initialAccountPlan: plan.name,
+      paidAt,
+      baseExpireAt,
+      enabled: data.enabled !== false,
+      remark: String(data.remark || "")
+    };
+
+    const recyclable = await queryWithSession(AdobeAccount.findOne({ adobeCode, enabled: false }), session);
+    if (recyclable) {
+      Object.assign(recyclable, accountData);
+      recyclable.adobeCode = adobeCode;
+      recyclable.__v += 1;
+      await recyclable.save({ session });
+      return recyclable;
+    }
+
+    const [created] = await AdobeAccount.create([{
+      adobeCode,
+      ...accountData
+    }], { session });
+    return created;
   });
 
   return decorateAdobeAccount(account);
@@ -543,14 +592,22 @@ async function updateAdobeAccount(id, data) {
     update.remark = data.remark;
   }
 
-  const account = await AdobeAccount.findByIdAndUpdate(id, update, { new: true, runValidators: true });
-  if (!account) {
-    notFound("Adobe account not found");
-  }
+  const account = await withOptionalTransaction(async (session) => {
+    const updated = await AdobeAccount.findOneAndUpdate(
+      addVersionGuard({ _id: id }, data),
+      { $set: update, $inc: { __v: 1 } },
+      { new: true, runValidators: true, session }
+    );
+    if (!updated && data.version === undefined) {
+      notFound("Adobe account not found");
+    }
+    assertOptimisticMatch(updated);
 
-  await CustomerAssignment.updateMany({ adobeAccountId: account._id }, {
-    adobeCode: account.adobeCode,
-    accountEmail: account.accountEmail
+    await CustomerAssignment.updateMany({ adobeAccountId: updated._id }, {
+      adobeCode: updated.adobeCode,
+      accountEmail: updated.accountEmail
+    }, { session });
+    return updated;
   });
   return decorateAdobeAccount(await AdobeAccount.findById(account._id));
 }
@@ -595,12 +652,14 @@ async function getAdobeAccount(id) {
 }
 
 async function deleteAdobeAccount(id) {
-  const account = await AdobeAccount.findByIdAndDelete(id);
-  if (!account) {
-    notFound("Adobe account not found");
-  }
-  await AdobeRenewalRecord.deleteMany({ adobeAccountId: account._id });
-  await CustomerAssignment.deleteMany({ adobeAccountId: account._id });
+  await withOptionalTransaction(async (session) => {
+    const account = await AdobeAccount.findByIdAndDelete(id, { session });
+    if (!account) {
+      notFound("Adobe account not found");
+    }
+    await AdobeRenewalRecord.deleteMany({ adobeAccountId: account._id }, { session });
+    await CustomerAssignment.deleteMany({ adobeAccountId: account._id }, { session });
+  });
 }
 
 async function recalculateAdobeExpire(id) {
@@ -700,7 +759,20 @@ async function deleteAdobeRenewal(id, renewalId) {
 }
 
 async function createCustomer(data) {
-  const customerCode = normalizeCode(data.customerCode, "C") || await nextCode(Customer, "customerCode", "C");
+  const explicitCode = normalizeCode(data.customerCode, "C");
+  for (let attempts = 0; attempts < 3; attempts += 1) {
+    try {
+      return await createCustomerOnce(data, explicitCode);
+    } catch (error) {
+      if (explicitCode || !isDuplicateKey(error, "customerCode")) {
+        throw error;
+      }
+    }
+  }
+  return createCustomerOnce(data, explicitCode);
+}
+
+async function createCustomerOnce(data, explicitCode) {
   const plan = await assertEnabledOption("plan", data.purchasedPlan, "purchasedPlan");
   const firstPaidAt = toDate(data.firstPaidAt);
   const baseAfterSalesExpireAt = toDate(data.baseAfterSalesExpireAt) || (firstPaidAt && plan.days ? addDays(firstPaidAt, plan.days) : null);
@@ -709,18 +781,21 @@ async function createCustomer(data) {
     badRequest("customerNickname is required");
   }
 
-  const customer = await Customer.create({
-    customerCode,
-    customerNickname,
-    customerContact: String(data.customerContact || ""),
-    customerContactEmail: normalizeOptionalEmail(data.customerContactEmail, "customerContactEmail"),
-    purchasedPlanId: plan._id.toString(),
-    purchasedPlan: plan.name,
-    initialPurchasedPlanId: plan._id.toString(),
-    initialPurchasedPlan: plan.name,
-    firstPaidAt,
-    baseAfterSalesExpireAt,
-    remark: String(data.remark || "")
+  const customer = await withOptionalTransaction(async (session) => {
+    const [created] = await Customer.create([{
+      customerCode: explicitCode || await nextCode(Customer, "customerCode", "C", { session }),
+      customerNickname,
+      customerContact: String(data.customerContact || ""),
+      customerContactEmail: normalizeOptionalEmail(data.customerContactEmail, "customerContactEmail"),
+      purchasedPlanId: plan._id.toString(),
+      purchasedPlan: plan.name,
+      initialPurchasedPlanId: plan._id.toString(),
+      initialPurchasedPlan: plan.name,
+      firstPaidAt,
+      baseAfterSalesExpireAt,
+      remark: String(data.remark || "")
+    }], { session });
+    return created;
   });
 
   return decorateCustomer(customer);
@@ -761,14 +836,22 @@ async function updateCustomer(id, data) {
     update.remark = data.remark;
   }
 
-  const customer = await Customer.findByIdAndUpdate(id, update, { new: true, runValidators: true });
-  if (!customer) {
-    notFound("Customer not found");
-  }
+  const customer = await withOptionalTransaction(async (session) => {
+    const updated = await Customer.findOneAndUpdate(
+      addVersionGuard({ _id: id }, data),
+      { $set: update, $inc: { __v: 1 } },
+      { new: true, runValidators: true, session }
+    );
+    if (!updated && data.version === undefined) {
+      notFound("Customer not found");
+    }
+    assertOptimisticMatch(updated);
 
-  await CustomerAssignment.updateMany({ customerId: customer._id }, {
-    customerCode: customer.customerCode,
-    customerNickname: customer.customerNickname
+    await CustomerAssignment.updateMany({ customerId: updated._id }, {
+      customerCode: updated.customerCode,
+      customerNickname: updated.customerNickname
+    }, { session });
+    return updated;
   });
   return decorateCustomer(await Customer.findById(customer._id));
 }
@@ -806,12 +889,14 @@ async function getCustomer(id) {
 }
 
 async function deleteCustomer(id) {
-  const customer = await Customer.findByIdAndDelete(id);
-  if (!customer) {
-    notFound("Customer not found");
-  }
-  await CustomerRenewalRecord.deleteMany({ customerId: customer._id });
-  await CustomerAssignment.deleteMany({ customerId: customer._id });
+  await withOptionalTransaction(async (session) => {
+    const customer = await Customer.findByIdAndDelete(id, { session });
+    if (!customer) {
+      notFound("Customer not found");
+    }
+    await CustomerRenewalRecord.deleteMany({ customerId: customer._id }, { session });
+    await CustomerAssignment.deleteMany({ customerId: customer._id }, { session });
+  });
 }
 
 async function recalculateCustomerExpire(id) {
@@ -1009,6 +1094,9 @@ async function updateAssignment(id, data) {
   if (!assignment) {
     notFound("Assignment not found");
   }
+  if (Object.prototype.hasOwnProperty.call(data, "version") && Number(data.version) !== Number(assignment.__v)) {
+    assertOptimisticMatch(null);
+  }
 
   const nextRole = Object.prototype.hasOwnProperty.call(data, "assignmentRole")
     ? normalizeAssignmentRole(data.assignmentRole)
@@ -1087,12 +1175,21 @@ async function getAdobeDetail(id) {
   const customerIds = assignments.map((item) => item.customerId);
   const customers = await Customer.find({ _id: { $in: customerIds } });
   const timeline = await computeAdobeTimeline(account);
+  const assignmentMap = new Map(assignments.map((assignment) => [String(assignment.customerId), assignment]));
 
   return {
     adobeAccount: await decorateAdobeAccount(account),
     remainingDays: getRemainingDays(timeline.expireAt),
     remainingText: getRemainingText(timeline.expireAt),
-    customers: await Promise.all(customers.map(decorateCustomer)),
+    customers: await Promise.all(customers.map(async (customer) => {
+      const assignment = assignmentMap.get(String(customer._id));
+      return {
+        ...(await decorateCustomer(customer)),
+        assignmentId: assignment ? assignment._id.toString() : "",
+        assignmentRole: assignment ? assignment.assignmentRole || "backup" : "backup",
+        assignmentVersion: assignment ? assignment.__v : undefined
+      };
+    })),
     renewalRecords: await withAdobeInitialRenewal(account, timeline.records)
   };
 }
@@ -1123,6 +1220,7 @@ async function getCustomerDetail(id) {
         return {
           ...(await decorateAdobeAccount(account)),
           assignmentId: assignment._id.toString(),
+          assignmentVersion: assignment.__v,
           assignmentRole: assignment.assignmentRole || "backup",
           assignmentRoleLabel: assignmentRoleLabel(assignment.assignmentRole),
           assignedAt: assignment.assignedAt

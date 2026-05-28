@@ -34,6 +34,7 @@ export interface AccountListResult {
 }
 
 export interface AccountFormValue {
+  version?: number
   code?: string
   accountEmail: string
   adobePassword?: string
@@ -75,7 +76,8 @@ function serializeAccountPayload(form: AccountFormValue) {
     paidAt: toIsoDate(form.paidAt),
     baseExpireAt: toIsoDate(form.baseExpireAt),
     enabled: form.enabled !== false,
-    remark: String(form.remark || '')
+    remark: String(form.remark || ''),
+    ...(form.version !== undefined ? { version: form.version } : {})
   }
 }
 

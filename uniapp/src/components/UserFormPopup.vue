@@ -91,6 +91,7 @@ interface PlanOption {
 }
 
 interface UserFormValue {
+  version?: number
   code: string
   name: string
   phone: string
@@ -172,6 +173,7 @@ function syncFormFromUser() {
   const afterSalesDate = normalizeDate(item.afterSalesExpireAt) || normalizeDate(item.expireDate) || dateText(addDays(new Date(paidAt), planDays))
 
   form.code = String(item.code || '')
+  form.version = item.version
   form.name = String(item.name || '')
   form.phone = String(item.phone || '')
   form.paidAt = paidAt

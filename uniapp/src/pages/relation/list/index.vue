@@ -183,7 +183,8 @@ function displayUserName(item: RelationItem) {
 async function togglePrimary(id: string) {
   try {
     const nextRole: 'primary' | 'backup' = currentRole(id) === 'primary' ? 'backup' : 'primary'
-    await updateRelationRole(id, nextRole)
+    const current = relations.value.find((item) => item.id === id)
+    await updateRelationRole(id, nextRole, current?.version)
     roleState.value[id] = nextRole
     const target = list.value.find((item) => item.id === id)
     if (target) {
@@ -207,7 +208,8 @@ async function toggleRelation(id: string) {
       return
     }
 
-    await updateRelationActive(id, nextActive)
+    const relation = relations.value.find((item) => item.id === id)
+    await updateRelationActive(id, nextActive, relation?.version)
     const next: RelationStatus = nextActive ? 'bound' : 'unbound'
     relationState.value[id] = next
     target.status = next

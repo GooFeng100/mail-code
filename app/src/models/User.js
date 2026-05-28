@@ -56,6 +56,7 @@ userSchema.index({ emailLocal: 1, emailDomain: 1 }, { unique: true });
 userSchema.set("toJSON", {
   transform(doc, ret) {
     ret.id = ret._id.toString();
+    ret.version = ret.__v;
     delete ret._id;
     delete ret.__v;
     delete ret.passwordHash;

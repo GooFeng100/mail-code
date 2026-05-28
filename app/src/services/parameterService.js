@@ -4,6 +4,11 @@ const AdobeAccount = require("../models/AdobeAccount");
 const AdobeRenewalRecord = require("../models/AdobeRenewalRecord");
 const Customer = require("../models/Customer");
 const CustomerRenewalRecord = require("../models/CustomerRenewalRecord");
+const {
+  addVersionGuard,
+  assertOptimisticMatch,
+  withOptionalTransaction
+} = require("../utils/concurrency");
 
 const CATEGORIES = {
   plan: "账户计划"
@@ -181,18 +186,24 @@ async function createParameterOption(data) {
   const name = normalizeName(data.name);
   const sortOrder = normalizeSortOrder(data.sortOrder);
 
-  await assertUniqueName(category, name);
-  await shiftSortOrders(category, sortOrder);
+  return withOptionalTransaction(async (session) => {
+    await assertUniqueName(category, name);
+    await ParameterOption.updateMany(
+      { category, sortOrder: { $gte: sortOrder } },
+      { $inc: { sortOrder: 1 } },
+      { session }
+    );
 
-  const option = await ParameterOption.create({
-    category,
-    name,
-    days: category === "plan" ? Number(data.days || 0) : 0,
-    enabled: data.enabled !== false,
-    sortOrder,
-    remark: String(data.remark || "")
+    const [option] = await ParameterOption.create([{
+      category,
+      name,
+      days: category === "plan" ? Number(data.days || 0) : 0,
+      enabled: data.enabled !== false,
+      sortOrder,
+      remark: String(data.remark || "")
+    }], { session });
+    return publicOption(option);
   });
-  return publicOption(option);
 }
 
 async function updateParameterOption(id, data) {
@@ -210,31 +221,48 @@ async function updateParameterOption(id, data) {
   const nextSortOrder = normalizeSortOrder(hasSortOrder ? data.sortOrder : option.sortOrder);
   const moved = nextCategory !== option.category || Number(nextSortOrder) !== Number(option.sortOrder || 0);
 
-  await assertUniqueName(nextCategory, nextName, option._id);
-  if (moved) {
-    await shiftSortOrders(nextCategory, nextSortOrder, option._id);
-  }
+  return withOptionalTransaction(async (session) => {
+    await assertUniqueName(nextCategory, nextName, option._id);
+    if (moved) {
+      await ParameterOption.updateMany(
+        {
+          category: nextCategory,
+          sortOrder: { $gte: nextSortOrder },
+          _id: { $ne: option._id }
+        },
+        { $inc: { sortOrder: 1 } },
+        { session }
+      );
+    }
 
-  option.category = nextCategory;
-  option.name = nextName;
-  if (Object.prototype.hasOwnProperty.call(data, "days")) {
-    option.days = option.category === "plan" ? Number(data.days || 0) : 0;
-  } else if (option.category !== "plan") {
-    option.days = 0;
-  }
-  if (typeof data.enabled === "boolean") {
-    option.enabled = data.enabled;
-  }
-  option.sortOrder = nextSortOrder;
-  if (typeof data.remark === "string") {
-    option.remark = data.remark;
-  }
+    const update = {
+      category: nextCategory,
+      name: nextName,
+      sortOrder: nextSortOrder
+    };
+    if (Object.prototype.hasOwnProperty.call(data, "days")) {
+      update.days = nextCategory === "plan" ? Number(data.days || 0) : 0;
+    } else if (nextCategory !== "plan") {
+      update.days = 0;
+    }
+    if (typeof data.enabled === "boolean") {
+      update.enabled = data.enabled;
+    }
+    if (typeof data.remark === "string") {
+      update.remark = data.remark;
+    }
 
-  await option.save();
-  return {
-    previousOption,
-    parameter: publicOption(option)
-  };
+    const updated = await ParameterOption.findOneAndUpdate(
+      addVersionGuard({ _id: id }, data),
+      { $set: update, $inc: { __v: 1 } },
+      { new: true, runValidators: true, session }
+    );
+    assertOptimisticMatch(updated);
+    return {
+      previousOption,
+      parameter: publicOption(updated)
+    };
+  });
 }
 
 async function deleteParameterOption(id) {
@@ -248,12 +276,14 @@ async function deleteParameterOption(id) {
     badRequest("参数已被账户、客户或续费记录引用，请禁用而不是删除");
   }
 
-  const option = await ParameterOption.findByIdAndDelete(id);
-  if (!option) {
-    const error = new Error("parameter option not found");
-    error.status = 404;
-    throw error;
-  }
+  await withOptionalTransaction(async (session) => {
+    const option = await ParameterOption.findByIdAndDelete(id, { session });
+    if (!option) {
+      const error = new Error("parameter option not found");
+      error.status = 404;
+      throw error;
+    }
+  });
 }
 
 module.exports = {

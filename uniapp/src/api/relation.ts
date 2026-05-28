@@ -54,22 +54,24 @@ export async function createRelation(payload: RelationBindValue) {
   })
 }
 
-export async function updateRelationRole(id: string, role: 'primary' | 'backup') {
+export async function updateRelationRole(id: string, role: 'primary' | 'backup', version?: number) {
   return http<{ assignment?: Record<string, any> }>({
     url: API_PATHS.relationById(id),
     method: 'PUT',
     data: {
-      assignmentRole: role
+      assignmentRole: role,
+      ...(version !== undefined ? { version } : {})
     }
   })
 }
 
-export async function updateRelationActive(id: string, active: boolean) {
+export async function updateRelationActive(id: string, active: boolean, version?: number) {
   return http<{ assignment?: Record<string, any> }>({
     url: API_PATHS.relationById(id),
     method: 'PUT',
     data: {
-      active
+      active,
+      ...(version !== undefined ? { version } : {})
     }
   })
 }

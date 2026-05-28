@@ -1,4 +1,5 @@
 const express = require("express");
+const multer = require("multer");
 const { requireAuth, requireAdmin } = require("../middleware/auth");
 const config = require("../config");
 const {
@@ -8,6 +9,27 @@ const {
   listParameterOptions,
   updateParameterOption
 } = require("../services/parameterService");
+const {
+  listSoftwareCategories
+} = require("../services/softwareCategoryService");
+const {
+  createSoftwareFromLocalUpload,
+  createSoftwareFromExternalLink,
+  listSoftwares,
+  getSoftware,
+  updateSoftware,
+  deleteSoftware,
+  setSoftwarePublished,
+  setSoftwareCategory,
+  setSoftwareSort,
+  checkSoftwareValidity,
+  softwareDownloadTest,
+  resolveRemoteSoftwareMeta
+} = require("../services/softwareService");
+const {
+  startSoftwareImportTask,
+  getSoftwareImportTask
+} = require("../services/softwareImportTaskService");
 const {
   createAdobeAccount,
   createAdobeRenewal,
@@ -37,6 +59,12 @@ const AdobeAccount = require("../models/AdobeAccount");
 const { saveCode } = require("../services/codeService");
 
 const router = express.Router();
+const softwareUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: Math.max(config.softwareImportMaxMb, config.softwareMaxUploadMb) * 1024 * 1024
+  }
+});
 
 router.use(requireAuth, requireAdmin);
 
@@ -86,6 +114,169 @@ router.delete("/parameters/:id", async (req, res, next) => {
   try {
     await deleteParameterOption(req.params.id);
     res.json({ ok: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/software-categories", async (req, res, next) => {
+  try {
+    res.json({ ok: true, ...(await listSoftwareCategories(req.query)) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/software-categories", async (req, res, next) => {
+  res.status(405).json({ ok: false, error: "software categories are fixed enum and cannot be modified" });
+});
+
+router.put("/software-categories/:id", async (req, res, next) => {
+  res.status(405).json({ ok: false, error: "software categories are fixed enum and cannot be modified" });
+});
+
+router.patch("/software-categories/:id/sort", async (req, res, next) => {
+  res.status(405).json({ ok: false, error: "software categories are fixed enum and cannot be modified" });
+});
+
+router.patch("/software-categories/:id/enabled", async (req, res, next) => {
+  res.status(405).json({ ok: false, error: "software categories are fixed enum and cannot be modified" });
+});
+
+router.delete("/software-categories/:id", async (req, res, next) => {
+  res.status(405).json({ ok: false, error: "software categories are fixed enum and cannot be modified" });
+});
+
+router.post("/softwares/upload-local", softwareUpload.fields([
+  { name: "file", maxCount: 1 },
+  { name: "icon", maxCount: 1 }
+]), async (req, res, next) => {
+  try {
+    const software = await createSoftwareFromLocalUpload({
+      body: req.body,
+      file: req.files && req.files.file ? req.files.file[0] : null,
+      iconFile: req.files && req.files.icon ? req.files.icon[0] : null
+    });
+    res.status(201).json({ ok: true, software });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/softwares/import-to-server", softwareUpload.fields([
+  { name: "icon", maxCount: 1 }
+]), async (req, res, next) => {
+  try {
+    const task = startSoftwareImportTask({
+      body: req.body,
+      iconFile: req.files && req.files.icon ? req.files.icon[0] : null
+    });
+    res.status(202).json({ ok: true, task });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/softwares/resolve-remote-meta", async (req, res, next) => {
+  try {
+    const result = await resolveRemoteSoftwareMeta({ sourceUrl: req.body && req.body.sourceUrl });
+    res.json({ ok: true, result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/softwares/import-tasks/:taskId", async (req, res, next) => {
+  try {
+    const task = getSoftwareImportTask(req.params.taskId);
+    res.json({ ok: true, task });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/softwares/external-link", softwareUpload.fields([
+  { name: "icon", maxCount: 1 }
+]), async (req, res, next) => {
+  try {
+    const software = await createSoftwareFromExternalLink({
+      body: req.body,
+      iconFile: req.files && req.files.icon ? req.files.icon[0] : null
+    });
+    res.status(201).json({ ok: true, software });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/softwares", async (req, res, next) => {
+  try {
+    res.json({ ok: true, ...(await listSoftwares(req.query)) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/softwares/:id", async (req, res, next) => {
+  try {
+    res.json({ ok: true, software: await getSoftware(req.params.id) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.put("/softwares/:id", async (req, res, next) => {
+  try {
+    res.json({ ok: true, software: await updateSoftware(req.params.id, req.body) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.delete("/softwares/:id", async (req, res, next) => {
+  try {
+    await deleteSoftware(req.params.id);
+    res.json({ ok: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.patch("/softwares/:id/publish", async (req, res, next) => {
+  try {
+    res.json({ ok: true, software: await setSoftwarePublished(req.params.id, req.body) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.patch("/softwares/:id/category", async (req, res, next) => {
+  try {
+    res.json({ ok: true, software: await setSoftwareCategory(req.params.id, req.body) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.patch("/softwares/:id/sort", async (req, res, next) => {
+  try {
+    res.json({ ok: true, software: await setSoftwareSort(req.params.id, req.body) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/softwares/:id/check-validity", async (req, res, next) => {
+  try {
+    res.json({ ok: true, software: await checkSoftwareValidity(req.params.id) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/softwares/:id/download-test", async (req, res, next) => {
+  try {
+    res.json({ ok: true, result: await softwareDownloadTest(req.params.id) });
   } catch (error) {
     next(error);
   }

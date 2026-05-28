@@ -14,8 +14,11 @@ const meRoutes = require("./routes/me");
 const codesRoutes = require("./routes/codes");
 const adminRoutes = require("./routes/admin");
 const adobeStatusRoutes = require("./routes/adobeStatus");
+const softwaresRoutes = require("./routes/softwares");
 const { requireAuth } = require("./middleware/auth");
+const { idempotencyMiddleware } = require("./middleware/idempotency");
 const { handleAdobeUserStatus } = require("./services/adobeStatusService");
+const { ensureSoftwareDirectories } = require("./utils/softwareStorage");
 
 const app = express();
 const server = http.createServer(app);
@@ -53,6 +56,8 @@ app.use("/api/me", meRoutes);
 app.post("/api/codes/adobe-status", requireAuth, handleAdobeUserStatus);
 app.use("/api/codes", codesRoutes);
 app.use("/api/adobe-status", adobeStatusRoutes);
+app.use("/api/softwares", softwaresRoutes);
+app.use("/api/admin", requireAuth, idempotencyMiddleware);
 app.use("/api/admin", adminRoutes);
 
 app.use((req, res) => {
@@ -77,6 +82,7 @@ app.use((error, req, res, next) => {
 
 async function start() {
   try {
+    await ensureSoftwareDirectories();
     await connectMongo();
     await connectRedis();
     await ensureUserIndexes();

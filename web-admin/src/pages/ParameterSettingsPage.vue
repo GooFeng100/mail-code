@@ -71,7 +71,7 @@ function categoryLabel(category) {
 }
 
 function parameterPayload() {
-  return {
+  const payload = {
     category: parameterForm.category,
     name: parameterForm.name,
     days: Number(parameterForm.days || 0),
@@ -79,6 +79,10 @@ function parameterPayload() {
     sortOrder: Number(parameterForm.sortOrder || 1),
     remark: parameterForm.remark,
   }
+  if (parameterDialogMode.value === "edit" && editingParameter.value?.version !== undefined) {
+    payload.version = editingParameter.value.version
+  }
+  return payload
 }
 
 async function loadParameters() {
@@ -175,7 +179,7 @@ async function handleParameterEnabledChange(parameter, enabled) {
 
   const ok = await submitWithFeedback({
     setLoading: () => {},
-    action: () => updateParameter(parameterId, { enabled }),
+    action: () => updateParameter(parameterId, { enabled, version: parameter.version }),
     successMessage: enabled ? "参数已启用。" : "参数已禁用。",
     errorMessage: "参数启用状态修改失败。",
     onSuccess: loadParameters,

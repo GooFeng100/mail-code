@@ -10,6 +10,7 @@ import adobeMenuIcon from "./assets/icons/adobecloud.png"
 import bindingMenuIcon from "./assets/icons/icons8-link-96.png"
 import configMenuIcon from "./assets/icons/config.png"
 import customerMenuIcon from "./assets/icons/icons8-customer-2019-96.png"
+import softwareMenuIcon from "./assets/icons/Software.png"
 import managerIcon from "./assets/icons/manager.png"
 import systemLogo from "./assets/icons/icons8-microsoft-business-central-96.png"
 import AdobeAccountDetailPage from "./pages/AdobeAccountDetailPage.vue"
@@ -19,6 +20,7 @@ import CustomerDetailPage from "./pages/CustomerDetailPage.vue"
 import CustomerManagementPage from "./pages/CustomerManagementPage.vue"
 import LoginPage from "./pages/LoginPage.vue"
 import ParameterSettingsPage from "./pages/ParameterSettingsPage.vue"
+import SoftwareManagementPage from "./pages/SoftwareManagementPage.vue"
 import UserCodePage from "./pages/UserCodePage.vue"
 
 const currentView = ref("login")
@@ -35,6 +37,7 @@ const menuItems = [
   { key: "adobe", label: "Adobe账户", icon: adobeMenuIcon },
   { key: "customers", label: "客户管理", icon: customerMenuIcon },
   { key: "assignments", label: "绑定关系", icon: bindingMenuIcon },
+  { key: "softwares", label: "常用软件", icon: softwareMenuIcon },
   { key: "parameters", label: "参数设置", icon: configMenuIcon },
 ]
 
@@ -216,6 +219,7 @@ onBeforeUnmount(() => {
       @view-account="showAdobeDetail"
       @view-customer="showCustomerDetail"
     />
+    <SoftwareManagementPage v-else-if="activeAdminModule === 'softwares'" />
     <ParameterSettingsPage v-else-if="activeAdminModule === 'parameters'" />
     <AdobeAccountsPage v-else />
   </el-container>

@@ -207,7 +207,6 @@ function roleLabel(role) {
 
 function customerPayload() {
   return {
-    customerCode: editCustomerForm.code,
     customerNickname: editCustomerForm.nickname,
     customerContact: editCustomerForm.contact,
     customerContactEmail: editCustomerForm.email,
@@ -215,6 +214,7 @@ function customerPayload() {
     firstPaidAt: editCustomerForm.firstPaidAt,
     baseAfterSalesExpireAt: editCustomerForm.baseExpireAt,
     remark: editCustomerForm.remark,
+    version: customer.value.version,
   }
 }
 
@@ -325,7 +325,7 @@ function handleBindingConfirm(payload) {
 function handleRoleChange(row) {
   submitWithFeedback({
     setLoading: () => {},
-    action: () => updateAssignment(row.assignmentId, { assignmentRole: row.assignmentRole }),
+    action: () => updateAssignment(row.assignmentId, { assignmentRole: row.assignmentRole, version: row.assignmentVersion }),
     successMessage: "主备关系修改成功。",
     errorMessage: "主备关系修改失败。",
     onSuccess: loadDetail,
@@ -423,7 +423,7 @@ watch(() => [editCustomerForm.firstPaidAt, editCustomerForm.plan], () => {
     <el-dialog v-model="showEditCustomerDialog" class="account-form-dialog" width="800px" align-center append-to-body :show-close="false" :close-on-click-modal="false" :close-on-press-escape="!editCustomerSubmitting">
       <template #header><h2 class="account-form-title">编辑客户</h2></template>
       <el-form class="account-form-grid" :model="editCustomerForm" label-position="top" :disabled="editCustomerSubmitting">
-        <el-form-item label="客户编号（自动生成）"><el-input v-model="editCustomerForm.code" /></el-form-item>
+        <el-form-item label="客户编号（自动生成）"><el-input v-model="editCustomerForm.code" disabled /></el-form-item>
         <el-form-item label="客户昵称" required><el-input v-model="editCustomerForm.nickname" /></el-form-item>
         <el-form-item label="联系方式" required><el-input v-model="editCustomerForm.contact" /></el-form-item>
         <el-form-item label="联系邮箱"><el-input v-model="editCustomerForm.email" /></el-form-item>

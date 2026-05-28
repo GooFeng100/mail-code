@@ -59,9 +59,17 @@ function buildUrl(path, query) {
   return text ? `${path}?${text}` : path
 }
 
+function requestId() {
+  if (window.crypto?.randomUUID) {
+    return window.crypto.randomUUID()
+  }
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`
+}
+
 export async function apiRequest(path, options = {}) {
+  const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData
   const headers = {
-    "Content-Type": "application/json",
+    ...(isFormData ? {} : { "Content-Type": "application/json" }),
     ...(options.headers || {}),
   }
 
@@ -69,10 +77,17 @@ export async function apiRequest(path, options = {}) {
   if (token) {
     headers.Authorization = `Bearer ${token}`
   }
+  if (["POST", "PUT", "DELETE", "PATCH"].includes(String(options.method || "GET").toUpperCase()) && !headers["Idempotency-Key"]) {
+    headers["Idempotency-Key"] = requestId()
+  }
 
   const response = await fetch(buildUrl(path, options.query), {
     ...options,
-    body: options.body && typeof options.body !== "string" ? JSON.stringify(options.body) : options.body,
+    body: isFormData
+      ? options.body
+      : options.body && typeof options.body !== "string"
+        ? JSON.stringify(options.body)
+        : options.body,
     headers,
   })
 

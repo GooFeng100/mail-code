@@ -27,16 +27,22 @@ export function clearToken() {
   uni.removeStorageSync('token')
 }
 
+function requestId() {
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`
+}
+
 export function http<T>(options: HttpOptions): Promise<T> {
   const token = getToken()
+  const method = options.method || 'GET'
 
   return new Promise((resolve, reject) => {
     uni.request({
       url: `${API_BASE_URL}${options.url}`,
-      method: options.method || 'GET',
+      method,
       data: options.data,
       header: {
         'Content-Type': 'application/json',
+        ...(['POST', 'PUT', 'DELETE'].includes(method) ? { 'Idempotency-Key': requestId() } : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(options.header || {})
       },

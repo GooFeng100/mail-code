@@ -114,6 +114,7 @@ interface PlanOption {
 }
 
 interface AccountFormValue {
+  version?: number
   code: string
   accountEmail: string
   adobePassword: string
@@ -217,6 +218,7 @@ function syncFormFromAccount() {
   const planDays = planOptions.find((p) => p.label === plan)?.days || planOptions[0].days
 
   form.code = String(item.code || '')
+  form.version = item.version
   form.accountEmail = String(item.accountEmail || item.name || '')
   form.adobePassword = String(item.adobePassword || '')
   form.accountEmailPassword = String(item.accountEmailPassword || '')

@@ -30,6 +30,7 @@ adobeRenewalRecordSchema.index({ adobeAccountId: 1, renewalDate: 1 });
 adobeRenewalRecordSchema.set("toJSON", {
   transform(doc, ret) {
     ret.id = ret._id.toString();
+    ret.version = ret.__v;
     delete ret._id;
     delete ret.__v;
     return ret;

@@ -133,7 +133,7 @@ function openDeleteBindingDialog(row) {
 function handleRoleChange(row) {
   submitWithFeedback({
     setLoading: () => {},
-    action: () => updateAssignment(row.id, { assignmentRole: row.assignmentRole }),
+    action: () => updateAssignment(row.id, { assignmentRole: row.assignmentRole, version: row.version }),
     successMessage: "主备关系修改成功。",
     errorMessage: "主备关系修改失败。",
     onSuccess: loadAssignments,
@@ -148,8 +148,8 @@ function handleBindingConfirm(payload) {
       assignmentRole: payload.assignmentRole,
       assignedAt: payload.assignedAt,
     }),
-    unbind: () => updateAssignment(payload.id, { active: false }),
-    restore: () => updateAssignment(payload.id, { active: true }),
+    unbind: () => updateAssignment(payload.id, { active: false, version: selectedBinding.value.version }),
+    restore: () => updateAssignment(payload.id, { active: true, version: selectedBinding.value.version }),
   }
   const successMap = {
     bind: "绑定关系新增成功。",

@@ -505,7 +505,7 @@ function resetSoftwareSearch() {
             </div>
             <div class="user-software-content">
               <strong class="user-software-name" :title="item.name">{{ item.name }}</strong>
-              <em class="user-software-version">{{ item.appVersion || "-" }}</em>
+              <em class="user-software-version">版本：{{ item.appVersion || "-" }}</em>
               <p :title="item.description || '暂无描述'">{{ item.description || "暂无描述" }}</p>
               <div class="user-software-tags">
                 <span>{{ item.categoryName || "其他" }}</span>

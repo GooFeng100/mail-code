@@ -146,3 +146,89 @@ export function updateParameter(id, payload) {
 export function deleteParameter(id) {
   return apiRequest(`/api/admin/parameters/${id}`, { method: "DELETE" })
 }
+
+export async function listSoftwareCategories(query = {}) {
+  return apiRequest("/api/admin/software-categories", { query })
+}
+
+export async function listSoftwares(query = {}) {
+  return apiRequest("/api/admin/softwares", { query })
+}
+
+export function getSoftware(id) {
+  return apiRequest(`/api/admin/softwares/${id}`)
+}
+
+export function updateSoftware(id, payload) {
+  return apiRequest(`/api/admin/softwares/${id}`, {
+    method: "PUT",
+    body: payload,
+  })
+}
+
+export function deleteSoftware(id) {
+  return apiRequest(`/api/admin/softwares/${id}`, { method: "DELETE" })
+}
+
+export function setSoftwarePublish(id, payload) {
+  return apiRequest(`/api/admin/softwares/${id}/publish`, {
+    method: "PATCH",
+    body: payload,
+  })
+}
+
+export function setSoftwareCategory(id, payload) {
+  return apiRequest(`/api/admin/softwares/${id}/category`, {
+    method: "PATCH",
+    body: payload,
+  })
+}
+
+export function setSoftwareSort(id, payload) {
+  return apiRequest(`/api/admin/softwares/${id}/sort`, {
+    method: "PATCH",
+    body: payload,
+  })
+}
+
+export function checkSoftwareValidity(id) {
+  return apiRequest(`/api/admin/softwares/${id}/check-validity`, {
+    method: "POST",
+  })
+}
+
+export function createSoftwareByLocalUpload(payload) {
+  return apiRequest("/api/admin/softwares/upload-local", {
+    method: "POST",
+    body: payload,
+  })
+}
+
+export function createSoftwareByRemoteImport(payload) {
+  return apiRequest("/api/admin/softwares/import-to-server", {
+    method: "POST",
+    body: payload,
+  })
+}
+
+export function resolveRemoteSoftwareMeta(payload) {
+  return apiRequest("/api/admin/softwares/resolve-remote-meta", {
+    method: "POST",
+    body: payload,
+  })
+}
+
+export function getSoftwareImportTask(taskId) {
+  return apiRequest(`/api/admin/softwares/import-tasks/${taskId}`)
+}
+
+export function createSoftwareByExternalLink(payload) {
+  return apiRequest("/api/admin/softwares/external-link", {
+    method: "POST",
+    body: payload,
+  })
+}
+
+export function softwareDownloadTest(id) {
+  return apiRequest(`/api/admin/softwares/${id}/download-test`)
+}

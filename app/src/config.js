@@ -1,4 +1,5 @@
 require("dotenv").config();
+const path = require("path");
 
 function parseList(value) {
   return String(value || "")
@@ -9,6 +10,14 @@ function parseList(value) {
 
 function normalizeDomain(value) {
   return String(value || "").trim().toLowerCase();
+}
+
+function parsePositiveInt(value, fallback) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return fallback;
+  }
+  return Math.floor(parsed);
 }
 
 function parseMailDomainConfig() {
@@ -76,7 +85,14 @@ const config = {
   },
   mailListenerEnabled: process.env.MAIL_LISTENER_ENABLED !== "false",
   mailScanWindowMinutes: Number(process.env.MAIL_SCAN_WINDOW_MINUTES || 5),
-  mailScanIntervalSeconds: Number(process.env.MAIL_SCAN_INTERVAL_SECONDS || 30)
+  mailScanIntervalSeconds: Number(process.env.MAIL_SCAN_INTERVAL_SECONDS || 30),
+  softwareFileRoot: path.resolve(process.env.SOFTWARE_FILE_ROOT || path.join(process.cwd(), "software-files")),
+  softwareMaxUploadMb: parsePositiveInt(process.env.SOFTWARE_MAX_UPLOAD_MB, 500),
+  softwareImportMaxMb: parsePositiveInt(process.env.SOFTWARE_IMPORT_MAX_MB, 1024),
+  softwareImportTimeoutSeconds: parsePositiveInt(process.env.SOFTWARE_IMPORT_TIMEOUT_SECONDS, 300),
+  softwareAllowedExtensions: parseList(
+    process.env.SOFTWARE_ALLOWED_EXTENSIONS || "exe,msi,zip,7z,rar,apk,dmg,pkg,iso,pdf"
+  ).map((item) => item.toLowerCase())
 };
 
 module.exports = config;

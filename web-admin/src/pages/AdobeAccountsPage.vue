@@ -155,8 +155,7 @@ function syncAccountBaseExpireAt() {
 }
 
 function accountPayload() {
-  return {
-    adobeCode: createAccountForm.code,
+  const payload = {
     accountEmail: createAccountForm.email,
     adobePassword: createAccountForm.password,
     accountEmailPassword: createAccountForm.emailPassword,
@@ -167,6 +166,13 @@ function accountPayload() {
     enabled: createAccountForm.enabled,
     remark: createAccountForm.remark,
   }
+  if (accountDialogMode.value === "create") {
+    payload.adobeCode = createAccountForm.code
+  }
+  if (accountDialogMode.value === "edit" && editingAccount.value?.version !== undefined) {
+    payload.version = editingAccount.value.version
+  }
+  return payload
 }
 
 async function loadConfig() {
@@ -430,7 +436,7 @@ onMounted(async () => {
             <template #default="{ row }">
               <el-switch
                 v-model="row.enabled"
-                @change="updateAdobeAccount(row.id, { enabled: row.enabled }).then(loadAccounts)"
+                @change="updateAdobeAccount(row.id, { enabled: row.enabled, version: row.version }).then(loadAccounts)"
               />
             </template>
           </el-table-column>
@@ -478,7 +484,7 @@ onMounted(async () => {
 
       <el-form class="account-form-grid" :model="createAccountForm" label-position="top" :disabled="accountSubmitting">
         <el-form-item label="Adobe账户编号">
-          <el-input v-model="createAccountForm.code" placeholder="自动生成，例如 A0001" :disabled="accountDialogMode === 'create'" />
+          <el-input v-model="createAccountForm.code" placeholder="自动生成，例如 A0001" disabled />
         </el-form-item>
 
         <el-form-item label="Adobe账户邮箱" required>

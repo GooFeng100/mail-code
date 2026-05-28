@@ -419,14 +419,14 @@ async function handleBindSubmit(
   }
 }
 
-async function togglePrimary(item: { role?: string; assignmentId?: string }) {
+async function togglePrimary(item: { role?: string; assignmentId?: string; assignmentVersion?: number }) {
   if (!item.assignmentId) {
     uni.showToast({ title: '该绑定不支持切换主备', icon: 'none' })
     return
   }
   try {
     const nextRole: 'primary' | 'backup' = item.role === 'primary' ? 'backup' : 'primary'
-    await updateRelationRole(item.assignmentId, nextRole)
+    await updateRelationRole(item.assignmentId, nextRole, item.assignmentVersion)
     item.role = nextRole
     uni.showToast({ title: '切换成功', icon: 'none' })
   } catch (error: any) {

@@ -44,3 +44,8 @@ MAIL_CODE_CLOUD_MAINTENANCE.md
 
 # Local design handoff references, not required at runtime
 app/design_refs/
+
+# Software module local files
+software-files/*
+!software-files/.gitkeep
+!software-files/README.md
