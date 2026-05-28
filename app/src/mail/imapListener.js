@@ -31,6 +31,18 @@ function isMailConfigured() {
   return Boolean(config.mail.host && config.mail.user && config.mail.pass);
 }
 
+function buildImapProxy() {
+  if (!config.mail.proxyEnabled) {
+    return null;
+  }
+
+  if (!config.mail.proxyUrl) {
+    throw new Error("MAIL_PROXY_ENABLED is true, but MAIL_PROXY_URL is empty");
+  }
+
+  return config.mail.proxyUrl;
+}
+
 function processedKey(uid) {
   return `mail:processed:${config.mail.user}:${uid}`;
 }
@@ -160,7 +172,15 @@ async function startImapListener() {
     return;
   }
 
-  client = new ImapFlow({
+  let proxy;
+  try {
+    proxy = buildImapProxy();
+  } catch (error) {
+    console.error(`IMAP listener not started: ${error.message}`);
+    return;
+  }
+
+  const clientOptions = {
     host: config.mail.host,
     port: config.mail.port,
     secure: config.mail.secure,
@@ -169,7 +189,13 @@ async function startImapListener() {
       pass: config.mail.pass
     },
     logger: false
-  });
+  };
+
+  if (proxy) {
+    clientOptions.proxy = proxy;
+  }
+
+  client = new ImapFlow(clientOptions);
 
   client.on("error", (error) => {
     console.error("IMAP error:", formatImapError(error));
@@ -186,7 +212,7 @@ async function startImapListener() {
 
   await client.connect();
   await client.mailboxOpen("INBOX");
-  console.log(`IMAP listener connected: ${config.mail.user}`);
+  console.log(`IMAP listener connected: ${config.mail.user}${proxy ? " (proxy enabled)" : ""}`);
 
   await processRecent();
 

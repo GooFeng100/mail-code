@@ -20,6 +20,20 @@ function parsePositiveInt(value, fallback) {
   return Math.floor(parsed);
 }
 
+function parseBoolean(value, fallback = false) {
+  if (value === undefined || value === null || value === "") {
+    return fallback;
+  }
+  const normalized = String(value).trim().toLowerCase();
+  if (["true", "1", "yes", "on"].includes(normalized)) {
+    return true;
+  }
+  if (["false", "0", "no", "off"].includes(normalized)) {
+    return false;
+  }
+  return fallback;
+}
+
 function parseMailDomainConfig() {
   if (process.env.MAIL_DOMAIN_CONFIG) {
     try {
@@ -81,7 +95,9 @@ const config = {
     port: Number(process.env.MAIL_PORT || 993),
     secure: String(process.env.MAIL_SECURE || "true") === "true",
     user: process.env.MAIL_USER || "",
-    pass: process.env.MAIL_PASS || ""
+    pass: process.env.MAIL_PASS || "",
+    proxyEnabled: parseBoolean(process.env.MAIL_PROXY_ENABLED, false),
+    proxyUrl: String(process.env.MAIL_PROXY_URL || "").trim()
   },
   mailListenerEnabled: process.env.MAIL_LISTENER_ENABLED !== "false",
   mailScanWindowMinutes: Number(process.env.MAIL_SCAN_WINDOW_MINUTES || 5),
