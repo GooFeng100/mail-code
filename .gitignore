@@ -9,6 +9,8 @@ app/node_modules/
 app/.env
 app/.env.*
 !app/.env.example
+deploy/domains.env
+!deploy/domains.env.example
 
 # Runtime data
 mongodb-data/

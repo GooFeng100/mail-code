@@ -225,7 +225,7 @@ function setMessage(text, type = "") {
 }
 
 function showSuccessFeedback(options = {}) {
-  const title = options.title || "操作成功";
+  const title = options.title || "鎿嶄綔鎴愬姛";
   const message = options.message || "已完成";
   const duration = Number(options.duration || 2000);
   const root = document.getElementById("successToastRoot") || document.body;
@@ -316,7 +316,7 @@ function closeModal() {
   document.body.classList.remove("admin-modal-open");
 }
 
-function loadingMarkup(text = "加载中") {
+function loadingMarkup(text = "???") {
   return `
     <span class="admin-loading-inline">
       <img src="${loadingIcon}" alt="" />
@@ -325,7 +325,7 @@ function loadingMarkup(text = "加载中") {
   `;
 }
 
-function loadingRow(colspan, text = "加载中") {
+function loadingRow(colspan, text = "???") {
   return `<tr><td colspan="${colspan}" class="admin-empty admin-loading-cell">${loadingMarkup(text)}</td></tr>`;
 }
 
@@ -343,7 +343,7 @@ function setFormSubmitting(form, submitting) {
     if (!submitButton.dataset.defaultHtml) {
       submitButton.dataset.defaultHtml = submitButton.innerHTML;
     }
-    submitButton.innerHTML = submitting ? `${loadingMarkup("处理中")}` : submitButton.dataset.defaultHtml;
+    submitButton.innerHTML = submitting ? `${loadingMarkup("???")}` : submitButton.dataset.defaultHtml;
   }
 }
 
@@ -356,7 +356,7 @@ function setConfirmSubmitting(submitting) {
     if (!el.confirmOk.dataset.defaultHtml) {
       el.confirmOk.dataset.defaultHtml = el.confirmOk.innerHTML;
     }
-    el.confirmOk.innerHTML = submitting ? loadingMarkup("处理中") : el.confirmOk.dataset.defaultHtml;
+    el.confirmOk.innerHTML = submitting ? loadingMarkup("???") : el.confirmOk.dataset.defaultHtml;
   }
 }
 
@@ -371,13 +371,13 @@ function closeConfirmModal() {
   }
 }
 
-function askConfirm(text, title = "确认操作", details = [], hint = "") {
+function askConfirm(text, title = "纭鎿嶄綔", details = [], hint = "") {
   setConfirmSubmitting(false);
-  const isDeleteAction = title.includes("删除");
-  const isBindingUnbind = title.includes("取消绑定");
-  const isBindingRestore = title.includes("恢复绑定");
+  const isDeleteAction = title.includes("鍒犻櫎");
+  const isBindingUnbind = title.includes("鍙栨秷缁戝畾");
+  const isBindingRestore = title.includes("鎭㈠缁戝畾");
   const isBindingAction = isBindingUnbind || isBindingRestore;
-  const displayTitle = isBindingUnbind ? "解除绑定关系" : isBindingRestore ? "恢复绑定关系" : confirmTitleText(title);
+  const displayTitle = isBindingUnbind ? "瑙ｉ櫎缁戝畾鍏崇郴" : isBindingRestore ? "鎭㈠缁戝畾鍏崇郴" : confirmTitleText(title);
   el.confirmModal.classList.toggle("binding-unbind-open", isBindingUnbind);
   el.confirmModal.classList.toggle("binding-restore-open", isBindingRestore);
   el.confirmModal.classList.toggle("binding-action-open", isBindingAction);
@@ -392,30 +392,30 @@ function askConfirm(text, title = "确认操作", details = [], hint = "") {
   }
   if (isBindingAction) {
     const findDetail = (label) => (details || []).find((item) => item.label === label)?.value || "";
-    const [customerCode = "-", customerName = "-"] = String(findDetail("客户")).split("|").map((item) => item.trim());
-    const [adobeCode = "-", accountEmail = "-"] = String(findDetail("Adobe账户")).split("|").map((item) => item.trim());
-    const assignedAt = findDetail("绑定日期") || "-";
+    const [customerCode = "-", customerName = "-"] = String(findDetail("瀹㈡埛")).split("|").map((item) => item.trim());
+    const [adobeCode = "-", accountEmail = "-"] = String(findDetail("Adobe璐︽埛")).split("|").map((item) => item.trim());
+    const assignedAt = findDetail("缁戝畾鏃ユ湡") || "-";
     const modeClass = isBindingRestore ? "binding-bridge-restore" : "binding-bridge-unbind";
     const noticeText = isBindingRestore
-      ? "恢复后，该客户将重新显示在该 Adobe 账户下。"
-      : "解除后，该客户将不再使用此 Adobe 账户。";
+      ? "?????????????? Adobe ????"
+      : "????????????? Adobe ???";
     el.confirmDetails.innerHTML = `
-      <p class="binding-confirm-subtitle">${isBindingRestore ? "确认恢复当前客户与 Adobe 账户的绑定关系" : "确认解除当前客户与 Adobe 账户的绑定关系"}</p>
-      <div class="binding-confirm-date"><span>绑定日期</span><strong>${escapeHtml(displayValue(assignedAt))}</strong></div>
+      <p class="binding-confirm-subtitle">${isBindingRestore ? "????????? Adobe ???????" : "????????? Adobe ???????"}</p>
+      <div class="binding-confirm-date"><span>缁戝畾鏃ユ湡</span><strong>${escapeHtml(displayValue(assignedAt))}</strong></div>
       <div class="binding-confirm-layout">
         <section class="binding-confirm-card">
           <div>
-            <h3>客户信息</h3>
-            <p>客户编号：<strong>${escapeHtml(displayValue(customerCode))}</strong></p>
-            <p>客户名称：<strong>${escapeHtml(displayValue(customerName))}</strong></p>
+            <h3>瀹㈡埛淇℃伅</h3>
+            <p>瀹㈡埛缂栧彿锛?strong>${escapeHtml(displayValue(customerCode))}</strong></p>
+            <p>瀹㈡埛鍚嶇О锛?strong>${escapeHtml(displayValue(customerName))}</strong></p>
           </div>
         </section>
         <div class="binding-bridge ${modeClass}" aria-hidden="true"></div>
         <section class="binding-confirm-card">
           <div>
-            <h3>账户信息</h3>
-            <p>账户编号：<strong>${escapeHtml(displayValue(adobeCode))}</strong></p>
-            <p>账户名称：<strong>${escapeHtml(displayValue(accountEmail))}</strong></p>
+            <h3>璐︽埛淇℃伅</h3>
+            <p>璐︽埛缂栧彿锛?strong>${escapeHtml(displayValue(adobeCode))}</strong></p>
+            <p>璐︽埛鍚嶇О锛?strong>${escapeHtml(displayValue(accountEmail))}</strong></p>
           </div>
         </section>
       </div>
@@ -441,44 +441,44 @@ function askConfirm(text, title = "确认操作", details = [], hint = "") {
 }
 
 function confirmTitleText(title) {
-  if (title.startsWith("确认")) {
+  if (title.startsWith("纭")) {
     return title;
   }
-  if (title.includes("删除")) {
-    return `确认${title}`;
+  if (title.includes("鍒犻櫎")) {
+    return `纭${title}`;
   }
-  if (title.includes("取消绑定")) {
-    return "确认解绑";
+  if (title.includes("鍙栨秷缁戝畾")) {
+    return "纭瑙ｇ粦";
   }
-  if (title.includes("恢复绑定")) {
-    return "确认恢复绑定";
+  if (title.includes("鎭㈠缁戝畾")) {
+    return "纭鎭㈠缁戝畾";
   }
   return title;
 }
 
 function confirmOkText(title) {
-  if (title.includes("删除")) {
-    if (title.includes("续费记录")) {
-      return "确认删除续费记录";
+  if (title.includes("鍒犻櫎")) {
+    if (title.includes("缁垂璁板綍")) {
+      return "纭鍒犻櫎缁垂璁板綍";
     }
-    if (title.includes("客户")) {
-      return "确认删除客户";
+    if (title.includes("瀹㈡埛")) {
+      return "纭鍒犻櫎瀹㈡埛";
     }
-    if (title.includes("参数")) {
-      return "确认删除参数";
+    if (title.includes("鍙傛暟")) {
+      return "纭鍒犻櫎鍙傛暟";
     }
-    if (title.includes("绑定")) {
-      return "确认删除绑定关系";
+    if (title.includes("缁戝畾")) {
+      return "纭鍒犻櫎缁戝畾鍏崇郴";
     }
-    return "确认删除";
+    return "纭鍒犻櫎";
   }
-  if (title.includes("取消绑定")) {
-    return "确认解除绑定";
+  if (title.includes("鍙栨秷缁戝畾")) {
+    return "纭瑙ｉ櫎缁戝畾";
   }
-  if (title.includes("恢复绑定")) {
-    return "确认恢复绑定";
+  if (title.includes("鎭㈠缁戝畾")) {
+    return "纭鎭㈠缁戝畾";
   }
-  return "确认";
+  return "纭";
 }
 
 function resolveConfirm(value) {
@@ -513,54 +513,54 @@ async function runConfirmedAction(confirmPromise, action) {
 
 function openAdobeCreateModal() {
   resetAdobeForm();
-  openModal("新增 Adobe账户", el.adobeFormCard, "adobe-account");
+  openModal("鏂板 Adobe璐︽埛", el.adobeFormCard, "adobe-account");
 }
 
 function openAdobeEditModal(account) {
   fillAdobeForm(account);
-  openModal("编辑 Adobe账户", el.adobeFormCard, "adobe-account");
+  openModal("缂栬緫 Adobe璐︽埛", el.adobeFormCard, "adobe-account");
 }
 
 function openAdobeRenewalModal() {
   if (!state.selectedAdobeId) {
-    setMessage("请先选择 Adobe账户", "error");
+    setMessage("璇峰厛閫夋嫨 Adobe璐︽埛", "error");
     return;
   }
 
   el.adobeRenewalForm.reset();
   el.adobeRenewalForm.dataset.id = state.selectedAdobeId;
   updateAdobeRenewalPreview();
-  openModal("新增续费记录", el.adobeRenewalFormCard, "renewal-modal account-renewal-modal");
+  openModal("鏂板缁垂璁板綍", el.adobeRenewalFormCard, "renewal-modal account-renewal-modal");
 }
 
 function openCustomerCreateModal() {
   resetCustomerForm();
   const title = document.getElementById("customerModalTitle");
   if (title) {
-    title.textContent = "新增客户";
+    title.textContent = "鏂板瀹㈡埛";
   }
-  openModal("新增客户", el.customerFormCard, "customer-modal");
+  openModal("鏂板瀹㈡埛", el.customerFormCard, "customer-modal");
 }
 
 function openCustomerEditModal(customer) {
   fillCustomerForm(customer);
   const title = document.getElementById("customerModalTitle");
   if (title) {
-    title.textContent = "编辑客户";
+    title.textContent = "缂栬緫瀹㈡埛";
   }
-  openModal(`编辑客户 ${customer.customerCode || ""}`, el.customerFormCard, "customer-modal");
+  openModal(`缂栬緫瀹㈡埛 ${customer.customerCode || ""}`, el.customerFormCard, "customer-modal");
 }
 
 function openCustomerRenewalModal() {
   if (!state.selectedCustomerId) {
-    setMessage("请先选择客户", "error");
+    setMessage("璇峰厛閫夋嫨瀹㈡埛", "error");
     return;
   }
 
   el.customerRenewalForm.reset();
   el.customerRenewalForm.dataset.id = state.selectedCustomerId;
   updateCustomerRenewalPreview();
-  openModal("新增续费记录", el.customerRenewalFormCard, "renewal-modal");
+  openModal("鏂板缁垂璁板綍", el.customerRenewalFormCard, "renewal-modal");
 }
 
 function assignmentOption(kind, id) {
@@ -605,17 +605,17 @@ function openAssignmentCreateModal(prefill = {}) {
   syncAssignmentRoleField();
   prefillAssignmentCombobox("customer", prefill.customerId);
   prefillAssignmentCombobox("adobe", prefill.adobeAccountId);
-  openModal("新增绑定关系", el.assignmentFormCard, "binding-bind-modal");
+  openModal("鏂板缁戝畾鍏崇郴", el.assignmentFormCard, "binding-bind-modal");
 }
 
 function openParameterCreateModal() {
   resetParameterForm();
-  openModal("新增参数", el.parameterFormCard, "settings-modal");
+  openModal("鏂板鍙傛暟", el.parameterFormCard, "settings-modal");
 }
 
 function openParameterEditModal(item) {
   fillParameterForm(item);
-  openModal(`编辑参数 ${item.name || ""}`, el.parameterFormCard, "settings-modal");
+  openModal(`缂栬緫鍙傛暟 ${item.name || ""}`, el.parameterFormCard, "settings-modal");
 }
 
 function icon(name) {
@@ -623,27 +623,27 @@ function icon(name) {
 }
 
 function renderStats() {
-  const expiredAdobe = state.adobeAccounts.filter((account) => adobeStatusText(account) === "已到期").length;
+  const expiredAdobe = state.adobeAccounts.filter((account) => adobeStatusText(account) === "???").length;
   const soonAdobe = state.adobeAccounts.filter((account) => {
     const days = adobeRemainingDays(account);
     return Number.isFinite(days) && days > 0 && days <= 30;
   }).length;
   const riskAdobe = state.adobeAccounts.filter((account) => account.enabled === false).length;
-  const normalAdobe = state.adobeAccounts.filter((account) => adobeStatusText(account) === "正常" && account.enabled !== false).length;
-  const expiredCustomers = state.customers.filter((customer) => customerStatusText(customer) === "已到期").length;
+  const normalAdobe = state.adobeAccounts.filter((account) => adobeStatusText(account) === "姝ｅ父" && account.enabled !== false).length;
+  const expiredCustomers = state.customers.filter((customer) => customerStatusText(customer) === "???").length;
   const soonCustomers = state.customers.filter((customer) => {
     const days = customerRemainingDays(customer);
     return Number.isFinite(days) && days > 0 && days <= 30;
   }).length;
   const normalCustomers = state.customers.filter((customer) => {
-    return customerStatusText(customer) === "正常";
+    return customerStatusText(customer) === "姝ｅ父";
   }).length;
   const activeAssignments = state.assignments.filter((assignment) => assignment.active).length;
   const enabledParameters = state.parameters.filter((parameter) => parameter.enabled).length;
 
   if (el.adobeStatTotal) {
     el.adobeStatTotal.textContent = state.adobeAccounts.length;
-    el.adobeStatHint.textContent = expiredAdobe ? `${expiredAdobe} 个已到期` : "状态良好";
+    el.adobeStatHint.textContent = String(expiredAdobe) + " ????";
   }
   if (el.adobeStatNormal) {
     el.adobeStatNormal.textContent = normalAdobe;
@@ -656,7 +656,7 @@ function renderStats() {
   }
   if (el.customerStatTotal) {
     el.customerStatTotal.textContent = state.customers.length;
-    el.customerStatHint.textContent = expiredCustomers ? `${expiredCustomers} 个售后到期` : "售后正常";
+    el.customerStatHint.textContent = expiredCustomers ? String(expiredCustomers) + " 个售后到期" : "售后正常";
   }
   if (el.customerStatNormal) {
     el.customerStatNormal.textContent = normalCustomers;
@@ -666,11 +666,11 @@ function renderStats() {
   }
   if (el.assignmentStatTotal) {
     el.assignmentStatTotal.textContent = activeAssignments;
-    el.assignmentStatHint.textContent = `${state.assignments.length} 条历史记录`;
+    el.assignmentStatHint.textContent = String(state.assignments.length) + " ?????";
   }
   if (el.parameterStatTotal) {
     el.parameterStatTotal.textContent = state.parameters.length;
-    el.parameterStatHint.textContent = `${enabledParameters} 个启用中`;
+    el.parameterStatHint.textContent = String(enabledParameters) + " ????";
   }
 }
 
@@ -681,7 +681,7 @@ async function api(path, options = {}) {
   };
   const token = getToken();
   if (token) {
-    headers.Authorization = `Bearer ${token}`;
+    headers.Authorization = "Bearer " + token;
   }
 
   const res = await fetch(path, { ...options, headers });
@@ -693,7 +693,7 @@ async function api(path, options = {}) {
       window.location.href = "/";
       throw new Error("登录已过期，请重新登录后再操作。");
     }
-    throw new Error(data.error || `HTTP ${res.status}`);
+    throw new Error(data.error || "HTTP " + res.status);
   }
   return data;
 }
@@ -715,14 +715,16 @@ function dateInput(value) {
 }
 
 function fillSelect(select, options, placeholder) {
-  select.innerHTML = [
-    placeholder ? `<option value="">${escapeHtml(placeholder)}</option>` : "",
-    ...options.map((item) => {
+  const items = [
+    placeholder ? '<option value="">' + escapeHtml(placeholder) + "</option>" : ""
+  ].concat(
+    (options || []).map((item) => {
       const value = typeof item === "string" ? item : item.id || item.name;
-      const label = typeof item === "string" ? item : `${item.name}（${item.days}天）`;
-      return `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`;
+      const label = typeof item === "string" ? item : item.name + (item.days ? " (" + item.days + " 天)" : "");
+      return '<option value="' + escapeHtml(value) + '">' + escapeHtml(label) + "</option>";
     })
-  ].join("");
+  );
+  select.innerHTML = items.join("");
 }
 
 function isSamePlan(item, planValue) {
@@ -767,7 +769,7 @@ function planLabel(planValue, fallbackDays = 0) {
   const label = plan && typeof plan !== "string" ? plan.name : name;
   const days = Number((plan && typeof plan !== "string" ? plan.days : fallbackDays) || 0);
 
-  return days > 0 ? `${label}（${days}天）` : label;
+  return days > 0 ? label + " (" + days + " 天)" : label;
 }
 
 function addDaysToDateInput(dateValue, days) {
@@ -785,7 +787,7 @@ function addDaysToDateInput(dateValue, days) {
   const yyyy = date.getFullYear();
   const mm = String(date.getMonth() + 1).padStart(2, "0");
   const dd = String(date.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
+  return String(yyyy) + "-" + mm + "-" + dd;
 }
 
 function dateInputFromAny(value) {
@@ -832,7 +834,7 @@ function adobeRemainingText(account) {
   if (!Number.isFinite(days)) {
     return displayValue(account ? account.remainingText : "");
   }
-  return days <= 0 ? "0 天" : `${days} 天`;
+  return days <= 0 ? "0 ?" : String(days) + " ?";
 }
 
 function customerRemainingDays(customer) {
@@ -845,12 +847,12 @@ function customerRemainingText(customer) {
   if (!Number.isFinite(days)) {
     return displayValue(customer ? customer.remainingText : "");
   }
-  return days <= 0 ? "0 天" : `${days} 天`;
+  return days <= 0 ? "0 ?" : String(days) + " ?";
 }
 
 function remainingTextCell(text, kind = "") {
-  const className = kind ? `admin-remaining-text ${kind}` : "admin-remaining-text";
-  return `<span class="${className}">${escapeHtml(displayValue(text))}</span>`;
+  const className = kind ? "admin-remaining-text " + kind : "admin-remaining-text";
+  return '<span class="' + className + '">' + escapeHtml(displayValue(text)) + '</span>';
 }
 
 function codeNumber(value) {
@@ -879,10 +881,10 @@ function adobeStatusKind(account) {
   if (Number.isFinite(remainingDays) && remainingDays > 0 && remainingDays <= 30) {
     return "warning";
   }
-  if (text === "异常") {
+  if (text === "寮傚父") {
     return "danger";
   }
-  if (text === "停用") {
+  if (text === "鍋滅敤") {
     return "muted";
   }
   return "success";
@@ -893,7 +895,7 @@ function adobeStatusText(account) {
   if (Number.isFinite(days) && days <= 0) {
     return "已到期";
   }
-  return "正常";
+  return "姝ｅ父";
 }
 
 function customerStatusKind(customer) {
@@ -905,10 +907,10 @@ function customerStatusKind(customer) {
   if (Number.isFinite(remainingDays) && remainingDays > 0 && remainingDays <= 30) {
     return "warning";
   }
-  if (text === "异常") {
+  if (text === "寮傚父") {
     return "danger";
   }
-  if (text === "停用") {
+  if (text === "鍋滅敤") {
     return "muted";
   }
   return "success";
@@ -919,7 +921,7 @@ function customerStatusText(customer) {
   if (Number.isFinite(days) && days <= 0) {
     return "已到期";
   }
-  return "正常";
+  return "姝ｅ父";
 }
 
 function updateAdobeRenewalPreview() {
@@ -929,7 +931,7 @@ function updateAdobeRenewalPreview() {
   const before = account ? dateInput(account.accountExpireAt) : "";
   const after = before && days ? addDaysToAnyDate(before, days) : "";
 
-  el.adobeRenewalDaysPreview.value = days ? `${days} 天` : "";
+  el.adobeRenewalDaysPreview.value = days ? String(days) + " ?" : "";
   el.adobeRenewalBeforePreview.value = before || "-";
   el.adobeRenewalAfterPreview.value = after || "-";
 }
@@ -941,7 +943,7 @@ function updateCustomerRenewalPreview() {
   const before = customer ? dateInput(customer.afterSalesExpireAt) : "";
   const after = before && days ? addDaysToAnyDate(before, days) : "";
 
-  el.customerRenewalDaysPreview.value = days ? `${days} 天` : "";
+  el.customerRenewalDaysPreview.value = days ? String(days) + " ?" : "";
   el.customerRenewalBeforePreview.value = before || "-";
   el.customerRenewalAfterPreview.value = after || "-";
 }
@@ -991,7 +993,7 @@ function statusFromExpireDate(value) {
   if (days <= 0) {
     return "已到期";
   }
-  return "正常";
+  return "姝ｅ父";
 }
 
 function syncAdobeStatusPreview() {
@@ -1007,11 +1009,11 @@ function syncCustomerStatusPreview() {
 }
 
 function statusChip(text, kind = "") {
-  return `<span class="admin-chip ${kind}">${escapeHtml(displayValue(text))}</span>`;
+  return '<span class="admin-chip ' + kind + '">' + escapeHtml(displayValue(text)) + '</span>';
 }
 
 function assignmentRoleLabel(value) {
-  return value === "primary" ? "主要账号" : "备用账号";
+  return value === "primary" ? "涓昏璐﹀彿" : "澶囩敤璐﹀彿";
 }
 
 function assignmentRoleChip(value, assignment = null) {
@@ -1020,47 +1022,45 @@ function assignmentRoleChip(value, assignment = null) {
   const nextRole = role === "primary" ? "backup" : "primary";
   const disabled = !assignmentId || assignment?.active === false ? " disabled" : "";
   const actionAttrs = assignmentId
-    ? ` data-action="set-assignment-role" data-id="${escapeHtml(assignmentId)}" data-role="${nextRole}"`
+    ? " data-action=\"set-assignment-role\" data-id=\"" + escapeHtml(assignmentId) + "\" data-role=\"" + nextRole + "\""
     : "";
-  return `
-    <span class="checkbox-wrapper-35 assignment-role-switch ${role}" aria-label="${assignmentRoleLabel(role)}">
-      <button type="button" class="switch-button" aria-label="${assignmentRoleLabel(role)}"${actionAttrs}${disabled}>
-        <span class="switch-shell"></span>
-      </button>
-      <span class="switch-label" aria-hidden="true">
-        <span class="switch-x-toggletext">
-          <span class="switch-x-unchecked"><span class="switch-x-hiddenlabel">Unchecked: </span>备用</span>
-          <span class="switch-x-checked"><span class="switch-x-hiddenlabel">Checked: </span>主要</span>
-        </span>
-      </span>
-    </span>
-  `;
+  return "    <span class=\"checkbox-wrapper-35 assignment-role-switch " + role + "\" aria-label=\"" + assignmentRoleLabel(role) + "\">" +
+    "      <button type=\"button\" class=\"switch-button\" aria-label=\"" + assignmentRoleLabel(role) + "\"" + actionAttrs + disabled + ">" +
+    "        <span class=\"switch-shell\"></span>" +
+    "      </button>" +
+    "      <span class=\"switch-label\" aria-hidden=\"true\">" +
+    "        <span class=\"switch-x-toggletext\">" +
+    "          <span class=\"switch-x-unchecked\"><span class=\"switch-x-hiddenlabel\">Unchecked: </span>澶囩敤</span>" +
+    "          <span class=\"switch-x-checked\"><span class=\"switch-x-hiddenlabel\">Checked: </span>涓昏</span>" +
+    "        </span>" +
+    "      </span>" +
+    "    </span>";
 }
 
 function isEnabledText(value) {
-  return value ? statusChip("启用", "success") : statusChip("禁用", "muted");
+  return value ? statusChip("鍚敤", "success") : statusChip("绂佺敤", "muted");
 }
 
 function assignmentSummaryDetails(assignment) {
   return [
-    { label: "客户", value: `${assignment.customerCode || "-"} | ${assignment.customerNickname || "-"}` },
-    { label: "Adobe账户", value: `${assignment.adobeCode || "-"} | ${assignment.accountEmail || "-"}` },
-    { label: "主备标识", value: assignmentRoleLabel(assignment.assignmentRole) },
-    { label: "绑定日期", value: formatDate(assignment.assignedAt) },
-    { label: "当前状态", value: assignment.active ? "有效" : "已取消" }
+    { label: "瀹㈡埛", value: (assignment.customerCode || "-") + " | " + (assignment.customerNickname || "-") },
+    { label: "Adobe璐︽埛", value: (assignment.adobeCode || "-") + " | " + (assignment.accountEmail || "-") },
+    { label: "涓诲鏍囪瘑", value: assignmentRoleLabel(assignment.assignmentRole) },
+    { label: "缁戝畾鏃ユ湡", value: formatDate(assignment.assignedAt) },
+    { label: "褰撳墠鐘舵€佺姸鎬?", value: assignment.active ? "鏈夋晥" : "宸插彇娑?" }
   ];
 }
 
 function emptyRow(colspan, text) {
-  return `<tr><td colspan="${colspan}" class="admin-empty">${escapeHtml(text)}</td></tr>`;
+  return "<tr><td colspan=\"" + colspan + "\" class=\"admin-empty\">" + escapeHtml(text) + "</td></tr>";
 }
 
 function renewalAction(record) {
   if (record.initial) {
-    return '<span class="admin-muted">基准记录</span>';
+    return '<span class="admin-muted">鍩哄噯璁板綍</span>';
   }
 
-  return `<button type="button" class="admin-small admin-danger" data-action="delete-renewal" data-id="${escapeHtml(record.id)}">${icon("delete")}删除</button>`;
+  return "<button type=\"button\" class=\"admin-small admin-danger\" data-action=\"delete-renewal\" data-id=\"" + escapeHtml(record.id) + "\">" + icon("delete") + "鍒犻櫎</button>";
 }
 
 function clearAdobeDetail() {
@@ -1146,7 +1146,7 @@ function setVerificationEmailFields(account = {}) {
 function verificationEmailValue() {
   const local = formValue(el.adobeForm, "verificationEmailLocal").trim().toLowerCase();
   const domain = formValue(el.adobeForm, "verificationEmailDomain").trim().toLowerCase();
-  return local && domain ? `${local}@${domain}` : "";
+  return local && domain ? local + "@" + domain : "";
 }
 
 function syncAssignmentRoleField() {
@@ -1185,7 +1185,7 @@ function setAdobeHeaderMode(isDetail) {
     el.adminPageEyebrow.textContent = "Adobe Accounts";
   }
   if (el.adminPageHeading) {
-    el.adminPageHeading.textContent = isDetail ? "Adobe账户" : sectionMeta.adobe.heading;
+    el.adminPageHeading.textContent = isDetail ? "Adobe璐︽埛" : sectionMeta.adobe.heading;
   }
   if (el.adminPageDescription) {
     el.adminPageDescription.textContent = isDetail
@@ -1212,41 +1212,41 @@ function showAdobeListMode() {
 
 const sectionMeta = {
   adobe: {
-    crumbRoot: "Adobe账户",
-    crumbLeaf: "账户列表",
+    crumbRoot: "Adobe璐︽埛",
+    crumbLeaf: "璐︽埛鍒楄〃",
     eyebrow: "Adobe Accounts",
-    heading: "Adobe账户管理",
-    description: "集中维护账号、验证码接收邮箱、付费日期、到期状态与续费记录。"
+    heading: "Adobe璐︽埛绠＄悊",
+    description: "集中维护账号、验证码接收邮箱、付费日期、到期状态和续费记录。"
   },
   customers: {
-    crumbRoot: "客户管理",
-    crumbLeaf: "客户列表",
+    crumbRoot: "瀹㈡埛绠＄悊",
+    crumbLeaf: "瀹㈡埛鍒楄〃",
     eyebrow: "Customers",
-    heading: "客户管理",
-    description: "集中维护客户资料、购买计划、售后到期日与续费状态。"
+    heading: "瀹㈡埛绠＄悊",
+    description: "集中维护客户资料、购买计划、售后到期日和续费状态。"
   },
   assignments: {
-    crumbRoot: "绑定关系",
-    crumbLeaf: "绑定列表",
+    crumbRoot: "缁戝畾鍏崇郴",
+    crumbLeaf: "缁戝畾鍒楄〃",
     eyebrow: "Assignments",
-    heading: "绑定关系",
-    description: "管理客户与 Adobe账户之间的绑定和使用关系。"
+    heading: "缁戝畾鍏崇郴",
+    description: "管理客户与 Adobe 账户之间的绑定及使用关系。"
   },
   parameters: {
-    crumbRoot: "参数设置",
-    crumbLeaf: "参数列表",
+    crumbRoot: "鍙傛暟璁剧疆",
+    crumbLeaf: "鍙傛暟鍒楄〃",
     eyebrow: "Parameters",
-    heading: "参数设置",
+    heading: "鍙傛暟璁剧疆",
     description: "在线维护账户计划、客户计划与状态参数。"
   }
 };
 
 function switchSection(section) {
   const titles = {
-    adobe: "Adobe账户",
-    customers: "客户管理",
-    assignments: "绑定关系",
-    parameters: "参数设置"
+    adobe: "Adobe璐︽埛",
+    customers: "瀹㈡埛绠＄悊",
+    assignments: "缁戝畾鍏崇郴",
+    parameters: "鍙傛暟璁剧疆"
   };
   if (el.adminPageTitle) {
     el.adminPageTitle.textContent = titles[section] || titles.adobe;
@@ -1283,43 +1283,43 @@ function populateConfigOptions() {
   fillSelect(el.adobeRenewalPlanSelect, state.config.renewalPlans);
   fillSelect(el.customerRenewalPlanSelect, state.config.renewalPlans);
   if (el.customerPlanFilterSelect) {
-    fillSelect(el.customerPlanFilterSelect, state.config.plans, "全部购买计划");
+    fillSelect(el.customerPlanFilterSelect, state.config.plans, "鍏ㄩ儴璐拱璁″垝");
   }
   if (el.adobePlanFilterSelect) {
-    fillSelect(el.adobePlanFilterSelect, state.config.plans, "全部账户计划");
+    fillSelect(el.adobePlanFilterSelect, state.config.plans, "鍏ㄩ儴璐︽埛璁″垝");
   }
 }
 
 function populateAssignmentOptions() {
   const customerOptions = state.customers.map((customer) => {
-    const label = `${customer.customerCode || "-"} - ${customer.customerNickname || "-"}`;
+    const label = (customer.customerCode || "-") + " - " + (customer.customerNickname || "-");
     return { id: customer.id, label };
   });
   const adobeOptions = state.adobeAccounts.map((account) => {
-    const label = `${account.adobeCode || "-"} - ${account.accountEmail || "-"}`;
+    const label = (account.adobeCode || "-") + " - " + (account.accountEmail || "-");
     return { id: account.id, label };
   });
   state.assignmentCustomerOptions = customerOptions;
   state.assignmentAdobeOptions = adobeOptions;
 
   el.assignmentCustomerSelect.innerHTML = [
-    '<option value="">请选择客户</option>',
-    ...customerOptions.map((item) => `<option value="${escapeHtml(item.id)}" data-label="${escapeHtml(item.label)}">${escapeHtml(item.label)}</option>`)
+    '<option value="">璇烽€夋嫨瀹㈡埛</option>',
+    ...customerOptions.map((item) => '<option value="' + escapeHtml(item.id) + '" data-label="' + escapeHtml(item.label) + '">' + escapeHtml(item.label) + '</option>')
   ].join("");
   el.assignmentAdobeSelect.innerHTML = [
-    '<option value="">请选择 Adobe 账户</option>',
-    ...adobeOptions.map((item) => `<option value="${escapeHtml(item.id)}" data-label="${escapeHtml(item.label)}">${escapeHtml(item.label)}</option>`)
+    '<option value="">璇烽€夋嫨 Adobe 璐︽埛</option>',
+    ...adobeOptions.map((item) => '<option value="' + escapeHtml(item.id) + '" data-label="' + escapeHtml(item.label) + '">' + escapeHtml(item.label) + '</option>')
   ].join("");
 
   if (el.assignmentCustomerOptions) {
     el.assignmentCustomerOptions.innerHTML = customerOptions.length
-      ? customerOptions.map((item) => `<option value="${escapeHtml(item.label)}"></option>`).join("")
-      : '<option value="暂无客户"></option>';
+      ? customerOptions.map((item) => '<option value="' + escapeHtml(item.label) + '"></option>').join("")
+      : '<option value="鏆傛棤瀹㈡埛"></option>';
   }
   if (el.assignmentAdobeOptions) {
     el.assignmentAdobeOptions.innerHTML = adobeOptions.length
-      ? adobeOptions.map((item) => `<option value="${escapeHtml(item.label)}"></option>`).join("")
-      : '<option value="暂无 Adobe账户"></option>';
+      ? adobeOptions.map((item) => '<option value="' + escapeHtml(item.label) + '"></option>').join("")
+      : '<option value="鏆傛棤 Adobe璐︽埛"></option>';
   }
   renderAssignmentComboboxMenu("customer");
   renderAssignmentComboboxMenu("adobe");
@@ -1332,14 +1332,14 @@ function assignmentComboboxConfig(kind) {
         select: el.assignmentCustomerSelect,
         menu: el.assignmentCustomerMenu,
         options: state.assignmentCustomerOptions,
-        emptyText: "暂无匹配客户"
+        emptyText: "鏆傛棤鍖归厤瀹㈡埛"
       }
     : {
         input: el.assignmentAdobeInput,
         select: el.assignmentAdobeSelect,
         menu: el.assignmentAdobeMenu,
         options: state.assignmentAdobeOptions,
-        emptyText: "暂无匹配 Adobe账户"
+        emptyText: "鏆傛棤鍖归厤 Adobe璐︽埛"
       };
 }
 
@@ -1358,8 +1358,8 @@ function renderAssignmentComboboxMenu(kind) {
   }
   const rows = filteredAssignmentOptions(kind);
   config.menu.innerHTML = rows.length
-    ? rows.map((item) => `<button type="button" role="option" data-id="${escapeHtml(item.id)}" data-label="${escapeHtml(item.label)}">${escapeHtml(item.label)}</button>`).join("")
-    : `<span class="binding-combobox-empty">${escapeHtml(config.emptyText)}</span>`;
+    ? rows.map((item) => '<button type="button" role="option" data-id="' + escapeHtml(item.id) + '" data-label="' + escapeHtml(item.label) + '">' + escapeHtml(item.label) + '</button>').join("")
+    : '<span class="binding-combobox-empty">' + escapeHtml(config.emptyText) + '</span>';
 }
 
 function openAssignmentComboboxMenu(kind) {
@@ -1433,16 +1433,16 @@ function bindAssignmentCombobox(kind) {
 
 function parameterCategoryLabel(category) {
   const labels = state.config.parameterCategories || {
-    plan: "账户计划"
+    plan: "璐︽埛璁″垝"
   };
   return labels[category] || category;
 }
 
 function parameterSummaryDetails(item) {
   return [
-    { label: "参数分类", value: parameterCategoryLabel(item.category) },
-    { label: "参数名称", value: item.name },
-    { label: "使用天数", value: item.category === "plan" ? Number(item.days || 0) : "-" },
+    { label: "鍙傛暟鍒嗙被", value: parameterCategoryLabel(item.category) },
+    { label: "鍙傛暟鍚嶇О", value: item.name },
+    { label: "浣跨敤澶╂暟", value: item.category === "plan" ? Number(item.days || 0) : "-" },
     { label: "启用状态", value: item.enabled ? "启用" : "停用" }
   ];
 }
@@ -1454,31 +1454,31 @@ function renderParameters() {
   }
   const keyword = String(el.parameterSearchInput.value || "").trim().toLowerCase();
   const rows = state.parameters.filter((item) => {
-    const searchable = `${parameterCategoryLabel(item.category)} ${item.name} ${item.remark}`.toLowerCase();
+    const searchable = (parameterCategoryLabel(item.category) + " " + item.name + " " + item.remark).toLowerCase();
     const matchesKeyword = !keyword || searchable.includes(keyword);
     return matchesKeyword;
   });
 
   if (!rows.length) {
-    el.parametersBody.innerHTML = emptyRow(8, "暂无参数");
+    el.parametersBody.innerHTML = emptyRow(8, "鏆傛棤鍙傛暟");
     return;
   }
 
-  el.parametersBody.innerHTML = rows.map((item) => `
-    <tr>
-      <td>${escapeHtml(parameterCategoryLabel(item.category))}</td>
-      <td>${escapeHtml(displayValue(item.name))}</td>
-      <td>${item.category === "plan" ? Number(item.days || 0) : "-"}</td>
-      <td>${isEnabledText(item.enabled)}</td>
-      <td>${Number(item.sortOrder || 0)}</td>
-      <td>${escapeHtml(displayValue(item.remark))}</td>
-      <td>${formatDate(item.updatedAt || item.createdAt)}</td>
-      <td class="admin-actions-cell">
-        <button type="button" class="admin-small admin-secondary" data-action="edit" data-id="${escapeHtml(item.id)}">${icon("edit")}编辑</button>
-        <button type="button" class="admin-small admin-danger" data-action="delete" data-id="${escapeHtml(item.id)}">${icon("delete")}删除</button>
-      </td>
-    </tr>
-  `).join("");
+  el.parametersBody.innerHTML = rows.map((item) => {
+    return "<tr>" +
+      "<td>" + escapeHtml(parameterCategoryLabel(item.category)) + "</td>" +
+      "<td>" + escapeHtml(displayValue(item.name)) + "</td>" +
+      "<td>" + (item.category === "plan" ? Number(item.days || 0) : "-") + "</td>" +
+      "<td>" + isEnabledText(item.enabled) + "</td>" +
+      "<td>" + Number(item.sortOrder || 0) + "</td>" +
+      "<td>" + escapeHtml(displayValue(item.remark)) + "</td>" +
+      "<td>" + formatDate(item.updatedAt || item.createdAt) + "</td>" +
+      "<td class=\"admin-actions-cell\">" +
+      "<button type=\"button\" class=\"admin-small admin-secondary\" data-action=\"edit\" data-id=\"" + escapeHtml(item.id) + "\">" + icon("edit") + "编辑</button>" +
+      "<button type=\"button\" class=\"admin-small admin-danger\" data-action=\"delete\" data-id=\"" + escapeHtml(item.id) + "\">" + icon("delete") + "删除</button>" +
+      "</td>" +
+      "</tr>";
+  }).join("");
 }
 
 function filteredAdobeAccounts() {
@@ -1492,11 +1492,11 @@ function filteredAdobeAccounts() {
   return state.adobeAccounts.filter((account) => {
     const days = adobeRemainingDays(account);
     const accountStatus = adobeStatusText(account);
-    const searchable = `${account.adobeCode} ${account.accountEmail} ${account.verificationEmail} ${account.accountPlan} ${account.remark}`.toLowerCase();
+    const searchable = (account.adobeCode + " " + account.accountEmail + " " + account.verificationEmail + " " + account.accountPlan + " " + account.remark).toLowerCase();
     const matchesKeyword = !searchText || searchText.split(/\s+/).every((word) => searchable.includes(word));
     const matchesPlan = !plan || String(account.accountPlanId || "") === plan || account.accountPlan === plan;
     const matchesStatus = !status
-      || (status === "normal" && accountStatus === "正常")
+      || (status === "normal" && accountStatus === "姝ｅ父")
       || (status === "soon" && Number.isFinite(days) && days > 0 && days <= 30)
       || (status === "expired" && Number.isFinite(days) && days <= 0);
     const matchesEnabled = !enabled
@@ -1524,38 +1524,38 @@ function renderAdobeAccounts() {
   const pageRows = rows.slice(start, start + state.adobePageSize);
 
   if (!pageRows.length) {
-    el.adobeBody.innerHTML = emptyRow(10, "暂无 Adobe账户");
+    el.adobeBody.innerHTML = emptyRow(10, "鏆傛棤 Adobe璐︽埛");
     renderAdobePagination(rows.length, totalPages);
     return;
   }
 
-  el.adobeBody.innerHTML = pageRows.map((account) => `
-    <tr>
-      <td>${escapeHtml(displayValue(account.adobeCode))}</td>
-      <td class="admin-ellipsis" title="${escapeHtml(displayValue(account.accountEmail))}">${escapeHtml(displayValue(account.accountEmail))}</td>
-      <td class="admin-ellipsis" title="${escapeHtml(displayValue(account.verificationEmail))}">${escapeHtml(displayValue(account.verificationEmail))}</td>
-      <td>${escapeHtml(planLabel(account.accountPlanId || account.accountPlan))}</td>
-      <td>${formatDate(account.accountExpireAt)}</td>
-      <td>${remainingTextCell(adobeRemainingText(account), adobeStatusKind(account))}</td>
-      <td>${statusChip(adobeStatusText(account), adobeStatusKind(account))}</td>
-      <td>${isEnabledText(account.enabled)}</td>
-      <td class="admin-count-cell">${Number(account.assignmentCount || 0)}</td>
-      <td class="admin-actions-cell">
-        <button type="button" class="admin-small" data-action="view" data-id="${escapeHtml(account.id)}">${icon("view")}查看</button>
-        <button type="button" class="admin-small admin-secondary" data-action="edit" data-id="${escapeHtml(account.id)}">${icon("edit")}编辑</button>
-        <button type="button" class="admin-small admin-danger" data-action="delete" data-id="${escapeHtml(account.id)}">${icon("delete")}删除</button>
-      </td>
-    </tr>
-  `).join("");
+  el.adobeBody.innerHTML = pageRows.map((account) => {
+    return "<tr>" +
+      "<td>" + escapeHtml(displayValue(account.adobeCode)) + "</td>" +
+      "<td class=\"admin-ellipsis\" title=\"" + escapeHtml(displayValue(account.accountEmail)) + "\">" + escapeHtml(displayValue(account.accountEmail)) + "</td>" +
+      "<td class=\"admin-ellipsis\" title=\"" + escapeHtml(displayValue(account.verificationEmail)) + "\">" + escapeHtml(displayValue(account.verificationEmail)) + "</td>" +
+      "<td>" + escapeHtml(planLabel(account.accountPlanId || account.accountPlan)) + "</td>" +
+      "<td>" + formatDate(account.accountExpireAt) + "</td>" +
+      "<td>" + remainingTextCell(adobeRemainingText(account), adobeStatusKind(account)) + "</td>" +
+      "<td>" + statusChip(adobeStatusText(account), adobeStatusKind(account)) + "</td>" +
+      "<td>" + isEnabledText(account.enabled) + "</td>" +
+      "<td class=\"admin-count-cell\">" + Number(account.assignmentCount || 0) + "</td>" +
+      "<td class=\"admin-actions-cell\">" +
+      "<button type=\"button\" class=\"admin-small\" data-action=\"view\" data-id=\"" + escapeHtml(account.id) + "\">" + icon("view") + "查看</button>" +
+      "<button type=\"button\" class=\"admin-small admin-secondary\" data-action=\"edit\" data-id=\"" + escapeHtml(account.id) + "\">" + icon("edit") + "编辑</button>" +
+      "<button type=\"button\" class=\"admin-small admin-danger\" data-action=\"delete\" data-id=\"" + escapeHtml(account.id) + "\">" + icon("delete") + "删除</button>" +
+      "</td>" +
+      "</tr>";
+  }).join("");
   renderAdobePagination(rows.length, totalPages);
 }
 
 function renderAdobePagination(total, totalPages) {
   if (el.adobePaginationInfo) {
-    el.adobePaginationInfo.textContent = `共 ${total} 条`;
+    el.adobePaginationInfo.textContent = "共 " + total + " 条";
   }
   if (el.adobePageInfo) {
-    el.adobePageInfo.textContent = `${state.adobePage} / ${totalPages}`;
+    el.adobePageInfo.textContent = state.adobePage + " / " + totalPages;
   }
   if (el.adobePrevPageBtn) {
     el.adobePrevPageBtn.disabled = state.adobePage <= 1;
@@ -1570,10 +1570,10 @@ function renderAdobePagination(total, totalPages) {
 
 function renderCustomerPagination(total, totalPages) {
   if (el.customerPaginationInfo) {
-    el.customerPaginationInfo.textContent = `共 ${total} 条`;
+    el.customerPaginationInfo.textContent = "共 " + total + " 条";
   }
   if (el.customerPageInfo) {
-    el.customerPageInfo.textContent = `${state.customerPage} / ${totalPages}`;
+    el.customerPageInfo.textContent = state.customerPage + " / " + totalPages;
   }
   if (el.customerPrevPageBtn) {
     el.customerPrevPageBtn.disabled = state.customerPage <= 1;
@@ -1588,10 +1588,10 @@ function renderCustomerPagination(total, totalPages) {
 
 function renderAssignmentPagination(total, totalPages) {
   if (el.assignmentPaginationInfo) {
-    el.assignmentPaginationInfo.textContent = `共 ${total} 条`;
+    el.assignmentPaginationInfo.textContent = "共 " + total + " 条";
   }
   if (el.assignmentPageInfo) {
-    el.assignmentPageInfo.textContent = `${state.assignmentPage} / ${totalPages}`;
+    el.assignmentPageInfo.textContent = state.assignmentPage + " / " + totalPages;
   }
   if (el.assignmentPrevPageBtn) {
     el.assignmentPrevPageBtn.disabled = state.assignmentPage <= 1;
@@ -1615,13 +1615,13 @@ function renderCustomers() {
   const expireFilter = String(el.customerExpireFilterSelect?.value || "");
   const rows = state.customers.filter((customer) => {
     const days = customerRemainingDays(customer);
-    const searchable = `${customer.customerCode} ${customer.customerNickname} ${customer.customerContact} ${customer.customerContactEmail} ${customer.purchasedPlan} ${customer.remark}`.toLowerCase();
+    const searchable = (customer.customerCode + " " + customer.customerNickname + " " + customer.customerContact + " " + customer.customerContactEmail + " " + customer.purchasedPlan + " " + customer.remark).toLowerCase();
     const matchesKeyword = !keyword || keyword.split(/\s+/).every((word) => searchable.includes(word));
     const matchesPlan = !plan || String(customer.purchasedPlanId || "") === plan || customer.purchasedPlan === plan;
     const matchesExpire = !expireFilter
       || (expireFilter === "soon" && Number.isFinite(days) && days > 0 && days <= 30)
       || (expireFilter === "expired" && Number.isFinite(days) && days <= 0)
-      || (expireFilter === "normal" && customerStatusText(customer) === "正常");
+      || (expireFilter === "normal" && customerStatusText(customer) === "姝ｅ父");
     return matchesKeyword && matchesPlan && matchesExpire;
   }).sort((left, right) => compareByRemainingAndCode(
     customerRemainingDays(left),
@@ -1636,29 +1636,29 @@ function renderCustomers() {
   const pageRows = rows.slice(start, start + state.customerPageSize);
 
   if (!pageRows.length) {
-    el.customersBody.innerHTML = emptyRow(10, "暂无客户");
+    el.customersBody.innerHTML = emptyRow(10, "鏆傛棤瀹㈡埛");
     renderCustomerPagination(rows.length, totalPages);
     return;
   }
 
-  el.customersBody.innerHTML = pageRows.map((customer) => `
-    <tr>
-      <td>${escapeHtml(displayValue(customer.customerCode))}</td>
-      <td>${escapeHtml(displayValue(customer.customerNickname))}</td>
-      <td>${escapeHtml(displayValue(customer.customerContact))}</td>
-      <td>${escapeHtml(planLabel(customer.purchasedPlanId || customer.purchasedPlan))}</td>
-      <td>${formatDate(customer.afterSalesExpireAt)}</td>
-      <td>${remainingTextCell(customerRemainingText(customer), customerStatusKind(customer))}</td>
-      <td>${statusChip(customerStatusText(customer), customerStatusKind(customer))}</td>
-      <td class="admin-count-cell">${customer.assignmentCount || 0}</td>
-      <td class="admin-ellipsis" title="${escapeHtml(displayValue(customer.remark))}">${escapeHtml(displayValue(customer.remark))}</td>
-      <td class="admin-actions-cell">
-        <button type="button" class="admin-small" data-action="view" data-id="${escapeHtml(customer.id)}">${icon("view")}查看</button>
-        <button type="button" class="admin-small admin-secondary" data-action="edit" data-id="${escapeHtml(customer.id)}">${icon("edit")}编辑</button>
-        <button type="button" class="admin-small admin-danger" data-action="delete" data-id="${escapeHtml(customer.id)}">${icon("delete")}删除</button>
-      </td>
-    </tr>
-  `).join("");
+  el.customersBody.innerHTML = pageRows.map((customer) => {
+    return "<tr>" +
+      "<td>" + escapeHtml(displayValue(customer.customerCode)) + "</td>" +
+      "<td>" + escapeHtml(displayValue(customer.customerNickname)) + "</td>" +
+      "<td>" + escapeHtml(displayValue(customer.customerContact)) + "</td>" +
+      "<td>" + escapeHtml(planLabel(customer.purchasedPlanId || customer.purchasedPlan)) + "</td>" +
+      "<td>" + formatDate(customer.afterSalesExpireAt) + "</td>" +
+      "<td>" + remainingTextCell(customerRemainingText(customer), customerStatusKind(customer)) + "</td>" +
+      "<td>" + statusChip(customerStatusText(customer), customerStatusKind(customer)) + "</td>" +
+      "<td class=\"admin-count-cell\">" + (customer.assignmentCount || 0) + "</td>" +
+      "<td class=\"admin-ellipsis\" title=\"" + escapeHtml(displayValue(customer.remark)) + "\">" + escapeHtml(displayValue(customer.remark)) + "</td>" +
+      "<td class=\"admin-actions-cell\">" +
+      "<button type=\"button\" class=\"admin-small\" data-action=\"view\" data-id=\"" + escapeHtml(customer.id) + "\">" + icon("view") + "查看</button>" +
+      "<button type=\"button\" class=\"admin-small admin-secondary\" data-action=\"edit\" data-id=\"" + escapeHtml(customer.id) + "\">" + icon("edit") + "编辑</button>" +
+      "<button type=\"button\" class=\"admin-small admin-danger\" data-action=\"delete\" data-id=\"" + escapeHtml(customer.id) + "\">" + icon("delete") + "删除</button>" +
+      "</td>" +
+      "</tr>";
+  }).join("");
   renderCustomerPagination(rows.length, totalPages);
 }
 
@@ -1670,7 +1670,7 @@ function renderAssignments() {
   }
   const keyword = String(el.assignmentSearchInput.value || "").trim().toLowerCase();
   const rows = state.assignments.filter((assignment) => {
-    const searchable = `${assignment.customerCode} ${assignment.customerNickname} ${assignment.adobeCode} ${assignment.accountEmail}`.toLowerCase();
+    const searchable = (assignment.customerCode + " " + assignment.customerNickname + " " + assignment.adobeCode + " " + assignment.accountEmail).toLowerCase();
     return !keyword || searchable.includes(keyword);
   });
 
@@ -1680,7 +1680,7 @@ function renderAssignments() {
   const pageRows = rows.slice(start, start + state.assignmentPageSize);
 
   if (!pageRows.length) {
-    el.assignmentsBody.innerHTML = emptyRow(8, "暂无绑定关系");
+    el.assignmentsBody.innerHTML = emptyRow(8, "鏆傛棤缁戝畾鍏崇郴");
     renderAssignmentPagination(rows.length, totalPages);
     return;
   }
@@ -1688,33 +1688,31 @@ function renderAssignments() {
   el.assignmentsBody.innerHTML = pageRows.map((assignment) => {
     const targetMissing = assignment.customerExists === false || assignment.adobeAccountExists === false;
     const status = assignment.active
-      ? statusChip("有效", "success")
-      : statusChip(targetMissing ? "已取消（对象已删除）" : "已取消", "muted");
+      ? statusChip("鏈夋晥", "success")
+      : statusChip(targetMissing ? "宸插彇娑堬紙瀵硅薄宸插垹闄わ級" : "宸插彇娑?", "muted");
     const restoreAction = assignment.active
       ? ""
       : assignment.canRestore
-        ? `<button type="button" class="admin-small" data-action="restore" data-id="${escapeHtml(assignment.id)}">${icon("restore")}恢复</button>`
-        : '<span class="admin-muted">无法恢复</span>';
+        ? "<button type=\"button\" class=\"admin-small\" data-action=\"restore\" data-id=\"" + escapeHtml(assignment.id) + "\">" + icon("restore") + "鎭㈠</button>"
+        : "<span class=\"admin-muted\">鏃犳硶鎭㈠</span>";
     const cancelAction = assignment.active
-      ? `<button type="button" class="admin-small admin-danger" data-action="cancel" data-id="${escapeHtml(assignment.id)}">${icon("cancel")}解绑</button>`
+      ? "<button type=\"button\" class=\"admin-small admin-danger\" data-action=\"cancel\" data-id=\"" + escapeHtml(assignment.id) + "\">" + icon("cancel") + "瑙ｇ粦</button>"
       : "";
     const deleteAction = assignment.active
-      ? `<button type="button" class="admin-small admin-secondary" disabled title="绑定状态不能删除，请先解绑">${icon("delete")}删除</button>`
-      : `<button type="button" class="admin-small admin-danger" data-action="delete" data-id="${escapeHtml(assignment.id)}">${icon("delete")}删除</button>`;
+      ? "<button type=\"button\" class=\"admin-small admin-secondary\" disabled title=\"缁戝畾鐘舵€佷笉鑳藉垹闄わ紝璇峰厛瑙ｇ粦\">" + icon("delete") + "鍒犻櫎</button>"
+      : "<button type=\"button\" class=\"admin-small admin-danger\" data-action=\"delete\" data-id=\"" + escapeHtml(assignment.id) + "\">" + icon("delete") + "鍒犻櫎</button>";
     const action = [cancelAction, restoreAction, deleteAction].filter(Boolean).join("");
 
-    return `
-      <tr>
-        <td>${escapeHtml(displayValue(assignment.customerCode))}</td>
-        <td>${escapeHtml(displayValue(assignment.customerNickname))}</td>
-        <td>${escapeHtml(displayValue(assignment.adobeCode))}</td>
-        <td>${escapeHtml(displayValue(assignment.accountEmail))}</td>
-        <td>${assignmentRoleChip(assignment.assignmentRole, assignment)}</td>
-        <td>${formatDate(assignment.assignedAt)}</td>
-        <td>${status}</td>
-        <td class="admin-actions-cell">${action}</td>
-      </tr>
-    `;
+    return "<tr>" +
+      "<td>" + escapeHtml(displayValue(assignment.customerCode)) + "</td>" +
+      "<td>" + escapeHtml(displayValue(assignment.customerNickname)) + "</td>" +
+      "<td>" + escapeHtml(displayValue(assignment.adobeCode)) + "</td>" +
+      "<td>" + escapeHtml(displayValue(assignment.accountEmail)) + "</td>" +
+      "<td>" + assignmentRoleChip(assignment.assignmentRole, assignment) + "</td>" +
+      "<td>" + formatDate(assignment.assignedAt) + "</td>" +
+      "<td>" + status + "</td>" +
+      "<td class=\"admin-actions-cell\">" + action + "</td>" +
+      "</tr>";
   }).join("");
   renderAssignmentPagination(rows.length, totalPages);
 }
@@ -1779,11 +1777,11 @@ function updateCustomerRemarkCount() {
   if (!counter || !el.customerForm?.elements?.remark) {
     return;
   }
-  counter.textContent = `${el.customerForm.elements.remark.value.length}/200`;
+  counter.textContent = String(el.customerForm.elements.remark.value.length) + "/200";
 }
 
 function detailItem(label, value, kind = "") {
-  return `<div class="admin-detail-item ${kind}"><span>${escapeHtml(label)}</span><strong>${escapeHtml(displayValue(value))}</strong></div>`;
+  return "<div class=\"admin-detail-item " + kind + "\"><span>" + escapeHtml(label) + "</span><strong>" + escapeHtml(displayValue(value)) + "</strong></div>";
 }
 
 function copyableDetailItem(label, value, kind = "") {
@@ -1792,39 +1790,42 @@ function copyableDetailItem(label, value, kind = "") {
     return detailItem(label, value, kind);
   }
 
-  return `
-    <div class="admin-detail-item ${kind}">
-      <span>${escapeHtml(label)}</span>
-      <button type="button" class="admin-copy-text" data-copy-value="${escapeHtml(text)}" data-copy-label="${escapeHtml(label)}" title="点击复制${escapeHtml(label)}">
-        ${escapeHtml(displayValue(text))}
-      </button>
-    </div>
-  `;
+  return "<div class=\"admin-detail-item " + kind + "\">" +
+    "<span>" + escapeHtml(label) + "</span>" +
+    "<button type=\"button\" class=\"admin-copy-text\" data-copy-value=\"" + escapeHtml(text) + "\" data-copy-label=\"" + escapeHtml(label) + "\" title=\"鐐瑰嚮澶嶅埗" + escapeHtml(label) + "\">" +
+    escapeHtml(displayValue(text)) +
+    "</button>" +
+    "</div>";
 }
 
 async function copyTextToClipboard(text) {
+  const copyValue = String(text || "");
+  if (!copyValue) return false;
+
   if (navigator.clipboard && window.isSecureContext) {
-    await navigator.clipboard.writeText(text);
-    return;
+    await navigator.clipboard.writeText(copyValue);
+    return true;
   }
 
   const textarea = document.createElement("textarea");
-  textarea.value = text;
+  textarea.value = copyValue;
   textarea.setAttribute("readonly", "");
   textarea.style.position = "fixed";
   textarea.style.left = "-9999px";
+  textarea.style.top = "0";
   document.body.appendChild(textarea);
   textarea.select();
-  document.execCommand("copy");
+  const copied = document.execCommand("copy");
   textarea.remove();
+  return copied;
 }
 
 function adobeDetailCopyText(account) {
   const verificationCodeUrl = verificationCodeUrlForDomain(splitVerificationEmail(account).domain);
   return [
-    `Adobe账户邮箱：${account.accountEmail || ""}`,
-    `Adobe密码：${account.adobePassword || ""}`,
-    `验证码接收网址：${verificationCodeUrl}`
+    "Adobe账户邮箱：" + (account.accountEmail || ""),
+    "Adobe密码：" + (account.adobePassword || ""),
+    "验证码接收网址：" + verificationCodeUrl
   ].join("\n");
 }
 
@@ -1836,17 +1837,17 @@ function renderAdobeDetail(data) {
   showAdobeDetailMode();
   el.adobeRenewalForm.dataset.id = account.id;
   el.adobeDetailSummary.innerHTML = [
-    detailItem("Adobe账户", account.adobeCode, "primary"),
-    detailItem("账户计划", planLabel(account.accountPlanId || account.accountPlan)),
-    copyableDetailItem("Adobe账户邮箱", account.accountEmail),
-    detailItem("付费日期", formatDate(account.paidAt)),
-    copyableDetailItem("Adobe密码", account.adobePassword),
+    detailItem("Adobe璐︽埛", account.adobeCode, "primary"),
+    detailItem("璐︽埛璁″垝", planLabel(account.accountPlanId || account.accountPlan)),
+    copyableDetailItem("Adobe璐︽埛閭", account.accountEmail),
+    detailItem("浠樿垂鏃ユ湡", formatDate(account.paidAt)),
+    copyableDetailItem("Adobe瀵嗙爜", account.adobePassword),
     detailItem("Adobe账户到期日", formatDate(account.accountExpireAt)),
-    detailItem("Adobe账户邮箱密码", account.accountEmailPassword),
-    detailItem("剩余天数", adobeRemainingText(account), adobeStatusKind(account)),
+    detailItem("Adobe璐︽埛閭瀵嗙爜", account.accountEmailPassword),
+    detailItem("鍓╀綑澶╂暟", adobeRemainingText(account), adobeStatusKind(account)),
     detailItem("验证码接收邮箱", account.verificationEmail),
     detailItem("状态", adobeStatusText(account), adobeStatusKind(account)),
-    detailItem("启用状态", account.enabled ? "启用" : "禁用"),
+    detailItem("启用状态", account.enabled ? "启用" : "停用"),
     detailItem("备注", account.remark, "wide")
   ].join("");
   setText("adobeMetricCustomers", customers.length);
@@ -1854,39 +1855,39 @@ function renderAdobeDetail(data) {
   setText("adobeMetricExpire", adobeRemainingText(account) || "-");
 
   el.adobeDetailCustomers.innerHTML = customers.length
-    ? customers.map((customer) => `
-      <tr>
-        <td>${escapeHtml(displayValue(customer.customerCode))}</td>
-        <td>${escapeHtml(displayValue(customer.customerNickname))}</td>
-        <td>${escapeHtml(displayValue(customer.customerContact))}</td>
-        <td>${escapeHtml(planLabel(customer.purchasedPlanId || customer.purchasedPlan))}</td>
-        <td>${formatDate(customer.afterSalesExpireAt)}</td>
-        <td>${remainingTextCell(customerRemainingText(customer), customerStatusKind(customer))}</td>
-        <td>${statusChip(customerStatusText(customer), customerStatusKind(customer))}</td>
-        <td class="admin-actions-cell">
-          <button type="button" class="admin-small" data-action="view-customer-detail" data-id="${escapeHtml(customer.id)}">${icon("view")}查看</button>
-        </td>
-      </tr>
-    `).join("")
-    : emptyRow(8, "当前没有绑定客户");
+    ? customers.map((customer) => {
+        return "<tr>" +
+          "<td>" + escapeHtml(displayValue(customer.customerCode)) + "</td>" +
+          "<td>" + escapeHtml(displayValue(customer.customerNickname)) + "</td>" +
+          "<td>" + escapeHtml(displayValue(customer.customerContact)) + "</td>" +
+          "<td>" + escapeHtml(planLabel(customer.purchasedPlanId || customer.purchasedPlan)) + "</td>" +
+          "<td>" + formatDate(customer.afterSalesExpireAt) + "</td>" +
+          "<td>" + remainingTextCell(customerRemainingText(customer), customerStatusKind(customer)) + "</td>" +
+          "<td>" + statusChip(customerStatusText(customer), customerStatusKind(customer)) + "</td>" +
+          "<td class=\"admin-actions-cell\">" +
+          "<button type=\"button\" class=\"admin-small\" data-action=\"view-customer-detail\" data-id=\"" + escapeHtml(customer.id) + "\">" + icon("view") + "查看</button>" +
+          "</td>" +
+          "</tr>";
+      }).join("")
+    : emptyRow(8, "褰撳墠娌℃湁缁戝畾瀹㈡埛");
   renderAdobeRenewals(data.renewalRecords);
 }
 
 function renderAdobeRenewals(records) {
   const rows = records || [];
   el.adobeRenewalsBody.innerHTML = rows.length
-    ? rows.map((record) => `
-      <tr>
-        <td>${formatDate(record.renewalDate)}</td>
-        <td>${escapeHtml(planLabel(record.planId || record.planName, record.planDays))}</td>
-        <td>${escapeHtml(displayValue(record.planDays))}</td>
-        <td>${formatDate(record.beforeExpireAt)}</td>
-        <td>${formatDate(record.afterExpireAt)}</td>
-        <td>${escapeHtml(displayValue(record.remark))}</td>
-        <td class="admin-actions-cell">${renewalAction(record)}</td>
-      </tr>
-    `).join("")
-    : emptyRow(7, "暂无续费记录");
+    ? rows.map((record) => {
+        return "<tr>" +
+          "<td>" + formatDate(record.renewalDate) + "</td>" +
+          "<td>" + escapeHtml(planLabel(record.planId || record.planName, record.planDays)) + "</td>" +
+          "<td>" + escapeHtml(displayValue(record.planDays)) + "</td>" +
+          "<td>" + formatDate(record.beforeExpireAt) + "</td>" +
+          "<td>" + formatDate(record.afterExpireAt) + "</td>" +
+          "<td>" + escapeHtml(displayValue(record.remark)) + "</td>" +
+          "<td class=\"admin-actions-cell\">" + renewalAction(record) + "</td>" +
+          "</tr>";
+      }).join("")
+    : emptyRow(7, "鏆傛棤缁垂璁板綍");
 }
 
 function renderCustomerDetail(data) {
@@ -1900,11 +1901,11 @@ function renderCustomerDetail(data) {
   }
   el.customerRenewalForm.dataset.id = customer.id;
   el.customerDetailSummary.innerHTML = [
-    detailItem("客户编号", customer.customerCode, "primary"),
-    detailItem("客户昵称", customer.customerNickname),
-    detailItem("联系方式", customer.customerContact),
-    detailItem("联系邮箱", customer.customerContactEmail),
-    detailItem("购买计划", planLabel(customer.purchasedPlanId || customer.purchasedPlan)),
+    detailItem("瀹㈡埛缂栧彿", customer.customerCode, "primary"),
+    detailItem("瀹㈡埛鏄电О", customer.customerNickname),
+    detailItem("鑱旂郴鏂瑰紡", customer.customerContact),
+    detailItem("鑱旂郴閭", customer.customerContactEmail),
+    detailItem("璐拱璁″垝", planLabel(customer.purchasedPlanId || customer.purchasedPlan)),
     detailItem("续费状态", customerStatusText(customer), customerStatusKind(customer)),
     detailItem("售后到期日", formatDate(customer.afterSalesExpireAt)),
     detailItem("剩余天数", customerRemainingText(customer), customerStatusKind(customer)),
@@ -1915,39 +1916,39 @@ function renderCustomerDetail(data) {
   setText("customerMetricExpire", customerRemainingText(customer) || "-");
 
   el.customerDetailAdobeAccounts.innerHTML = adobeAccounts.length
-    ? adobeAccounts.map((account) => `
-      <tr>
-        <td>${escapeHtml(displayValue(account.adobeCode))}</td>
-        <td>${escapeHtml(displayValue(account.accountEmail))}</td>
-        <td>${assignmentRoleChip(account.assignmentRole, account)}</td>
-        <td>${escapeHtml(planLabel(account.accountPlanId || account.accountPlan))}</td>
-        <td>${formatDate(account.accountExpireAt)}</td>
-        <td>${remainingTextCell(adobeRemainingText(account), adobeStatusKind(account))}</td>
-        <td>${statusChip(adobeStatusText(account), adobeStatusKind(account))}</td>
-        <td class="admin-actions-cell">
-          <button type="button" class="admin-small" data-action="view-adobe-detail" data-id="${escapeHtml(account.id)}">${icon("view")}查看</button>
-        </td>
-      </tr>
-    `).join("")
-    : emptyRow(8, "当前没有使用中的 Adobe账户");
+    ? adobeAccounts.map((account) => {
+        return "<tr>" +
+          "<td>" + escapeHtml(displayValue(account.adobeCode)) + "</td>" +
+          "<td>" + escapeHtml(displayValue(account.accountEmail)) + "</td>" +
+          "<td>" + assignmentRoleChip(account.assignmentRole, account) + "</td>" +
+          "<td>" + escapeHtml(planLabel(account.accountPlanId || account.accountPlan)) + "</td>" +
+          "<td>" + formatDate(account.accountExpireAt) + "</td>" +
+          "<td>" + remainingTextCell(adobeRemainingText(account), adobeStatusKind(account)) + "</td>" +
+          "<td>" + statusChip(adobeStatusText(account), adobeStatusKind(account)) + "</td>" +
+          "<td class=\"admin-actions-cell\">" +
+          "<button type=\"button\" class=\"admin-small\" data-action=\"view-adobe-detail\" data-id=\"" + escapeHtml(account.id) + "\">" + icon("view") + "查看</button>" +
+          "</td>" +
+          "</tr>";
+      }).join("")
+    : emptyRow(8, "褰撳墠娌℃湁浣跨敤涓殑 Adobe璐︽埛");
   renderCustomerRenewals(data.renewalRecords);
 }
 
 function renderCustomerRenewals(records) {
   const rows = records || [];
   el.customerRenewalsBody.innerHTML = rows.length
-    ? rows.map((record) => `
-      <tr>
-        <td>${formatDate(record.renewalDate)}</td>
-        <td>${escapeHtml(planLabel(record.planId || record.planName, record.planDays))}</td>
-        <td>${escapeHtml(displayValue(record.planDays))}</td>
-        <td>${formatDate(record.beforeExpireAt)}</td>
-        <td>${formatDate(record.afterExpireAt)}</td>
-        <td>${escapeHtml(displayValue(record.remark))}</td>
-        <td class="admin-actions-cell">${renewalAction(record)}</td>
-      </tr>
-    `).join("")
-    : emptyRow(7, "暂无续费记录");
+    ? rows.map((record) => {
+        return "<tr>" +
+          "<td>" + formatDate(record.renewalDate) + "</td>" +
+          "<td>" + escapeHtml(planLabel(record.planId || record.planName, record.planDays)) + "</td>" +
+          "<td>" + escapeHtml(displayValue(record.planDays)) + "</td>" +
+          "<td>" + formatDate(record.beforeExpireAt) + "</td>" +
+          "<td>" + formatDate(record.afterExpireAt) + "</td>" +
+          "<td>" + escapeHtml(displayValue(record.remark)) + "</td>" +
+          "<td class=\"admin-actions-cell\">" + renewalAction(record) + "</td>" +
+          "</tr>";
+      }).join("")
+    : emptyRow(7, "鏆傛棤缁垂璁板綍");
 }
 
 async function loadAdobeAccounts() {
@@ -2020,12 +2021,12 @@ async function refreshAll() {
 }
 
 async function loadAdobeDetail(id) {
-  const data = await api(`/api/admin/adobe-accounts/${id}/detail`);
+  const data = await api("/api/admin/adobe-accounts/" + id + "/detail");
   renderAdobeDetail(data);
 }
 
 async function loadCustomerDetail(id) {
-  const data = await api(`/api/admin/customers/${id}/detail`);
+  const data = await api("/api/admin/customers/" + id + "/detail");
   renderCustomerDetail(data);
 }
 
@@ -2044,12 +2045,12 @@ async function refreshSelectedDetails() {
 }
 
 async function updateAssignmentRole(id, role) {
-  await api(`/api/admin/assignments/${id}`, {
+  await api("/api/admin/assignments/" + id, {
     method: "PUT",
     body: JSON.stringify({ assignmentRole: role })
   });
   await refreshAll();
-  setMessage(`已设为${assignmentRoleLabel(role)}`, "success");
+  setMessage("已设为 " + assignmentRoleLabel(role), "success");
 }
 
 function adobePayload() {
@@ -2083,7 +2084,7 @@ function customerPayload() {
 function parameterPayload() {
   const sortOrder = Number(formValue(el.parameterForm, "sortOrder"));
   if (!Number.isInteger(sortOrder) || sortOrder <= 0) {
-    throw new Error("排序必须是大于 0 的整数");
+    throw new Error("排序必须大于 0 的整数。");
   }
 
   return {
@@ -2157,7 +2158,7 @@ if (el.addBindingFromAdobeBtn) {
   el.addBindingFromAdobeBtn.addEventListener("click", () => {
     const account = state.selectedAdobeDetail?.adobeAccount;
     if (!account?.id) {
-      setMessage("请先选择 Adobe账户", "error");
+      setMessage("璇峰厛閫夋嫨 Adobe璐︽埛", "error");
       return;
     }
     switchSection("assignments");
@@ -2169,7 +2170,7 @@ if (el.addBindingFromCustomerBtn) {
   el.addBindingFromCustomerBtn.addEventListener("click", () => {
     const customer = state.selectedCustomerDetail?.customer;
     if (!customer?.id) {
-      setMessage("请先选择客户", "error");
+      setMessage("璇峰厛閫夋嫨瀹㈡埛", "error");
       return;
     }
     switchSection("assignments");
@@ -2217,14 +2218,15 @@ if (el.copyAdobeDetailBtn) {
   el.copyAdobeDetailBtn.addEventListener("click", async () => {
     const account = state.selectedAdobeDetail ? state.selectedAdobeDetail.adobeAccount : null;
     if (!account) {
-      setMessage("请先选择 Adobe账户", "error");
+      setMessage("???? Adobe??", "error");
       return;
     }
     try {
-      await copyTextToClipboard(adobeDetailCopyText(account));
-      setMessage("账户详情已复制", "success");
+      const copied = await copyTextToClipboard(adobeDetailCopyText(account));
+      if (!copied) throw new Error("copy_failed");
+      setMessage("???????", "success");
     } catch (error) {
-      setMessage("复制失败，请稍后重试", "error");
+      setMessage("??????????", "error");
     }
   });
 }
@@ -2236,17 +2238,18 @@ if (el.adobeDetailSummary) {
     }
 
     const value = target.dataset.copyValue || "";
-    const label = target.dataset.copyLabel || "内容";
+    const label = target.dataset.copyLabel || "??";
     if (!value) {
-      setMessage("暂无可复制内容", "error");
+      setMessage("???????", "error");
       return;
     }
 
     try {
-      await copyTextToClipboard(value);
-      setMessage(`${label}已复制`, "success");
+      const copied = await copyTextToClipboard(value);
+      if (!copied) throw new Error("copy_failed");
+      setMessage(label + " 已复制", "success");
     } catch (error) {
-      setMessage("复制失败，请稍后重试", "error");
+      setMessage("??????????", "error");
     }
   });
 }
@@ -2379,10 +2382,20 @@ if (el.assignmentPageSizeSelect) {
   });
 }
 
-if (el.exportAdobeBtn) {
+  if (el.exportAdobeBtn) {
   el.exportAdobeBtn.addEventListener("click", () => {
     const rows = filteredAdobeAccounts();
-    const headers = ["Adobe账户编号", "账户邮箱", "验证码邮箱", "账户计划", "账户到期日", "剩余天数", "状态", "启用", "绑定用户数"];
+    const headers = [
+      "Adobe账户编号",
+      "账户邮箱",
+      "验证码邮箱",
+      "账户计划",
+      "账户到期日",
+      "剩余天数",
+      "状态",
+      "启用",
+      "绑定用户数"
+    ];
     const csvRows = [
       headers,
       ...rows.map((account) => [
@@ -2393,12 +2406,12 @@ if (el.exportAdobeBtn) {
         formatDate(account.accountExpireAt),
         adobeRemainingText(account),
         adobeStatusText(account),
-        account.enabled ? "启用" : "禁用",
+        account.enabled ? "鍚敤" : "绂佺敤",
         Number(account.assignmentCount || 0)
       ])
     ];
-    const csv = csvRows.map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(",")).join("\n");
-    const blob = new Blob([`\ufeff${csv}`], { type: "text/csv;charset=utf-8" });
+    const csv = csvRows.map((row) => row.map((cell) => "\"" + String(cell).replaceAll("\"", "\"\"") + "\"").join(",")).join("\n");
+    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -2423,7 +2436,7 @@ el.adobeForm.addEventListener("submit", async (event) => {
   const id = el.adobeForm.elements.id.value;
   setFormSubmitting(el.adobeForm, true);
   try {
-    await api(id ? `/api/admin/adobe-accounts/${id}` : "/api/admin/adobe-accounts", {
+    await api(id ? "/api/admin/adobe-accounts/" + id : "/api/admin/adobe-accounts", {
       method: id ? "PUT" : "POST",
       body: JSON.stringify(adobePayload())
     });
@@ -2444,7 +2457,7 @@ el.customerForm.addEventListener("submit", async (event) => {
   const id = el.customerForm.elements.id.value;
   setFormSubmitting(el.customerForm, true);
   try {
-    await api(id ? `/api/admin/customers/${id}` : "/api/admin/customers", {
+    await api(id ? "/api/admin/customers/" + id : "/api/admin/customers", {
       method: id ? "PUT" : "POST",
       body: JSON.stringify(customerPayload())
     });
@@ -2466,7 +2479,7 @@ el.assignmentForm.addEventListener("submit", async (event) => {
   const customerId = syncAssignmentCombobox(el.assignmentCustomerInput, el.assignmentCustomerSelect);
   const adobeAccountId = syncAssignmentCombobox(el.assignmentAdobeInput, el.assignmentAdobeSelect);
   if (!customerId || !adobeAccountId) {
-    setMessage("请选择有效的客户和 Adobe账户", "error");
+    setMessage("璇烽€夋嫨鏈夋晥鐨勫鎴峰拰 Adobe璐︽埛", "error");
     return;
   }
   setFormSubmitting(el.assignmentForm, true);
@@ -2498,7 +2511,7 @@ el.parameterForm.addEventListener("submit", async (event) => {
   const id = el.parameterForm.elements.id.value;
   setFormSubmitting(el.parameterForm, true);
   try {
-    await api(id ? `/api/admin/parameters/${id}` : "/api/admin/parameters", {
+    await api(id ? "/api/admin/parameters/" + id : "/api/admin/parameters", {
       method: id ? "PUT" : "POST",
       body: JSON.stringify(parameterPayload())
     });
@@ -2535,12 +2548,12 @@ el.parametersBody.addEventListener("click", async (event) => {
       await runConfirmedAction(
         askConfirm(
           "确认删除该参数？删除后相关下拉选项将不再显示，请谨慎操作。",
-          "删除参数",
+          "鍒犻櫎鍙傛暟",
           parameterSummaryDetails(item),
-          "该操作不可撤销。"
+          "该操作不可撤销。",
         ),
         async () => {
-          await api(`/api/admin/parameters/${item.id}`, { method: "DELETE" });
+          await api("/api/admin/parameters/" + item.id, { method: "DELETE" });
           await loadConfig();
           await refreshAll();
           setMessage("参数已删除", "success");
@@ -2579,18 +2592,18 @@ el.adobeBody.addEventListener("click", async (event) => {
     if (button.dataset.action === "delete") {
       await runConfirmedAction(
         askConfirm(
-          "确认删除该 Adobe账户？删除后无法恢复，请谨慎操作。",
-          "删除 Adobe账户",
+          "确认删除该 Adobe 账户？删除后无法恢复，请谨慎操作。",
+          "鍒犻櫎 Adobe璐︽埛",
           [
-            { label: "账户编号", value: account.adobeCode },
-            { label: "Adobe账户", value: account.accountEmail },
-            { label: "验证码邮箱", value: account.verificationEmail },
-            { label: "到期日", value: formatDate(account.accountExpireAt) }
+            { label: "璐︽埛缂栧彿", value: account.adobeCode },
+            { label: "Adobe璐︽埛", value: account.accountEmail },
+            { label: "验证邮箱", value: account.verificationEmail },
+            { label: "到期时间", value: formatDate(account.accountExpireAt) }
           ],
-          "该操作不可撤销。"
+          "该操作不可撤销。",
         ),
         async () => {
-          await api(`/api/admin/adobe-accounts/${account.id}`, { method: "DELETE" });
+          await api("/api/admin/adobe-accounts/" + account.id, { method: "DELETE" });
           await refreshAll();
           setMessage("Adobe账户已删除", "success");
         }
@@ -2624,17 +2637,17 @@ el.customersBody.addEventListener("click", async (event) => {
       await runConfirmedAction(
         askConfirm(
           "确认删除该客户？删除后无法恢复，请谨慎操作。",
-          "删除客户",
+          "鍒犻櫎瀹㈡埛",
           [
-            { label: "客户编号", value: customer.customerCode },
-            { label: "客户昵称", value: customer.customerNickname },
-            { label: "联系方式", value: customer.customerContact },
-            { label: "售后到期日", value: formatDate(customer.afterSalesExpireAt) }
+            { label: "瀹㈡埛缂栧彿", value: customer.customerCode },
+            { label: "瀹㈡埛鏄电О", value: customer.customerNickname },
+            { label: "鑱旂郴鏂瑰紡", value: customer.customerContact },
+            { label: "售后到期时间", value: formatDate(customer.afterSalesExpireAt) }
           ],
-          "该操作不可撤销。"
+          "该操作不可撤销。",
         ),
         async () => {
-          await api(`/api/admin/customers/${customer.id}`, { method: "DELETE" });
+          await api("/api/admin/customers/" + customer.id, { method: "DELETE" });
           await refreshAll();
           setMessage("客户已删除", "success");
         }
@@ -2698,13 +2711,13 @@ el.assignmentsBody.addEventListener("click", async (event) => {
     if (button.dataset.action === "cancel") {
       changed = await runConfirmedAction(
         askConfirm(
-          "确认取消该绑定关系？取消后该客户将不再显示在该 Adobe账户下。",
+          "确认取消该绑定关系？取消后该客户将不再显示在该 Adobe 账户下。",
           "取消绑定关系",
           assignmentSummaryDetails(assignment),
           "该操作会保留历史记录。"
         ),
         async () => {
-          await api(`/api/admin/assignments/${assignment.id}`, {
+          await api("/api/admin/assignments/" + assignment.id, {
             method: "PUT",
             body: JSON.stringify({ active: false })
           });
@@ -2720,7 +2733,7 @@ el.assignmentsBody.addEventListener("click", async (event) => {
           assignmentSummaryDetails(assignment)
         ),
         async () => {
-          await api(`/api/admin/assignments/${assignment.id}`, {
+          await api("/api/admin/assignments/" + assignment.id, {
             method: "PUT",
             body: JSON.stringify({ active: true })
           });
@@ -2734,10 +2747,10 @@ el.assignmentsBody.addEventListener("click", async (event) => {
           "您即将删除以下绑定记录，此操作不可撤销。",
           "删除绑定关系",
           assignmentSummaryDetails(assignment),
-          "删除后该绑定关系记录将从数据库移除。"
+          "删除后该绑定记录将从数据库中移除。"
         ),
         async () => {
-          await api(`/api/admin/assignments/${assignment.id}`, { method: "DELETE" });
+          await api("/api/admin/assignments/" + assignment.id, { method: "DELETE" });
           setMessage("绑定记录已删除", "success");
         }
       );
@@ -2754,13 +2767,13 @@ el.adobeRenewalForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const id = el.adobeRenewalForm.dataset.id;
   if (!id) {
-    setMessage("请先选择 Adobe账户", "error");
+    setMessage("璇峰厛閫夋嫨 Adobe璐︽埛", "error");
     return;
   }
 
   setFormSubmitting(el.adobeRenewalForm, true);
   try {
-    await api(`/api/admin/adobe-accounts/${id}/renewals`, {
+    await api("/api/admin/adobe-accounts/" + id + "/renewals", {
       method: "POST",
       body: JSON.stringify({
         planName: formValue(el.adobeRenewalForm, "planName"),
@@ -2792,23 +2805,23 @@ el.adobeRenewalsBody.addEventListener("click", async (event) => {
     const account = state.selectedAdobeDetail ? state.selectedAdobeDetail.adobeAccount : null;
     await runConfirmedAction(
       askConfirm(
-        "删除后，系统将自动回滚到期日，请确认是否继续。",
+        "删除后，系统将自动回滚到到期日期，请确认是否继续。",
         "确认删除续费记录",
         [
-          { label: "Adobe账户", value: account ? `${account.adobeCode} | ${account.accountEmail}` : "-" },
-          { label: "续费日期", value: record ? formatDate(record.renewalDate) : "-" },
-          { label: "续费套餐", value: record ? planLabel(record.planId || record.planName, record.planDays) : "-" },
-          { label: "增加天数", value: record ? `${record.planDays || 0} 天` : "-" },
-          { label: "续费前到期日", value: record ? formatDate(record.beforeExpireAt) : "-" },
-          { label: "续费后到期日", value: record ? formatDate(record.afterExpireAt) : "-" }
+          { label: "Adobe账户", value: account ? account.adobeCode + " | " + account.accountEmail : "-" },
+          { label: "缁垂鏃ユ湡", value: record ? formatDate(record.renewalDate) : "-" },
+          { label: "缁垂濂楅", value: record ? planLabel(record.planId || record.planName, record.planDays) : "-" },
+          { label: "增加天数", value: record ? String(record.planDays || 0) + " 天" : "-" },
+          { label: "缁垂鍓嶅埌鏈熸棩", value: record ? formatDate(record.beforeExpireAt) : "-" },
+          { label: "缁垂鍚庡埌鏈熸棩", value: record ? formatDate(record.afterExpireAt) : "-" }
         ],
         "该操作不可撤销。"
       ),
       async () => {
-        await api(`/api/admin/adobe-accounts/${id}/renewals/${button.dataset.id}`, { method: "DELETE" });
+        await api("/api/admin/adobe-accounts/" + id + "/renewals/" + button.dataset.id, { method: "DELETE" });
         await loadAdobeAccounts();
         await loadAdobeDetail(id);
-        setMessage("Adobe续费记录已删除并重算到期日", "success");
+        setMessage("Adobe续费记录已删除，并已重算到期时间", "success");
       }
     );
   } catch (error) {
@@ -2820,13 +2833,13 @@ el.customerRenewalForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const id = el.customerRenewalForm.dataset.id;
   if (!id) {
-    setMessage("请先选择客户", "error");
+    setMessage("璇峰厛閫夋嫨瀹㈡埛", "error");
     return;
   }
 
   setFormSubmitting(el.customerRenewalForm, true);
   try {
-    await api(`/api/admin/customers/${id}/renewals`, {
+    await api("/api/admin/customers/" + id + "/renewals", {
       method: "POST",
       body: JSON.stringify({
         planName: formValue(el.customerRenewalForm, "planName"),
@@ -2858,23 +2871,23 @@ el.customerRenewalsBody.addEventListener("click", async (event) => {
     const customer = state.selectedCustomerDetail ? state.selectedCustomerDetail.customer : null;
     await runConfirmedAction(
       askConfirm(
-        "删除后，系统将自动回滚客户售后到期日，请确认是否继续。",
+        "删除后，系统将自动回滚到售后到期日期，请确认是否继续。",
         "确认删除客户续费记录",
         [
-          { label: "客户", value: customer ? `${customer.customerCode} | ${customer.customerNickname}` : "-" },
-          { label: "续费日期", value: record ? formatDate(record.renewalDate) : "-" },
-          { label: "续费套餐", value: record ? planLabel(record.planId || record.planName, record.planDays) : "-" },
-          { label: "增加天数", value: record ? `${record.planDays || 0} 天` : "-" },
-          { label: "续费前售后到期日", value: record ? formatDate(record.beforeExpireAt) : "-" },
-          { label: "续费后售后到期日", value: record ? formatDate(record.afterExpireAt) : "-" }
+          { label: "客户", value: customer ? customer.customerCode + " | " + customer.customerNickname : "-" },
+          { label: "缁垂鏃ユ湡", value: record ? formatDate(record.renewalDate) : "-" },
+          { label: "缁垂濂楅", value: record ? planLabel(record.planId || record.planName, record.planDays) : "-" },
+          { label: "增加天数", value: record ? String(record.planDays || 0) + " 天" : "-" },
+          { label: "续费前到期日", value: record ? formatDate(record.beforeExpireAt) : "-" },
+          { label: "续费后到期日", value: record ? formatDate(record.afterExpireAt) : "-" }
         ],
         "该操作不可撤销。"
       ),
       async () => {
-        await api(`/api/admin/customers/${id}/renewals/${button.dataset.id}`, { method: "DELETE" });
+        await api("/api/admin/customers/" + id + "/renewals/" + button.dataset.id, { method: "DELETE" });
         await loadCustomers();
         await loadCustomerDetail(id);
-        setMessage("客户续费记录已删除并重算售后到期日", "success");
+        setMessage("客户续费记录已删除，并已重算售后到期日", "success");
       }
     );
   } catch (error) {
@@ -2899,7 +2912,7 @@ prepareModalCards();
 
     state.currentUser = me.user;
     if (el.adminInfo) {
-      el.adminInfo.textContent = `当前管理员：${state.currentUser.username}`;
+      el.adminInfo.textContent = "当前管理员：" + state.currentUser.username;
     }
     await loadConfig();
     el.adminPanel.classList.remove("hidden");
@@ -2908,3 +2921,4 @@ prepareModalCards();
     clearSessionAndReturnHome();
   }
 })();
+

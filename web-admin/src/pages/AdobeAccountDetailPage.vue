@@ -232,27 +232,78 @@ function detailCopyText() {
   ].join("\n")
 }
 
+async function copyTextToClipboard(text) {
+  const copyValue = String(text ?? "")
+  if (!copyValue) return false
+
+  const clipboard = globalThis.navigator?.clipboard
+  if (clipboard?.writeText && globalThis.isSecureContext) {
+    await clipboard.writeText(copyValue)
+    return true
+  }
+
+  const textarea = document.createElement("textarea")
+  textarea.value = copyValue
+  textarea.setAttribute("readonly", "")
+  textarea.style.position = "fixed"
+  textarea.style.left = "-9999px"
+  textarea.style.top = "0"
+  document.body.appendChild(textarea)
+  textarea.select()
+
+  const copied = document.execCommand("copy")
+  textarea.remove()
+  return copied
+}
+
 async function copyDetail() {
-  await navigator.clipboard.writeText(detailCopyText())
-  detailCopied.value = true
-  window.clearTimeout(detailCopyTimer)
-  detailCopyTimer = window.setTimeout(() => {
-    detailCopied.value = false
-  }, 2000)
+  try {
+    const copied = await copyTextToClipboard(detailCopyText())
+    if (!copied) throw new Error("copy_failed")
+
+    detailCopied.value = true
+    window.clearTimeout(detailCopyTimer)
+    detailCopyTimer = window.setTimeout(() => {
+      detailCopied.value = false
+    }, 2000)
+    ElNotification({
+      title: "已复制",
+      message: "详情已复制到剪切板。",
+      type: "success",
+      position: "top-right",
+    })
+  } catch {
+    ElNotification({
+      title: "复制失败",
+      message: "无法复制详情，请手动选择文本复制。",
+      type: "error",
+      position: "top-right",
+    })
+  }
 }
 
 async function copyAccountField(value) {
   const text = value || ""
   if (!text) return
-  await navigator.clipboard.writeText(text)
-  ElNotification({
-    title: "已复制",
-    message: "内容已复制到剪切板。",
-    type: "success",
-    position: "top-right",
-  })
-}
+  try {
+    const copied = await copyTextToClipboard(text)
+    if (!copied) throw new Error("copy_failed")
 
+    ElNotification({
+      title: "已复制",
+      message: "内容已复制到剪切板。",
+      type: "success",
+      position: "top-right",
+    })
+  } catch {
+    ElNotification({
+      title: "复制失败",
+      message: "无法复制内容，请手动选择文本复制。",
+      type: "error",
+      position: "top-right",
+    })
+  }
+}
 function accountPayload() {
   return {
     accountEmail: editAccountForm.email,

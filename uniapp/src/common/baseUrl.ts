@@ -10,16 +10,22 @@ function ensureApiPath(value: string) {
   return normalized.endsWith('/api') ? normalized : `${normalized}/api`
 }
 
+function mobileOriginFromEnv() {
+  const fromMobile = normalizeBaseUrl(String(import.meta.env.VITE_MOBILE_ORIGIN || ''))
+  if (fromMobile) return fromMobile
+  return normalizeBaseUrl(String(import.meta.env.VITE_API_BASE_URL || ''))
+}
+
 // #ifdef H5
 BASE_URL = '/api'
 // #endif
 
 // #ifdef APP-PLUS
-BASE_URL = 'https://m.889100.xyz/api'
+BASE_URL = ensureApiPath(mobileOriginFromEnv()) || BASE_URL
 // #endif
 
 // #ifdef MP-WEIXIN
-BASE_URL = 'https://m.889100.xyz/api'
+BASE_URL = ensureApiPath(mobileOriginFromEnv()) || BASE_URL
 // #endif
 
 const envBaseUrl = normalizeBaseUrl(String(import.meta.env.VITE_API_BASE_URL || ''))
@@ -34,4 +40,3 @@ if (envBaseUrl) BASE_URL = ensureApiPath(envBaseUrl)
 // #endif
 
 export default BASE_URL
-

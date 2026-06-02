@@ -171,6 +171,7 @@ const showBindForm = ref(false)
 const showRenewalForm = ref(false)
 const accountId = ref('')
 const mailDomainConfigs = ref<Array<{ domain: string; verificationCodeUrl: string }>>([])
+const webOriginFallback = String(import.meta.env.VITE_WEB_ORIGIN || '').trim() || 'https://www.cloudyard.cn'
 
 const account = ref<AccountItem>({
   id: '',
@@ -323,7 +324,7 @@ function copyDetail() {
 function verificationCodeUrl() {
   const domain = String(account.value.verificationEmail || '').split('@')[1] || ''
   const config = mailDomainConfigs.value.find((item) => item.domain === domain)
-  return config?.verificationCodeUrl || 'mail.889100.xyz'
+  return config?.verificationCodeUrl || webOriginFallback
 }
 
 function displayRemainingDays(days?: number) {

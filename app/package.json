@@ -4,6 +4,7 @@
   "description": "Mail code receiver system",
   "main": "src/app.js",
   "scripts": {
+    "sync:domains": "node ../scripts/sync-domains.mjs",
     "start": "node src/app.js",
     "dev": "node src/app.js",
     "test:imap": "node src/test-imap.js"

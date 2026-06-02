@@ -1,4 +1,17 @@
-const UPDATE_MANIFEST_URL = 'https://m.889100.xyz/app-updates/version.json'
+function normalizeUrl(value: string) {
+  return String(value || '').trim().replace(/\/+$/, '')
+}
+
+function getUpdateManifestUrl() {
+  const direct = normalizeUrl(String(import.meta.env.VITE_APP_UPDATE_MANIFEST_URL || ''))
+  if (direct) return direct
+
+  const mobileOrigin = normalizeUrl(String(import.meta.env.VITE_MOBILE_ORIGIN || import.meta.env.VITE_API_BASE_URL || ''))
+  if (mobileOrigin) return `${mobileOrigin}/app-updates/version.json`
+  return '/app-updates/version.json'
+}
+
+const UPDATE_MANIFEST_URL = getUpdateManifestUrl()
 
 interface UpdateManifest {
   wgtVersion?: string
@@ -143,4 +156,3 @@ export async function checkAppUpdate() {
   }
   // #endif
 }
-
