@@ -27,10 +27,15 @@ let pendingScan = false;
 let pendingScanReason = "";
 let pendingFastScan = false;
 let pendingFastScanReason = "";
+let currentScanReason = "";
+let latestExistsAt = 0;
 
 const processedMessageSet = new Set();
 const processedMessageQueue = [];
 const PROCESSED_MESSAGE_CACHE_LIMIT = 1000;
+const ignoredMessageSet = new Set();
+const ignoredMessageQueue = [];
+const IGNORED_MESSAGE_CACHE_LIMIT = 1000;
 
 function formatImapError(error) {
   if (!error) {
@@ -190,6 +195,14 @@ function messageIdentity(uid, messageId, internalDate) {
   return null;
 }
 
+function uidIdentity(uid) {
+  if (!uid) {
+    return null;
+  }
+
+  return `uid:${uid}`;
+}
+
 function rememberProcessedMessage(identity) {
   if (!identity || processedMessageSet.has(identity)) {
     return;
@@ -208,6 +221,26 @@ function rememberProcessedMessage(identity) {
 
 function hasProcessedMessage(identity) {
   return Boolean(identity && processedMessageSet.has(identity));
+}
+
+function rememberIgnoredMessage(identity) {
+  if (!identity || ignoredMessageSet.has(identity)) {
+    return;
+  }
+
+  ignoredMessageSet.add(identity);
+  ignoredMessageQueue.push(identity);
+
+  while (ignoredMessageQueue.length > IGNORED_MESSAGE_CACHE_LIMIT) {
+    const oldest = ignoredMessageQueue.shift();
+    if (oldest) {
+      ignoredMessageSet.delete(oldest);
+    }
+  }
+}
+
+function hasIgnoredMessage(identity) {
+  return Boolean(identity && ignoredMessageSet.has(identity));
 }
 
 function hasFastScanPending() {
@@ -379,6 +412,7 @@ async function processMessageByUid(uid) {
 
   const messageDate = new Date(message.internalDate || Date.now());
   if (messageDate.getTime() < scanWindowStart().getTime()) {
+    rememberIgnoredMessage(uidIdentity(uid));
     console.log(`IMAP message skipped: uid=${uid} outside scan window`);
     return { saved: false, status: "outside scan window" };
   }
@@ -456,13 +490,27 @@ function buildCandidateList(rawCandidates) {
   return Array.isArray(rawCandidates) ? rawCandidates : [];
 }
 
+function filterCandidateUids(candidates) {
+  const filtered = [];
+
+  for (const uid of buildCandidateList(candidates)) {
+    const identity = uidIdentity(uid);
+    if (hasProcessedMessage(identity) || hasIgnoredMessage(identity)) {
+      continue;
+    }
+    filtered.push(uid);
+  }
+
+  return filtered;
+}
+
 async function searchCandidateUids(client, windowStart) {
   const rawCandidates = await client.search({ since: searchSinceDate(windowStart) }, { uid: true });
   return buildCandidateList(rawCandidates);
 }
 
 async function selectFastScanCandidates(client, candidates, maxCandidates) {
-  const sortedCandidates = [...candidates].sort((a, b) => b - a);
+  const sortedCandidates = [...filterCandidateUids(candidates)].sort((a, b) => b - a);
   const selected = [];
   let unprocessed = 0;
 
@@ -479,7 +527,7 @@ async function selectFastScanCandidates(client, candidates, maxCandidates) {
     const internalDate = metadata.internalDate ? metadata.internalDate.toISOString() : "";
     const identity = messageIdentity(metadata.uid, metadata.messageId, internalDate);
 
-    if (hasProcessedMessage(identity)) {
+    if (hasProcessedMessage(identity) || hasIgnoredMessage(uidIdentity(metadata.uid))) {
       continue;
     }
 
@@ -535,6 +583,7 @@ async function processScanBatch(options) {
   }
 
   isScanning = true;
+  currentScanReason = reason;
   const windowMinutes = getScanWindowMinutes();
   const windowStart = scanWindowStart();
   const startedAt = Date.now();
@@ -572,7 +621,8 @@ async function processScanBatch(options) {
       const searchDuration = ((Date.now() - searchStartedAt) / 1000).toFixed(1);
       console.log(`IMAP fast search done: raw=${rawCount} unprocessed=${unprocessed} selected=${selectedUids.length} duration=${searchDuration}s`);
     } else {
-      const sorted = preferLatest ? [...candidates].sort((a, b) => b - a) : candidates;
+      const filteredCandidates = filterCandidateUids(candidates);
+      const sorted = preferLatest ? [...filteredCandidates].sort((a, b) => b - a) : filteredCandidates;
       selectedUids = sorted.slice(0, maxCandidates);
 
       if (pendingFastScan) {
@@ -622,6 +672,7 @@ async function processScanBatch(options) {
     }
   } finally {
     isScanning = false;
+    currentScanReason = "";
     if (lock) {
       lock.release();
     }
@@ -757,6 +808,13 @@ async function requestFastScan(reason = "exists") {
 
 function scheduleExistsScan() {
   if (isShuttingDown) {
+    return;
+  }
+
+  latestExistsAt = Date.now();
+
+  if (isScanning && ["exists", "fast", "pending-fast"].includes(currentScanReason)) {
+    console.log("IMAP fast scan already running, duplicate exists ignored");
     return;
   }
 
