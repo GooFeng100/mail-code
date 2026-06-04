@@ -20,6 +20,10 @@ function parsePositiveInt(value, fallback) {
   return Math.floor(parsed);
 }
 
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
 function parseBoolean(value, fallback = false) {
   if (value === undefined || value === null || value === "") {
     return fallback;
@@ -102,6 +106,7 @@ const config = {
   mailListenerEnabled: process.env.MAIL_LISTENER_ENABLED !== "false",
   mailScanWindowMinutes: Number(process.env.MAIL_SCAN_WINDOW_MINUTES || 5),
   mailScanIntervalSeconds: Number(process.env.MAIL_SCAN_INTERVAL_SECONDS || 30),
+  mailExistsDebounceSeconds: clamp(Number(process.env.MAIL_EXISTS_DEBOUNCE_SECONDS || 2), 1, 10),
   softwareFileRoot: path.resolve(process.env.SOFTWARE_FILE_ROOT || path.join(process.cwd(), "software-files")),
   softwareMaxUploadMb: parsePositiveInt(process.env.SOFTWARE_MAX_UPLOAD_MB, 500),
   softwareImportMaxMb: parsePositiveInt(process.env.SOFTWARE_IMPORT_MAX_MB, 1024),
