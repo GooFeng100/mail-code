@@ -539,6 +539,7 @@ async function processScanBatch(options) {
   const windowStart = scanWindowStart();
   const startedAt = Date.now();
   let lock = null;
+  let interrupted = false;
 
   try {
     lock = await client.getMailboxLock("INBOX");
@@ -573,6 +574,12 @@ async function processScanBatch(options) {
     } else {
       const sorted = preferLatest ? [...candidates].sort((a, b) => b - a) : candidates;
       selectedUids = sorted.slice(0, maxCandidates);
+
+      if (pendingFastScan) {
+        interrupted = true;
+        console.log("IMAP scheduled scan interrupted before fetch: fast scan pending");
+        selectedUids = [];
+      }
     }
 
     if (!selectedUids.length) {
@@ -589,6 +596,12 @@ async function processScanBatch(options) {
     let saved = 0;
 
     for (const uid of selectedUids) {
+      if (mode === "scheduled" && pendingFastScan) {
+        interrupted = true;
+        console.log("IMAP scheduled scan interrupted: fast scan pending");
+        break;
+      }
+
       fetched += 1;
       try {
         const result = await processMessageByUid(uid);
@@ -605,7 +618,7 @@ async function processScanBatch(options) {
     if (mode === "fast") {
       console.log(`IMAP fast scan complete: reason=${reason} raw=${rawCount} selected=${selectedUids.length} fetched=${fetched} saved=${saved} duration=${durationSeconds}s`);
     } else {
-      console.log(`IMAP scan complete: reason=${reason} checked=${selectedUids.length} saved=${saved} duration=${durationSeconds}s window=${windowMinutes} minutes`);
+      console.log(`IMAP scan complete: reason=${reason} checked=${fetched} saved=${saved} interrupted=${interrupted} duration=${durationSeconds}s window=${windowMinutes} minutes`);
     }
   } finally {
     isScanning = false;
