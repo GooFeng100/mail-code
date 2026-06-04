@@ -17,12 +17,20 @@ let reconnectTimer = null;
 let scheduledScanTimer = null;
 let existsDebounceTimer = null;
 let pendingScanTimer = null;
+let pendingFastScanTimer = null;
 
 let reconnectAttempt = 0;
 let lastTooManyConnectionsAt = 0;
 let shutdownHandlersRegistered = false;
+
 let pendingScan = false;
 let pendingScanReason = "";
+let pendingFastScan = false;
+let pendingFastScanReason = "";
+
+const processedMessageSet = new Set();
+const processedMessageQueue = [];
+const PROCESSED_MESSAGE_CACHE_LIMIT = 1000;
 
 function formatImapError(error) {
   if (!error) {
@@ -74,6 +82,30 @@ function getScanIntervalSeconds() {
     return 30;
   }
   return Math.max(15, Math.floor(parsed));
+}
+
+function getExistsDebounceSeconds() {
+  const parsed = Number(config.mailExistsDebounceSeconds);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return 1;
+  }
+  return Math.min(Math.max(Math.floor(parsed), 1), 10);
+}
+
+function getFastScanMaxCandidates() {
+  const parsed = Number(config.mailFastScanMaxCandidates);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return 3;
+  }
+  return Math.min(Math.max(Math.floor(parsed), 1), 10);
+}
+
+function getScheduledScanMaxCandidates() {
+  const parsed = Number(config.mailScanMaxCandidates);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return 10;
+  }
+  return Math.min(Math.max(Math.floor(parsed), 1), 50);
 }
 
 function scanWindowStart() {
@@ -135,23 +167,101 @@ function clearPendingScanTimer() {
   }
 }
 
-function getExistsDebounceSeconds() {
-  const parsed = Number(config.mailExistsDebounceSeconds);
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    return 2;
+function clearPendingFastScanTimer() {
+  if (pendingFastScanTimer) {
+    clearTimeout(pendingFastScanTimer);
+    pendingFastScanTimer = null;
   }
-  return Math.min(Math.max(Math.floor(parsed), 1), 10);
 }
 
-function hasExistsScanPending() {
-  return Boolean(existsDebounceTimer) || (pendingScan && pendingScanReason === "exists");
+function messageIdentity(uid, messageId, internalDate) {
+  if (uid) {
+    return `uid:${uid}`;
+  }
+
+  if (messageId) {
+    return `message-id:${String(messageId).trim()}`;
+  }
+
+  if (uid || internalDate) {
+    return `uid-date:${uid || "none"}:${internalDate || "none"}`;
+  }
+
+  return null;
+}
+
+function rememberProcessedMessage(identity) {
+  if (!identity || processedMessageSet.has(identity)) {
+    return;
+  }
+
+  processedMessageSet.add(identity);
+  processedMessageQueue.push(identity);
+
+  while (processedMessageQueue.length > PROCESSED_MESSAGE_CACHE_LIMIT) {
+    const oldest = processedMessageQueue.shift();
+    if (oldest) {
+      processedMessageSet.delete(oldest);
+    }
+  }
+}
+
+function hasProcessedMessage(identity) {
+  return Boolean(identity && processedMessageSet.has(identity));
+}
+
+function hasFastScanPending() {
+  return Boolean(existsDebounceTimer || pendingFastScan || pendingFastScanTimer);
+}
+
+function scheduleScanSoon(reason, delayMs = 0) {
+  if (isShuttingDown) {
+    return;
+  }
+
+  clearPendingScanTimer();
+  const normalizedReason = reason || "pending";
+
+  pendingScanTimer = setTimeout(() => {
+    pendingScanTimer = null;
+    requestScheduledScan(normalizedReason).catch((error) => {
+      console.error(`IMAP scheduled scan failed: ${formatImapError(error)}`);
+    });
+  }, Math.max(0, delayMs));
+
+  console.log(`IMAP pending scan scheduled: reason=${normalizedReason} delay=${Math.max(0, delayMs) / 1000}s`);
+}
+
+function scheduleFastScanSoon(reason, delayMs = 0) {
+  if (isShuttingDown) {
+    return;
+  }
+
+  clearPendingFastScanTimer();
+  const normalizedReason = reason || "exists";
+
+  pendingFastScanTimer = setTimeout(() => {
+    pendingFastScanTimer = null;
+    requestFastScan(normalizedReason).catch((error) => {
+      console.error(`IMAP fast scan failed: ${formatImapError(error)}`);
+    });
+  }, Math.max(0, delayMs));
+
+  console.log(`IMAP pending fast scan scheduled: reason=${normalizedReason} delay=${Math.max(0, delayMs) / 1000}s`);
 }
 
 function markPendingScan(reason, message) {
   pendingScan = true;
-  pendingScanReason = reason || "pending";
+  pendingScanReason = reason || "scheduled";
   clearPendingScanTimer();
   console.log(`IMAP scan pending: reason=${pendingScanReason}, ${message}`);
+}
+
+function markPendingFastScan(reason, message) {
+  pendingFastScan = true;
+  pendingFastScanReason = reason || "exists";
+  clearPendingFastScanTimer();
+  console.log(`IMAP fast scan pending: reason=${pendingFastScanReason}, ${message}`);
 }
 
 async function safeCloseClient(client, context) {
@@ -201,45 +311,118 @@ async function invalidateClient(client, reason, error) {
 }
 
 async function shouldProcess(uid) {
-  const result = await redisClient.set(processedKey(uid), "1", {
-    NX: true,
-    EX: Math.max(600, getScanWindowMinutes() * 120)
-  });
-
-  return result === "OK";
+  const result = await redisClient.exists(processedKey(uid));
+  return result === 0;
 }
 
-async function handleMessage(uid) {
+async function markUidProcessed(uid) {
+  await redisClient.set(processedKey(uid), "1", {
+    EX: Math.max(600, getScanWindowMinutes() * 120)
+  });
+}
+
+async function fetchMessageMetadata(uid) {
   const client = imapClient;
   if (!isClientAvailable(client)) {
     throw new Error("Connection not available");
   }
 
-  const message = await client.fetchOne(uid, { uid: true, internalDate: true, source: true }, { uid: true });
+  const message = await client.fetchOne(
+    uid,
+    {
+      uid: true,
+      internalDate: true,
+      envelope: true,
+      bodyStructure: true
+    },
+    { uid: true }
+  );
+
+  if (!message) {
+    return null;
+  }
+
+  const internalDate = message.internalDate ? new Date(message.internalDate) : null;
+  const messageId = message.envelope && message.envelope.messageId
+    ? String(message.envelope.messageId).trim()
+    : "";
+
+  return {
+    uid,
+    internalDate,
+    messageId,
+    envelope: message.envelope || null
+  };
+}
+
+async function processMessageByUid(uid) {
+  const client = imapClient;
+  if (!isClientAvailable(client)) {
+    throw new Error("Connection not available");
+  }
+
+  const message = await client.fetchOne(
+    uid,
+    {
+      uid: true,
+      internalDate: true,
+      envelope: true,
+      source: true
+    },
+    { uid: true }
+  );
+
   if (!message || !message.source) {
-    return false;
+    console.log(`IMAP message skipped: uid=${uid} parse failed or empty source`);
+    return { saved: false, status: "parse failed" };
   }
 
   const messageDate = new Date(message.internalDate || Date.now());
   if (messageDate.getTime() < scanWindowStart().getTime()) {
-    return false;
+    console.log(`IMAP message skipped: uid=${uid} outside scan window`);
+    return { saved: false, status: "outside scan window" };
+  }
+
+  const messageId = message.envelope && message.envelope.messageId
+    ? String(message.envelope.messageId).trim()
+    : "";
+  const identity = messageIdentity(uid, messageId, messageDate.toISOString());
+
+  if (hasProcessedMessage(identity)) {
+    console.log(`IMAP message skipped: uid=${uid} message uid already processed`);
+    return { saved: false, status: "message uid already processed" };
   }
 
   if (!(await shouldProcess(uid))) {
-    return false;
+    rememberProcessedMessage(identity);
+    console.log(`IMAP message skipped: uid=${uid} message uid already processed`);
+    return { saved: false, status: "message uid already processed" };
   }
 
-  const parsed = await simpleParser(message.source);
+  let parsed;
+  try {
+    parsed = await simpleParser(message.source);
+  } catch (error) {
+    console.log(`IMAP message skipped: uid=${uid} parse failed`);
+    throw error;
+  }
+
   const mailData = parseMail(parsed);
+  const recipient = mailData.emailAddress || "";
+  console.log(`IMAP message processing: uid=${uid} from=${mailData.from || ""} to=${recipient} internalDate=${messageDate.toISOString()}`);
 
   if (!mailData.emailAddress) {
-    console.log(`Mail skipped: no configured domain recipient found; subject="${mailData.subject}" from="${mailData.from}"`);
-    return true;
+    await markUidProcessed(uid);
+    rememberProcessedMessage(identity);
+    console.log(`IMAP message skipped: uid=${uid} unsupported recipient/domain`);
+    return { saved: false, status: "unsupported recipient/domain" };
   }
 
   if (!mailData.code) {
-    console.log(`Mail skipped: no verification code for ${mailData.emailAddress}; subject="${mailData.subject}"`);
-    return true;
+    await markUidProcessed(uid);
+    rememberProcessedMessage(identity);
+    console.log(`IMAP message skipped: uid=${uid} no code matched`);
+    return { saved: false, status: "no code matched" };
   }
 
   const adobeAccount = await AdobeAccount.findOne({
@@ -248,8 +431,10 @@ async function handleMessage(uid) {
   });
 
   if (!adobeAccount) {
-    console.log(`Mail skipped: no enabled Adobe account mapped to ${mailData.emailAddress}`);
-    return false;
+    await markUidProcessed(uid);
+    rememberProcessedMessage(identity);
+    console.log(`IMAP message skipped: uid=${uid} unsupported recipient/domain`);
+    return { saved: false, status: "unsupported recipient/domain" };
   }
 
   const saved = await saveCode({
@@ -261,82 +446,91 @@ async function handleMessage(uid) {
     receivedAt: parsed.date ? mailData.receivedAt : messageDate.toISOString()
   });
 
-  console.log(`Mail code saved: ${saved.username} ${saved.emailAddress} ${saved.code}`);
-  return true;
+  await markUidProcessed(uid);
+  rememberProcessedMessage(identity);
+  console.log(`Mail code saved: ${saved.username} ${saved.emailAddress} ${saved.code} uid=${uid}`);
+  return { saved: true, status: "saved" };
 }
 
-function scheduleScanSoon(reason, delayMs = 0) {
-  if (isShuttingDown) {
-    return;
-  }
+function buildCandidateList(rawCandidates) {
+  return Array.isArray(rawCandidates) ? rawCandidates : [];
+}
 
-  clearPendingScanTimer();
-  const normalizedReason = reason || "pending";
+async function searchCandidateUids(client, windowStart) {
+  const rawCandidates = await client.search({ since: searchSinceDate(windowStart) }, { uid: true });
+  return buildCandidateList(rawCandidates);
+}
 
-  pendingScanTimer = setTimeout(() => {
-    pendingScanTimer = null;
-    requestScan(normalizedReason).catch((error) => {
-      console.error(`IMAP ${normalizedReason} scan failed: ${formatImapError(error)}`);
+async function selectFastScanCandidates(client, candidates, maxCandidates) {
+  const sortedCandidates = [...candidates].sort((a, b) => b - a);
+  const selected = [];
+  let unprocessed = 0;
+
+  for (const uid of sortedCandidates) {
+    if (selected.length >= maxCandidates) {
+      break;
+    }
+
+    const metadata = await fetchMessageMetadata(uid);
+    if (!metadata) {
+      continue;
+    }
+
+    const internalDate = metadata.internalDate ? metadata.internalDate.toISOString() : "";
+    const identity = messageIdentity(metadata.uid, metadata.messageId, internalDate);
+
+    if (hasProcessedMessage(identity)) {
+      continue;
+    }
+
+    const seen = await redisClient.exists(processedKey(uid));
+    if (seen) {
+      rememberProcessedMessage(identity);
+      continue;
+    }
+
+    unprocessed += 1;
+    selected.push({
+      uid: metadata.uid,
+      internalDate: metadata.internalDate
     });
-  }, Math.max(0, delayMs));
+  }
 
-  console.log(`IMAP pending scan scheduled: reason=${normalizedReason} delay=${Math.max(0, delayMs) / 1000}s`);
+  return { selected, unprocessed };
 }
 
-async function requestScan(reason = "scheduled", delayMs = 0) {
+async function processScanBatch(options) {
+  const {
+    mode,
+    reason,
+    maxCandidates,
+    preferLatest
+  } = options;
+
   if (isShuttingDown) {
-    return;
-  }
-
-  if (delayMs > 0) {
-    scheduleScanSoon(reason, delayMs);
-    return;
-  }
-
-  if (reason === "scheduled" && hasExistsScanPending()) {
-    console.log("IMAP scheduled scan skipped: exists scan pending");
+    console.log(`IMAP ${mode} scan skipped: shutting down (${reason})`);
     return;
   }
 
   if (isScanning) {
-    markPendingScan(reason, "current scan already running");
-    return;
-  }
-
-  if (isConnecting || isReconnecting || !isClientAvailable()) {
-    markPendingScan(reason, "client not available");
-    scheduleReconnect("scan requested but client not available");
-    return;
-  }
-
-  await processRecent(reason);
-}
-
-async function processRecent(reason = "scheduled") {
-  if (isShuttingDown) {
-    console.log(`IMAP scan skipped: shutting down (${reason})`);
-    return;
-  }
-
-  if (isScanning) {
-    console.log(`IMAP ${reason} scan skipped: scan already running`);
+    console.log(`IMAP ${mode} scan skipped: scan already running`);
     return;
   }
 
   if (isConnecting) {
-    console.log(`IMAP ${reason} scan skipped: connecting`);
+    console.log(`IMAP ${mode} scan skipped: connecting`);
     return;
   }
 
   if (isReconnecting) {
-    console.log(`IMAP ${reason} scan skipped: reconnecting`);
+    console.log(`IMAP ${mode} scan skipped: reconnecting`);
     return;
   }
 
   const client = imapClient;
   if (!isClientAvailable(client)) {
-    console.log(`IMAP ${reason} scan skipped: client not available`);
-    scheduleReconnect(`${reason}-scan-client-unavailable`);
+    console.log(`IMAP ${mode} scan skipped: client not available`);
+    scheduleReconnect(`${mode}-scan-client-unavailable`);
     return;
   }
 
@@ -345,17 +539,20 @@ async function processRecent(reason = "scheduled") {
   const windowStart = scanWindowStart();
   const startedAt = Date.now();
   let lock = null;
-  let checked = 0;
-  let saved = 0;
-
-  console.log(`IMAP scan start: reason=${reason} window=${windowMinutes} minutes`);
 
   try {
     lock = await client.getMailboxLock("INBOX");
 
-    let rawCandidates;
+    if (mode === "fast") {
+      console.log(`IMAP fast scan start: reason=${reason} window=${windowMinutes}m max=${maxCandidates}`);
+    } else {
+      console.log(`IMAP scan start: reason=${reason} window=${windowMinutes} minutes max=${maxCandidates}`);
+    }
+
+    const searchStartedAt = Date.now();
+    let candidates;
     try {
-      rawCandidates = await client.search({ since: searchSinceDate(windowStart) }, { uid: true });
+      candidates = await searchCandidateUids(client, windowStart);
     } catch (error) {
       if (isTooManyConnectionsError(error) || /timeout|connection not available/i.test(formatImapError(error))) {
         await invalidateClient(client, "IMAP scan search failed", error);
@@ -363,13 +560,39 @@ async function processRecent(reason = "scheduled") {
       throw error;
     }
 
-    const candidates = Array.isArray(rawCandidates) ? rawCandidates : [];
+    const rawCount = candidates.length;
+    let selectedUids = [];
+    let unprocessed = 0;
 
-    for (const uid of candidates) {
+    if (mode === "fast") {
+      const fastSelection = await selectFastScanCandidates(client, candidates, maxCandidates);
+      unprocessed = fastSelection.unprocessed;
+      selectedUids = fastSelection.selected.map((item) => item.uid);
+      const searchDuration = ((Date.now() - searchStartedAt) / 1000).toFixed(1);
+      console.log(`IMAP fast search done: raw=${rawCount} unprocessed=${unprocessed} selected=${selectedUids.length} duration=${searchDuration}s`);
+    } else {
+      const sorted = preferLatest ? [...candidates].sort((a, b) => b - a) : candidates;
+      selectedUids = sorted.slice(0, maxCandidates);
+    }
+
+    if (!selectedUids.length) {
+      const durationSeconds = ((Date.now() - startedAt) / 1000).toFixed(1);
+      if (mode === "fast") {
+        console.log(`IMAP fast scan complete: reason=${reason} raw=${rawCount} selected=0 fetched=0 saved=0 duration=${durationSeconds}s`);
+      } else {
+        console.log(`IMAP scan complete: reason=${reason} checked=0 saved=0 duration=${durationSeconds}s window=${windowMinutes} minutes`);
+      }
+      return;
+    }
+
+    let fetched = 0;
+    let saved = 0;
+
+    for (const uid of selectedUids) {
+      fetched += 1;
       try {
-        checked += 1;
-        const savedMessage = await handleMessage(uid);
-        if (savedMessage) {
+        const result = await processMessageByUid(uid);
+        if (result.saved) {
           saved += 1;
         }
       } catch (error) {
@@ -378,10 +601,11 @@ async function processRecent(reason = "scheduled") {
     }
 
     const durationSeconds = ((Date.now() - startedAt) / 1000).toFixed(1);
-    console.log(`IMAP scan complete: reason=${reason} checked=${checked} saved=${saved} duration=${durationSeconds}s window=${windowMinutes} minutes`);
 
-    if (checked > 0 && saved === 0) {
-      console.log(`IMAP scan result: checked=${checked} saved=0 no code matched or duplicate skipped`);
+    if (mode === "fast") {
+      console.log(`IMAP fast scan complete: reason=${reason} raw=${rawCount} selected=${selectedUids.length} fetched=${fetched} saved=${saved} duration=${durationSeconds}s`);
+    } else {
+      console.log(`IMAP scan complete: reason=${reason} checked=${selectedUids.length} saved=${saved} duration=${durationSeconds}s window=${windowMinutes} minutes`);
     }
   } finally {
     isScanning = false;
@@ -389,13 +613,36 @@ async function processRecent(reason = "scheduled") {
       lock.release();
     }
 
-    if (pendingScan && !isShuttingDown) {
-      const pendingReason = pendingScanReason || "pending";
+    if (pendingFastScan && !isShuttingDown) {
+      const reasonForFastScan = pendingFastScanReason || "exists";
+      pendingFastScan = false;
+      pendingFastScanReason = "";
+      scheduleFastScanSoon(reasonForFastScan, 1000);
+    } else if (pendingScan && !isShuttingDown) {
+      const pendingReason = pendingScanReason || "scheduled";
       pendingScan = false;
       pendingScanReason = "";
       scheduleScanSoon(pendingReason, 1000);
     }
   }
+}
+
+async function processRecent(reason = "scheduled") {
+  return processScanBatch({
+    mode: "scheduled",
+    reason,
+    maxCandidates: getScheduledScanMaxCandidates(),
+    preferLatest: true
+  });
+}
+
+async function fastScanRecentMessages(reason = "exists") {
+  return processScanBatch({
+    mode: "fast",
+    reason,
+    maxCandidates: getFastScanMaxCandidates(),
+    preferLatest: true
+  });
 }
 
 function scheduleReconnect(reason, error) {
@@ -447,6 +694,54 @@ function scheduleReconnect(reason, error) {
   }, delaySeconds * 1000);
 }
 
+async function requestScheduledScan(reason = "scheduled", delayMs = 0) {
+  if (isShuttingDown) {
+    return;
+  }
+
+  if (delayMs > 0) {
+    scheduleScanSoon(reason, delayMs);
+    return;
+  }
+
+  if (hasFastScanPending()) {
+    console.log("IMAP scheduled scan skipped: fast scan pending");
+    return;
+  }
+
+  if (isScanning) {
+    markPendingScan(reason, "current scan already running");
+    return;
+  }
+
+  if (isConnecting || isReconnecting || !isClientAvailable()) {
+    markPendingScan(reason, "client not available");
+    scheduleReconnect("scheduled scan requested but client not available");
+    return;
+  }
+
+  await processRecent(reason);
+}
+
+async function requestFastScan(reason = "exists") {
+  if (isShuttingDown) {
+    return;
+  }
+
+  if (isScanning) {
+    markPendingFastScan(reason, "current scan already running");
+    return;
+  }
+
+  if (isConnecting || isReconnecting || !isClientAvailable()) {
+    markPendingFastScan(reason, "client not available");
+    scheduleReconnect("fast scan requested but client not available");
+    return;
+  }
+
+  await fastScanRecentMessages(reason);
+}
+
 function scheduleExistsScan() {
   if (isShuttingDown) {
     return;
@@ -454,19 +749,18 @@ function scheduleExistsScan() {
 
   clearExistsDebounceTimer();
   const delaySeconds = getExistsDebounceSeconds();
+  console.log(`IMAP exists event received: scanning=${isScanning} pending=${pendingFastScan} debounce=${delaySeconds}s`);
 
   if (isScanning) {
-    markPendingScan("exists", "scan already running");
+    markPendingFastScan("exists", "current scan already running");
   }
 
   existsDebounceTimer = setTimeout(() => {
     existsDebounceTimer = null;
-    requestScan("exists").catch((error) => {
+    requestFastScan("exists").catch((error) => {
       console.error("IMAP exists handling failed:", formatImapError(error));
     });
   }, delaySeconds * 1000);
-
-  console.log(`IMAP exists event received, scan scheduled in ${delaySeconds}s`);
 }
 
 function attachClientListeners(client) {
@@ -483,6 +777,7 @@ function attachClientListeners(client) {
     clearScheduledScanTimer();
     clearExistsDebounceTimer();
     clearPendingScanTimer();
+    clearPendingFastScanTimer();
     await invalidateClient(client, "IMAP connection closed");
   });
 
@@ -496,7 +791,7 @@ function startScheduledScanLoop() {
   const intervalSeconds = getScanIntervalSeconds();
 
   scheduledScanTimer = setInterval(() => {
-    requestScan("scheduled").catch((error) => {
+    requestScheduledScan("scheduled").catch((error) => {
       console.error("IMAP scheduled scan failed:", formatImapError(error));
     });
   }, intervalSeconds * 1000);
@@ -532,7 +827,7 @@ function registerShutdownHandlers() {
 
   shutdownHandlersRegistered = true;
 
-  const shutdown = async (signal) => {
+  const shutdown = async () => {
     if (isShuttingDown) {
       return;
     }
@@ -544,6 +839,7 @@ function registerShutdownHandlers() {
     clearScheduledScanTimer();
     clearExistsDebounceTimer();
     clearPendingScanTimer();
+    clearPendingFastScanTimer();
 
     const client = imapClient;
     imapClient = null;
@@ -554,14 +850,14 @@ function registerShutdownHandlers() {
   };
 
   process.once("SIGTERM", () => {
-    shutdown("SIGTERM").catch((error) => {
+    shutdown().catch((error) => {
       console.error(`IMAP shutdown failed for SIGTERM: ${formatImapError(error)}`);
       process.exit(1);
     });
   });
 
   process.once("SIGINT", () => {
-    shutdown("SIGINT").catch((error) => {
+    shutdown().catch((error) => {
       console.error(`IMAP shutdown failed for SIGINT: ${formatImapError(error)}`);
       process.exit(1);
     });
@@ -626,14 +922,21 @@ async function startImapListener(options = {}) {
     startScheduledScanLoop();
 
     console.log(`IMAP listener connected: ${config.mail.user}${proxy ? " (proxy enabled)" : ""}`);
-    if (pendingScan) {
+
+    if (pendingFastScan) {
+      const pendingReasonAfterConnect = pendingFastScanReason || "connected-pending";
+      pendingFastScan = false;
+      pendingFastScanReason = "";
+      console.log(`IMAP pending fast scan after connected: reason=${pendingReasonAfterConnect}`);
+      scheduleFastScanSoon(pendingReasonAfterConnect, 1000);
+    } else if (pendingScan) {
       const pendingReasonAfterConnect = pendingScanReason || "connected-pending";
       pendingScan = false;
       pendingScanReason = "";
       console.log(`IMAP pending scan after connected: reason=${pendingReasonAfterConnect}`);
       scheduleScanSoon(pendingReasonAfterConnect, 1000);
     } else {
-      await requestScan("startup");
+      await requestScheduledScan("startup");
     }
   } catch (error) {
     await safeCloseClient(connectedClient, "IMAP listener connect cleanup");
@@ -649,5 +952,6 @@ async function startImapListener(options = {}) {
 
 module.exports = {
   startImapListener,
-  processRecent
+  processRecent,
+  fastScanRecentMessages
 };
