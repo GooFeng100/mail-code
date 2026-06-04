@@ -51,3 +51,18 @@ app/design_refs/
 software-files/*
 !software-files/.gitkeep
 !software-files/README.md
+
+# UniApp build/cache
+uniapp/unpackage/
+
+# Local test outputs / sensitive subscription files
+web-admin/nodes.txt
+web-admin/shadowrocket_sub.txt
+web-admin/test_Clash.txt
+web-admin/test_Shadowrocket.txt
+web-admin/test_subconverter.txt
+
+# Local env/log files
+.env
+.env.*
+*.log
