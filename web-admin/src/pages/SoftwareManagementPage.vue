@@ -50,7 +50,6 @@ const showCreateDialog = ref(false)
 const createTab = ref("common")
 const createSubmitting = ref(false)
 const localFileRef = ref(null)
-const iconFileRef = ref(null)
 const remoteImportStatus = ref("")
 const resolvingRemoteMeta = ref(false)
 const lastCreatedSoftwareId = ref("")
@@ -92,7 +91,6 @@ const createForm = ref({
   sort: 100,
   isPublished: true,
   localFile: "",
-  localIcon: "",
   iconUrl: "",
   sourceUrl: "",
   externalUrl: "",
@@ -474,9 +472,6 @@ function onPickFile(event, target) {
   if (target === "package") {
     localFileRef.value = file || null
     createForm.value.localFile = file ? file.name : ""
-  } else {
-    iconFileRef.value = file || null
-    createForm.value.localIcon = file ? file.name : ""
   }
 }
 
@@ -491,13 +486,11 @@ function resetCreateForm() {
     sort: 100,
     isPublished: true,
     localFile: "",
-    localIcon: "",
     iconUrl: "",
     sourceUrl: "",
     externalUrl: "",
   }
   localFileRef.value = null
-  iconFileRef.value = null
   remoteImportStatus.value = ""
 }
 
@@ -519,7 +512,6 @@ async function submitCreateSoftware() {
   payload.append("description", form.description || "")
   payload.append("sort", String(form.sort ?? 100))
   payload.append("isPublished", String(Boolean(form.isPublished)))
-  if (iconFileRef.value) payload.append("icon", iconFileRef.value)
   if (form.iconUrl && String(form.iconUrl).trim()) payload.append("iconUrl", String(form.iconUrl).trim())
 
   if (createTab.value === "local") {
@@ -597,6 +589,14 @@ function handleResolveRemoteMeta(mode = "remote") {
     successMessage: "链接解析完成。",
     errorMessage: "链接解析失败。",
   })
+}
+
+async function handleCreateErrorFocus(error) {
+  const message = error?.data?.error || error?.message || "软件新增失败，请稍后重试。"
+  if (createTab.value === "remote" || createTab.value === "external") {
+    remoteImportStatus.value = String(message)
+    await nextTick()
+  }
 }
 
 function handleCreateSubmit() {
@@ -810,13 +810,6 @@ function softwareTableRowClassName({ row }) {
           <el-form class="account-form-grid" :model="createForm" label-position="top">
             <el-form-item label="软件名称" required>
               <el-input v-model="createForm.name" placeholder="请输入软件名称" />
-            </el-form-item>
-            <el-form-item label="软件图标">
-              <el-input v-model="createForm.localIcon" readonly placeholder="选择图标文件">
-                <template #append>
-                  <label class="software-file-trigger">选择文件<input class="software-file-input" type="file" accept="image/*" @change="onPickFile($event, 'icon')" /></label>
-                </template>
-              </el-input>
             </el-form-item>
             <el-form-item label="图标链接">
               <el-input v-model="createForm.iconUrl" placeholder="https://example.com/icon.png" />
