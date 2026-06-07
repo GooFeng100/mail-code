@@ -148,14 +148,12 @@ router.delete("/software-categories/:id", async (req, res, next) => {
 });
 
 router.post("/softwares/upload-local", softwareUpload.fields([
-  { name: "file", maxCount: 1 },
-  { name: "icon", maxCount: 1 }
+  { name: "file", maxCount: 1 }
 ]), async (req, res, next) => {
   try {
     const software = await createSoftwareFromLocalUpload({
       body: req.body,
-      file: req.files && req.files.file ? req.files.file[0] : null,
-      iconFile: req.files && req.files.icon ? req.files.icon[0] : null
+      file: req.files && req.files.file ? req.files.file[0] : null
     });
     res.status(201).json({ ok: true, software });
   } catch (error) {
@@ -163,13 +161,10 @@ router.post("/softwares/upload-local", softwareUpload.fields([
   }
 });
 
-router.post("/softwares/import-to-server", softwareUpload.fields([
-  { name: "icon", maxCount: 1 }
-]), async (req, res, next) => {
+router.post("/softwares/import-to-server", softwareUpload.none(), async (req, res, next) => {
   try {
     const task = startSoftwareImportTask({
-      body: req.body,
-      iconFile: req.files && req.files.icon ? req.files.icon[0] : null
+      body: req.body
     });
     res.status(202).json({ ok: true, task });
   } catch (error) {
@@ -195,13 +190,10 @@ router.get("/softwares/import-tasks/:taskId", async (req, res, next) => {
   }
 });
 
-router.post("/softwares/external-link", softwareUpload.fields([
-  { name: "icon", maxCount: 1 }
-]), async (req, res, next) => {
+router.post("/softwares/external-link", softwareUpload.none(), async (req, res, next) => {
   try {
     const software = await createSoftwareFromExternalLink({
-      body: req.body,
-      iconFile: req.files && req.files.icon ? req.files.icon[0] : null
+      body: req.body
     });
     res.status(201).json({ ok: true, software });
   } catch (error) {

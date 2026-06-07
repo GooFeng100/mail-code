@@ -181,10 +181,7 @@ async function storeIconBuffer(buffer, originalName) {
   return iconResolved.fileName;
 }
 
-async function resolveIconPath({ iconFile = null, iconUrl = "" } = {}) {
-  if (iconFile && iconFile.buffer && iconFile.originalname) {
-    return storeIconBuffer(iconFile.buffer, iconFile.originalname);
-  }
+async function resolveIconPath({ iconUrl = "" } = {}) {
   const remoteUrl = String(iconUrl || "").trim();
   if (!remoteUrl) return "";
 
@@ -247,7 +244,7 @@ async function decorateSoftware(softwareDoc, legacyCategoryMap = null) {
   };
 }
 
-async function createSoftwareFromLocalUpload({ body = {}, file = null, iconFile = null }) {
+async function createSoftwareFromLocalUpload({ body = {}, file = null }) {
   const categoryKey = await resolveCategoryKeyInput(body);
   const common = normalizeCommonPayload(body);
   if (!file) badRequest("software file is required");
@@ -259,7 +256,7 @@ async function createSoftwareFromLocalUpload({ body = {}, file = null, iconFile 
   const { absolutePath, fileName } = resolveSoftwarePath(storedFileName);
   await fs.writeFile(absolutePath, file.buffer);
 
-  const iconPath = await resolveIconPath({ iconFile, iconUrl: body.iconUrl });
+  const iconPath = await resolveIconPath({ iconUrl: body.iconUrl });
 
   const software = await Software.create({
     ...common,
@@ -337,7 +334,7 @@ async function resolveRemoteSoftwareMeta({ sourceUrl = "" } = {}) {
   }
 }
 
-async function createSoftwareFromRemoteImport({ body = {}, iconFile = null, onStatus = null }) {
+async function createSoftwareFromRemoteImport({ body = {}, onStatus = null }) {
   const setStatus = (status, message = "") => {
     if (typeof onStatus === "function") onStatus(status, message);
   };
@@ -373,7 +370,7 @@ async function createSoftwareFromRemoteImport({ body = {}, iconFile = null, onSt
     await fs.rename(tmpAbsolutePath, finalResolved.absolutePath);
     tmpAbsolutePath = "";
 
-    const iconPath = await resolveIconPath({ iconFile, iconUrl: body.iconUrl });
+    const iconPath = await resolveIconPath({ iconUrl: body.iconUrl });
 
     const software = await Software.create({
       ...common,
@@ -399,13 +396,13 @@ async function createSoftwareFromRemoteImport({ body = {}, iconFile = null, onSt
   }
 }
 
-async function createSoftwareFromExternalLink({ body = {}, iconFile = null }) {
+async function createSoftwareFromExternalLink({ body = {} }) {
   const categoryKey = await resolveCategoryKeyInput(body);
   const common = normalizeCommonPayload(body);
   const externalUrl = assertSafeHttpUrl(body.externalUrl);
   const sourceUrl = body.sourceUrl ? assertSafeHttpUrl(body.sourceUrl) : "";
 
-  const iconPath = await resolveIconPath({ iconFile, iconUrl: body.iconUrl });
+  const iconPath = await resolveIconPath({ iconUrl: body.iconUrl });
 
   const software = await Software.create({
     ...common,
