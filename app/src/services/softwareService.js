@@ -186,20 +186,25 @@ async function resolveIconPath({ iconFile = null, iconUrl = "" } = {}) {
   const remoteUrl = String(iconUrl || "").trim();
   if (!remoteUrl) return "";
 
-  const safeUrl = assertSafeHttpUrl(remoteUrl);
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30000);
   try {
-    const { response, finalUrl } = await fetchWithSafeRedirects(safeUrl, { signal: controller.signal });
-    if (!response.ok) badRequest(`icon url returned status ${response.status}`);
-    const mimeType = String(response.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
-    if (!mimeType.startsWith("image/")) badRequest("icon url must point to an image");
-    const arr = await response.arrayBuffer();
-    const buffer = Buffer.from(arr);
-    assertFileSizeLimit(buffer.length, 10);
-    return storeIconBuffer(buffer, resolveIconFileNameFromResponse(finalUrl, response));
-  } finally {
-    clearTimeout(timeout);
+    const safeUrl = assertSafeHttpUrl(remoteUrl);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+    try {
+      const { response, finalUrl } = await fetchWithSafeRedirects(safeUrl, { signal: controller.signal });
+      if (!response.ok) badRequest(`icon url returned status ${response.status}`);
+      const mimeType = String(response.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
+      if (!mimeType.startsWith("image/")) badRequest("icon url must point to an image");
+      const arr = await response.arrayBuffer();
+      const buffer = Buffer.from(arr);
+      assertFileSizeLimit(buffer.length, 10);
+      return storeIconBuffer(buffer, resolveIconFileNameFromResponse(finalUrl, response));
+    } finally {
+      clearTimeout(timeout);
+    }
+  } catch (error) {
+    if (error && error.status === 400) throw error;
+    badRequest(`icon url fetch failed: ${error?.message || "network error"}`);
   }
 }
 

@@ -439,11 +439,15 @@ async function handleEditSubmit() {
 }
 
 async function confirmDelete(row) {
-  await ElMessageBox.confirm(`确认删除软件「${row.name}」吗？`, "删除确认", {
-    type: "warning",
-    confirmButtonText: "确认删除",
-    cancelButtonText: "取消",
-  })
+  try {
+    await ElMessageBox.confirm(`确认删除软件「${row.name}」吗？`, "删除确认", {
+      type: "warning",
+      confirmButtonText: "确认删除",
+      cancelButtonText: "取消",
+    })
+  } catch {
+    return
+  }
   submitWithFeedback({
     setLoading: () => {},
     action: () => deleteSoftware(row.id),
