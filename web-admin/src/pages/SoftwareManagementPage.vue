@@ -10,7 +10,7 @@ import {
   View,
   WarningFilled,
 } from "@element-plus/icons-vue"
-import { ElMessage, ElMessageBox } from "element-plus"
+import { ElMessage } from "element-plus"
 import {
   checkSoftwareValidity,
   createSoftwareByExternalLink,
@@ -27,6 +27,7 @@ import {
 import { submitWithFeedback } from "../utils/databaseAction"
 import { formatDate } from "../utils/format"
 import SoftwareDetailDialog from "../components/SoftwareDetailDialog.vue"
+import DeleteConfirmDialog from "../components/DeleteConfirmDialog.vue"
 import { SOFTWARE_CATEGORIES, getSoftwareCategoryMeta } from "../constants/softwareCategories"
 import androidIcon from "../assets/icons/android.svg"
 import macosIcon from "../assets/icons/macos.svg"
@@ -55,7 +56,10 @@ const resolvingRemoteMeta = ref(false)
 const lastCreatedSoftwareId = ref("")
 const showViewDialog = ref(false)
 const showEditDialog = ref(false)
+const showDeleteDialog = ref(false)
 const currentSoftware = ref(null)
+const deleteTargetSoftware = ref(null)
+const deleteSubmitting = ref(false)
 const editSubmitting = ref(false)
 const editFormRef = ref(null)
 const editIconPopoverVisible = ref(false)
@@ -144,6 +148,21 @@ const currentSoftwareDetail = computed(() => {
     storageLocation,
     securityCheck,
   }
+})
+
+const deleteConfirmFields = computed(() => {
+  const software = deleteTargetSoftware.value
+  if (!software) return []
+  return [
+    { label: "软件名称", value: software.name || "-" },
+    { label: "所属分类", value: software.categoryName || getSoftwareCategoryMeta(software.categoryKey).name || "-" },
+    { label: "支持平台", value: software.platform || "-" },
+  ]
+})
+
+const deleteConfirmDescription = computed(() => {
+  const software = deleteTargetSoftware.value
+  return software ? `确认删除软件「${software.name || "-"}」吗？删除后将无法恢复。` : "确认删除该软件？删除后将无法恢复。"
 })
 
 const createSubmitText = computed(() => {
@@ -439,22 +458,33 @@ async function handleEditSubmit() {
 }
 
 async function confirmDelete(row) {
-  try {
-    await ElMessageBox.confirm(`确认删除软件「${row.name}」吗？`, "删除确认", {
-      type: "warning",
-      confirmButtonText: "确认删除",
-      cancelButtonText: "取消",
-    })
-  } catch {
-    return
-  }
+  deleteTargetSoftware.value = row
+  showDeleteDialog.value = true
+}
+
+async function handleDeleteSoftware() {
+  const row = deleteTargetSoftware.value
+  if (!row?.id) return
   submitWithFeedback({
-    setLoading: () => {},
+    setLoading: (value) => {
+      deleteSubmitting.value = value
+    },
     action: () => deleteSoftware(row.id),
     successMessage: "软件删除成功。",
     errorMessage: "软件删除失败。",
-    onSuccess: loadSoftwares,
+    onSuccess: async () => {
+      showDeleteDialog.value = false
+      deleteTargetSoftware.value = null
+      await loadSoftwares()
+    },
   })
+}
+
+function handleDeleteDialogClose(value) {
+  showDeleteDialog.value = value
+  if (!value) {
+    deleteTargetSoftware.value = null
+  }
 }
 
 watch([searchText, categoryFilter, sourceTypeFilter, validityFilter], () => {
@@ -902,7 +932,7 @@ function softwareTableRowClassName({ row }) {
                 <el-form-item class="software-edit-icon-url-field" label="图标链接" prop="iconUrl">
                   <el-input v-model="editForm.iconUrl" placeholder="https://example.com/icon.png" />
                 </el-form-item>
-                <p class="software-edit-icon-tip">保存修改后会抓取新的网络图标并同步更新列表。</p>
+                <p class="software-edit-icon-tip">保存修改后会使用新的图标链接并同步更新列表。</p>
               </el-popover>
             </div>
             <strong :title="editForm.name">{{ editForm.name || "-" }}</strong>
@@ -973,6 +1003,18 @@ function softwareTableRowClassName({ row }) {
         </div>
       </template>
     </el-dialog>
+
+    <DeleteConfirmDialog
+      v-model="showDeleteDialog"
+      title="确认删除软件"
+      :description="deleteConfirmDescription"
+      :fields="deleteConfirmFields"
+      warning="该操作不可撤销。"
+      confirm-text="确认删除"
+      :submitting="deleteSubmitting"
+      @update:model-value="handleDeleteDialogClose"
+      @confirm="handleDeleteSoftware"
+    />
   </el-main>
 </template>
 

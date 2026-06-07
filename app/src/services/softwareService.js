@@ -116,6 +116,7 @@ function normalizeOptionalText(value, max = 500) {
 
 function getIconAssetUrl(fileName) {
   const safeName = String(fileName || "").trim();
+  if (/^https?:\/\//i.test(safeName)) return safeName;
   return safeName ? `/api/softwares/assets/${encodeURIComponent(safeName)}` : "";
 }
 
@@ -144,6 +145,7 @@ function cleanSoftwareName(fileName = "") {
 
 async function safeRemoveFileByName(fileName) {
   if (!fileName) return;
+  if (/^https?:\/\//i.test(String(fileName || "").trim())) return;
   try {
     const resolved = resolveSoftwarePath(fileName);
     await fs.rm(resolved.absolutePath, { force: true });
@@ -186,26 +188,7 @@ async function resolveIconPath({ iconFile = null, iconUrl = "" } = {}) {
   const remoteUrl = String(iconUrl || "").trim();
   if (!remoteUrl) return "";
 
-  try {
-    const safeUrl = assertSafeHttpUrl(remoteUrl);
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30000);
-    try {
-      const { response, finalUrl } = await fetchWithSafeRedirects(safeUrl, { signal: controller.signal });
-      if (!response.ok) badRequest(`icon url returned status ${response.status}`);
-      const mimeType = String(response.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
-      if (!mimeType.startsWith("image/")) badRequest("icon url must point to an image");
-      const arr = await response.arrayBuffer();
-      const buffer = Buffer.from(arr);
-      assertFileSizeLimit(buffer.length, 10);
-      return storeIconBuffer(buffer, resolveIconFileNameFromResponse(finalUrl, response));
-    } finally {
-      clearTimeout(timeout);
-    }
-  } catch (error) {
-    if (error && error.status === 400) throw error;
-    badRequest(`icon url fetch failed: ${error?.message || "network error"}`);
-  }
+  return assertSafeHttpUrl(remoteUrl);
 }
 
 function normalizePageQuery(query = {}) {
