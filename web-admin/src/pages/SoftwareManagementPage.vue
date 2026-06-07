@@ -40,7 +40,11 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
 const loading = ref(false)
-const categories = ref([])
+const categories = ref(SOFTWARE_CATEGORIES.map((item) => ({
+  categoryKey: item.key,
+  name: item.name,
+  sort: item.sort,
+})))
 const softwares = ref([])
 const showCreateDialog = ref(false)
 const createTab = ref("common")
@@ -261,6 +265,56 @@ function platformIcon(platform) {
   if (value.includes("mac")) return macosIcon
   if (value.includes("android")) return androidIcon
   return windowsIcon
+}
+
+function normalizeCategoryList(items = []) {
+  return items
+    .map((item) => ({
+      categoryKey: String(item.categoryKey || item.key || "").trim() || "other",
+      name: String(item.name || "其他"),
+      sort: Number(item.sort || 0),
+    }))
+    .filter((item) => item.categoryKey)
+    .sort((a, b) => a.sort - b.sort)
+}
+
+async function loadCategories() {
+  try {
+    const data = await listSoftwareCategories({ page: 1, pageSize: 50 })
+    const items = normalizeCategoryList(data.items || data.categories || [])
+    categories.value = items.length ? items : SOFTWARE_CATEGORIES.map((item) => ({
+      categoryKey: item.key,
+      name: item.name,
+      sort: item.sort,
+    }))
+  } catch {
+    categories.value = SOFTWARE_CATEGORIES.map((item) => ({
+      categoryKey: item.key,
+      name: item.name,
+      sort: item.sort,
+    }))
+  }
+}
+
+async function loadSoftwares() {
+  loading.value = true
+  try {
+    const data = await listSoftwares({
+      page: currentPage.value,
+      pageSize: pageSize.value,
+      keyword: searchText.value.trim(),
+      categoryKey: categoryFilter.value,
+      sourceType: sourceTypeFilter.value,
+      validityStatus: validityFilter.value,
+    })
+    softwares.value = data.items || []
+    total.value = Number(data.total || 0)
+  } catch {
+    softwares.value = []
+    total.value = 0
+  } finally {
+    loading.value = false
+  }
 }
 
 function triggerCheck(row) {
