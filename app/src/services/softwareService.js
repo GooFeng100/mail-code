@@ -107,6 +107,22 @@ function normalizeCommonPayload(payload = {}) {
   };
 }
 
+function parseFileSizeText(value) {
+  const text = String(value || "").trim();
+  if (!text) return 0;
+
+  const compact = text.replace(/\s+/g, "").toLowerCase();
+  const match = compact.match(/^(\d+(?:\.\d+)?)(b|kb|mb|gb)?$/i);
+  if (!match) badRequest("fileSizeText must be a valid size such as 23.4 MB");
+
+  const amount = Number(match[1]);
+  if (!Number.isFinite(amount) || amount < 0) badRequest("fileSizeText must be a non-negative number");
+
+  const unit = String(match[2] || "b").toLowerCase();
+  const multiplier = unit === "gb" ? 1024 ** 3 : unit === "mb" ? 1024 ** 2 : unit === "kb" ? 1024 : 1;
+  return Math.round(amount * multiplier);
+}
+
 function normalizeOptionalText(value, max = 500) {
   if (value === undefined || value === null) return "";
   const text = String(value).trim();
@@ -255,6 +271,7 @@ async function createSoftwareFromLocalUpload({ body = {}, file = null }) {
   const storedFileName = buildSafeStoredFilename("local", file.originalname);
   const { absolutePath, fileName } = resolveSoftwarePath(storedFileName);
   await fs.writeFile(absolutePath, file.buffer);
+  const fileSize = Number(file.size || 0) || parseFileSizeText(body.fileSizeText);
 
   const iconPath = await resolveIconPath({ iconUrl: body.iconUrl });
 
@@ -268,7 +285,7 @@ async function createSoftwareFromLocalUpload({ body = {}, file = null }) {
     originalName: String(file.originalname || "").trim(),
     fileName,
     filePath: fileName,
-    fileSize: Number(file.size || 0),
+    fileSize,
     mimeType: String(file.mimetype || "").trim(),
     fileHash: sha256(file.buffer),
     validityStatus: "local_file_ok",
@@ -369,6 +386,7 @@ async function createSoftwareFromRemoteImport({ body = {}, onStatus = null }) {
     const finalResolved = resolveSoftwarePath(finalName);
     await fs.rename(tmpAbsolutePath, finalResolved.absolutePath);
     tmpAbsolutePath = "";
+    const fileSize = buffer.length || parseFileSizeText(body.fileSizeText);
 
     const iconPath = await resolveIconPath({ iconUrl: body.iconUrl });
 
@@ -382,7 +400,7 @@ async function createSoftwareFromRemoteImport({ body = {}, onStatus = null }) {
       originalName: inferredName,
       fileName: finalResolved.fileName,
       filePath: finalResolved.fileName,
-      fileSize: buffer.length,
+      fileSize,
       mimeType: String(response.headers.get("content-type") || "").trim(),
       fileHash: sha256(buffer),
       validityStatus: "local_file_ok",
@@ -401,6 +419,7 @@ async function createSoftwareFromExternalLink({ body = {} }) {
   const common = normalizeCommonPayload(body);
   const externalUrl = assertSafeHttpUrl(body.externalUrl);
   const sourceUrl = body.sourceUrl ? assertSafeHttpUrl(body.sourceUrl) : "";
+  const fileSize = parseFileSizeText(body.fileSizeText);
 
   const iconPath = await resolveIconPath({ iconUrl: body.iconUrl });
 
@@ -414,7 +433,7 @@ async function createSoftwareFromExternalLink({ body = {} }) {
     originalName: "",
     fileName: "",
     filePath: "",
-    fileSize: 0,
+    fileSize,
     mimeType: "",
     fileHash: "",
     validityStatus: "unchecked",

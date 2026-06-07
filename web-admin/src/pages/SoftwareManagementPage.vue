@@ -543,6 +543,7 @@ async function submitCreateSoftware() {
   payload.append("categoryKey", form.categoryKey)
   payload.append("platform", form.platform || "Windows")
   payload.append("appVersion", form.appVersion || "")
+  payload.append("fileSizeText", form.fileSizeText || "")
   payload.append("description", form.description || "")
   payload.append("sort", String(form.sort ?? 100))
   payload.append("isPublished", String(Boolean(form.isPublished)))
