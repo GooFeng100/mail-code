@@ -1,6 +1,6 @@
 services:
   mail-code-app:
-    image: node:20-alpine
+    image: node:24-bookworm-slim
     container_name: mail-code-app
     working_dir: /app
     volumes:
@@ -9,7 +9,7 @@ services:
       - "3001:3000"
     env_file:
       - /vol1/1000/docker/mail-code/app/.env
-    command: sh -c "npm install && npm start"
+    command: sh -c "npm ci --omit=dev && npm start"
     restart: unless-stopped
     depends_on:
       - mail-code-redis

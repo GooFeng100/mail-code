@@ -3,6 +3,9 @@
   "version": "1.2.8",
   "description": "Mail code receiver system",
   "main": "src/app.js",
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "sync:domains": "node ../scripts/sync-domains.mjs",
     "start": "node src/app.js",
